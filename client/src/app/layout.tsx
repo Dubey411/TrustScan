@@ -10,11 +10,11 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: 'Next.js with Tailwind CSS',
-  description: 'A boilerplate project with Next.js and Tailwind CSS',
+  title: 'TrustScan AI | Multi-Modal Fraud Detection',
+  description: 'Production-grade fraud detection for Indian documents, payments, and messages.',
   icons: {
     icon: [
-      { url: '/favicon.ico', type: 'image/x-icon' }
+      { url: '/image.png', type: 'image/png' }
     ],
   },
 };
