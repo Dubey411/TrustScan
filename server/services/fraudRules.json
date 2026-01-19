@@ -1,0 +1,360 @@
+[
+    {
+        "id": "GENERIC_MISSING_FIELDS",
+        "riskLevel": "high",
+        "category": "missingCriticalFields",
+        "reason": "Official document missing standard verification fields (Date/ID/Ref)",
+        "impliedRisk": 85,
+        "logic": {
+            "and": [
+                {
+                    "hasSignal": "missingCriticalFields"
+                }
+            ]
+        }
+    },
+    {
+        "id": "GENERIC_SUCCESS_MSG",
+        "riskLevel": "high",
+        "category": "genericSuccessMsg",
+        "reason": "Contains generic 'Payment Successful' text often found in generators",
+        "impliedRisk": 90,
+        "logic": {
+            "and": [
+                {
+                    "hasSignal": "genericSuccessMsg"
+                }
+            ]
+        }
+    },
+    {
+        "id": "GENERIC_EDITED_METADATA",
+        "riskLevel": "high",
+        "category": "softwareMetadata",
+        "reason": "File metadata indicates use of editing software (Canva/Photoshop)",
+        "impliedRisk": 80,
+        "logic": {
+            "and": [
+                {
+                    "hasSignal": "softwareMetadata"
+                }
+            ]
+        }
+    },
+    {
+        "id": "CONTEXT_MISMATCH",
+        "riskLevel": "medium",
+        "category": "contextMismatch",
+        "reason": "Internal Context Mismatch (e.g. Internship asking for high fees)",
+        "impliedRisk": 65,
+        "logic": {
+            "and": [
+                {
+                    "hasSignal": "contextMismatch"
+                }
+            ]
+        }
+    },
+    {
+        "id": "IMMEDIATE_ACTION_REQUIRED",
+        "riskLevel": "high",
+        "category": "urgency",
+        "reason": "Language demanding immediate action to avoid negative consequences",
+        "impliedRisk": 75,
+        "logic": {
+            "and": [
+                {
+                    "hasKeywordsAny": [
+                        "immediately",
+                        "uget",
+                        "urgent",
+                        "24 hours",
+                        "account blocked",
+                        "suspend"
+                    ]
+                }
+            ]
+        }
+    },
+    {
+        "id": "FINANCIAL_DEMAND",
+        "riskLevel": "high",
+        "category": "financial",
+        "reason": "Request for money transfer, processing fees, or bank details",
+        "impliedRisk": 85,
+        "logic": {
+            "and": [
+                {
+                    "hasKeywordsAny": [
+                        "bank transfer",
+                        "processing fee",
+                        "security deposit",
+                        "wallet",
+                        "paytm",
+                        "gpay",
+                        "phonepe",
+                        "registration fee",
+                        "enrollment fee",
+                        "training fee",
+                        "commitment fee",
+                        "caution deposit",
+                        "discounted fee",
+                        "processing fee"
+                    ]
+                }
+            ]
+        }
+    },
+    {
+        "id": "JOB_OFFER_SCAM",
+        "riskLevel": "high",
+        "category": "jobScam",
+        "reason": "Unsolicited job offer or high salary reward for minimal work",
+        "impliedRisk": 80,
+        "logic": {
+            "and": [
+                {
+                    "hasKeywordsAny": [
+                        "salary",
+                        "job offer",
+                        "work from home",
+                        "income",
+                        "part time job",
+                        "earn money online",
+                        "internship",
+                        "offer letter",
+                        "hiring drive",
+                        "training program",
+                        "recruitment",
+                        "batch schedule",
+                        "lms access",
+                        "whatsapp support",
+                        "offer letter"
+                    ]
+                }
+            ]
+        }
+    },
+    {
+        "id": "IMPERSONATION_BRAND",
+        "riskLevel": "medium",
+        "category": "impersonation",
+        "reason": "Mention of a large brand or institution in a suspicious context",
+        "impliedRisk": 60,
+        "logic": {
+            "and": [
+                {
+                    "hasKeywordsAny": [
+                        "amazon",
+                        "flipkart",
+                        "sbi",
+                        "hdfc",
+                        "axis",
+                        "microsoft support",
+                        "bank verification",
+                        "iit",
+                        "bhu",
+                        "aicte",
+                        "linkedin"
+                    ]
+                }
+            ]
+        }
+    },
+    {
+        "id": "PAY_TO_WORK_PREDATORY",
+        "riskLevel": "high",
+        "category": "financial",
+        "reason": "Found 'Pay-to-Work' pattern: charging for internship training/certification",
+        "impliedRisk": 90,
+        "logic": {
+            "and": [
+                {
+                    "hasKeywordsAny": [
+                        "paying is for training",
+                        "paying for internship",
+                        "charge for training",
+                        "cost for internship",
+                        "fee for training"
+                    ]
+                }
+            ]
+        }
+    },
+    {
+        "id": "SUSPICIOUS_LINKS",
+        "riskLevel": "high",
+        "category": "links",
+        "reason": "URL shows technical red flags (Typosquatting/IP-host) common in phishing",
+        "impliedRisk": 70,
+        "logic": {
+            "and": [
+                {
+                    "hasFeature": "untrustedUrl"
+                }
+            ]
+        }
+    },
+    {
+        "id": "BOOTSTRAP_IDENTITY_THEFT",
+        "riskLevel": "high",
+        "category": "impersonation",
+        "reason": "Targeted Identity Theft pattern detected",
+        "impliedRisk": 90,
+        "logic": {
+            "and": [
+                {
+                    "hasKeywordsAny": [
+                        "identity theft",
+                        "personal data"
+                    ]
+                }
+            ]
+        }
+    },
+    {
+        "id": "BOOTSTRAP_MALWARE",
+        "riskLevel": "high",
+        "category": "techSupport",
+        "reason": "Malware/Virus distribution pattern detected",
+        "impliedRisk": 95,
+        "logic": {
+            "and": [
+                {
+                    "hasKeywordsAny": [
+                        "malware",
+                        "virus",
+                        "infection",
+                        "trojan"
+                    ]
+                }
+            ]
+        }
+    },
+    {
+        "id": "BOOTSTRAP_PHISHING",
+        "riskLevel": "high",
+        "category": "links",
+        "reason": "Phishing/Social engineering pattern detected",
+        "impliedRisk": 85,
+        "logic": {
+            "and": [
+                {
+                    "hasKeywordsAny": [
+                        "phishing",
+                        "scam",
+                        "fake site"
+                    ]
+                }
+            ]
+        }
+    },
+    {
+        "id": "ID_STRUCTURAL_ANOMALY",
+        "riskLevel": "high",
+        "category": "structuralAnomalies",
+        "reason": "Mathematically invalid Indian ID (Aadhaar/PAN) detected in document/text",
+        "impliedRisk": 95,
+        "logic": {
+            "and": [
+                {
+                    "hasSignal": "structuralAnomalies"
+                }
+            ]
+        }
+    },
+    {
+        "id": "LINK_TYPOSQUATTING",
+        "riskLevel": "high",
+        "category": "typosquatting",
+        "reason": "URL looks like a major brand but has slight variations (Phishing Tactic)",
+        "impliedRisk": 85,
+        "logic": {
+            "and": [
+                {
+                    "hasSignal": "typosquatting"
+                }
+            ]
+        }
+    },
+    {
+        "id": "LINK_SUSPICIOUS_TLD",
+        "riskLevel": "medium",
+        "category": "suspiciousTld",
+        "reason": "Uses a Top-Level Domain (TLD) commonly associated with malicious websites",
+        "impliedRisk": 65,
+        "logic": {
+            "and": [
+                {
+                    "hasSignal": "suspiciousTld"
+                }
+            ]
+        }
+    },
+    {
+        "id": "LINK_IP_HOST",
+        "riskLevel": "high",
+        "category": "ipHost",
+        "reason": "URL uses a direct IP address, skipping domain name transparency",
+        "impliedRisk": 90,
+        "logic": {
+            "and": [
+                {
+                    "hasSignal": "ipHost"
+                }
+            ]
+        }
+    },
+    {
+        "id": "LINK_SHORTENER_OBFUSCATION",
+        "riskLevel": "medium",
+        "category": "shortenerObfuscation",
+        "reason": "Link is obfuscated through a shortener, common in SMS/WhatsApp scams",
+        "impliedRisk": 50,
+        "logic": {
+            "and": [
+                {
+                    "hasSignal": "shortenerObfuscation"
+                }
+            ]
+        }
+    },
+    {
+        "id": "MISSING_BUSINESS_ID",
+        "riskLevel": "medium",
+        "category": "jobScam",
+        "reason": "Professional internship/job offer missing official Business ID (CIN/GST)",
+        "impliedRisk": 65,
+        "logic": {
+            "and": [
+                {
+                    "hasKeywordsAny": [
+                        "internship",
+                        "hiring drive",
+                        "offer letter"
+                    ]
+                },
+                {
+                    "isMissingSignal": "hasGst"
+                },
+                {
+                    "isMissingSignal": "hasCin"
+                }
+            ]
+        }
+    },
+    {
+        "id": "INVALID_BUSINESS_ID",
+        "riskLevel": "high",
+        "category": "invalidBusinessId",
+        "reason": "Provided Business Identification (GST/CIN) has incorrect format",
+        "impliedRisk": 90,
+        "logic": {
+            "and": [
+                {
+                    "hasSignal": "invalidBusinessId"
+                }
+            ]
+        }
+    }
+]

@@ -1,0 +1,26 @@
+{
+    "bias": -1.0740413987357866,
+    "signals": {
+        "urgency": 2.0015530646921813,
+        "financial": 1.6011419781069582,
+        "impersonation": 0.7064253758973453,
+        "jobScam": -0.23376134515021568,
+        "techSupport": 0.578755456313794,
+        "links": 0.6087249630202312,
+        "personalData": 0.0,
+        "scamKeywords": 1.5033102722177527,
+        "trustSignal": 0.06711720428492274,
+        "softwareMetadata": 0.0,
+        "genericSuccessMsg": 0.0,
+        "missingCriticalFields": 0.0,
+        "contextMismatch": 0.0,
+        "lowOcrConfidence": 0.0,
+        "ocrConfidenceParadox": 0.0,
+        "structuralAnomalies": 2.0999999999999996
+    },
+    "metadata": {
+        "capsRatio": 3.0,
+        "linkCount": 3.0,
+        "phoneCount": 1.1578675057384376
+    }
+}
