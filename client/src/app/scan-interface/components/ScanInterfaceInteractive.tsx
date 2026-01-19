@@ -1,0 +1,435 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { performScan } from '@/api/scan';
+
+// Ensure these imports point to the correct relative path
+import Icon from '@/components/ui/AppIcon';
+import ScanTypeCard from './ScanTypeCard';
+import TextInputArea from './TextInputArea';
+import LinkInputArea from './LinkInputArea';
+import FileUploadArea from './FileUploadArea';
+import ScanProgress from './ScanProgress';
+import HelpTooltip from './HelpTooltip';
+import KeyboardShortcuts from './KeyboardShortcuts';
+
+interface ScanType {
+  id: string;
+  icon: string;
+  title: string;
+  description: string;
+  inputType: 'text' | 'link' | 'file';
+  placeholder?: string;
+  acceptedFormats?: string[];
+  maxSize?: number;
+  maxLength?: number;
+  buttonText: string;
+}
+
+interface ScanInterfaceInteractiveProps {
+  onScanComplete?: (data: any) => void;
+}
+
+export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfaceInteractiveProps) {
+  const router = useRouter(); 
+  const [isHydrated, setIsHydrated] = useState(false);
+  const [selectedScanType, setSelectedScanType] = useState<string>('email');
+  const [textInput, setTextInput] = useState('');
+  const [linkInput, setLinkInput] = useState('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isScanning, setIsScanning] = useState(false);
+  const [analysisDepth, setAnalysisDepth] = useState<'basic' | 'standard' | 'deep'>('basic');
+  const [priorityLevel, setPriorityLevel] = useState<'normal' | 'urgent'>('normal');
+  const [error, setError] = useState<string | null>(null);
+
+
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+
+  const scanTypes: ScanType[] = [
+    {
+      id: 'email',
+      icon: 'EnvelopeIcon',
+      title: 'Email/Message Scan',
+      description: 'Analyze suspicious emails, WhatsApp messages, or SMS content',
+      inputType: 'text',
+      placeholder: 'Paste the email or message content here...',
+      maxLength: 5000,
+      buttonText: 'Analyze Message'
+    },
+    {
+      id: 'company',
+      icon: 'BuildingOffice2Icon',
+      title: 'Company Verifier',
+      description: 'Validate business legitimacy via GSTIN, CIN, or Company Name',
+      inputType: 'text',
+      placeholder: 'Enter Company Name, GSTIN (e.g. 29ABCDE1234F1Z5), or CIN...',
+      maxLength: 500,
+      buttonText: 'Verify Business'
+    },
+    {
+      id: 'link',
+      icon: 'LinkIcon',
+      title: 'Link/URL Scan',
+      description: 'Check suspicious links for phishing attempts',
+      inputType: 'link',
+      placeholder: 'Enter URL (e.g. www.secure-banking.com)',
+      buttonText: 'Run Phishing analysis'
+    },
+    {
+      id: 'document',
+      icon: 'DocumentIcon',
+      title: 'Document Scan',
+      description: 'Upload offer letters, contracts, or documents for verification',
+      inputType: 'file',
+      acceptedFormats: ['.pdf', '.doc', '.docx', '.jpg', '.jpeg', '.png'],
+      maxSize: 10 * 1024 * 1024,
+      buttonText: 'Scan Document'
+    },
+];
+
+  const currentScanType = scanTypes.find((type) => type.id === selectedScanType);
+
+  const canScan = (): boolean => {
+    if (!currentScanType) return false;
+    
+    switch (currentScanType.inputType) {
+      case 'text':
+        return textInput.trim().length > 10;
+      case 'link':
+        return linkInput.trim().length > 0;
+      case 'file':
+        return selectedFile !== null;
+      default:
+        return false;
+    }
+  };
+
+  const handleScan = async () => {
+    if (!canScan()) return;
+    
+    setIsScanning(true);
+    setError(null);
+
+    // Determine target/content
+    let targetContent = '';
+    if (currentScanType?.inputType === 'text') {
+        targetContent = textInput;
+    } else if (currentScanType?.inputType === 'link') {
+        targetContent = linkInput;
+    } else {
+        // Fallback for file/other (mock for now as API handles text)
+        targetContent = selectedFile ? selectedFile.name : 'Unknown File';
+    }
+
+    try {
+        // Call API
+        const userId = localStorage.getItem('userEmail');
+        
+        const scanData: any = { 
+            type: selectedScanType, 
+            userId: userId || undefined 
+        };
+
+        if (selectedFile && selectedScanType === 'document') {
+            scanData.file = selectedFile;
+        } else {
+            scanData.content = targetContent;
+        }
+
+        const result = await performScan(scanData);
+
+        
+        // Pass result to parent
+        if (onScanComplete) {
+            onScanComplete({
+                id: (result as any).id || (result as any)._id,
+                type: selectedScanType,
+                target: targetContent.slice(0, 50) + (targetContent.length > 50 ? '...' : ''),
+                apiResult: result // Pass the full API result
+            });
+        }
+    } catch (err) {
+        console.error("Scan failed", err);
+        setError("Scan failed. Please check your connection and try again.");
+    } finally {
+        setIsScanning(false);
+    }
+  };
+
+  const handleClear = () => {
+    setTextInput('');
+    setLinkInput('');
+    setSelectedFile(null);
+    setError(null);
+  };
+
+
+  return (
+    <>
+      {/* Header Removed for Dashboard Integration */}
+            <div className="max-w-5xl mx-auto">
+              <div className="text-center mb-8">
+                <h1 className="text-3xl md:text-4xl font-headline font-bold text-foreground mb-4">
+                  New Security Scan
+                </h1>
+                <p className="text-muted-foreground max-w-2xl mx-auto">
+                  Upload suspicious job offers, emails, links, or documents.
+                </p>
+                {error && (
+                  <div className="mt-4 p-3 bg-red-100 border border-red-200 text-red-700 rounded-lg max-w-md mx-auto">
+                    <p className="flex items-center justify-center gap-2">
+                      <Icon name="ExclamationTriangleIcon" size={18} />
+                      {error}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+
+            <div className="grid md:grid-cols-2 gap-4 mb-8">
+              {scanTypes.map((type) => (
+                <ScanTypeCard
+                  key={type.id}
+                  icon={type.icon}
+                  title={type.title}
+                  description={type.description}
+                  isSelected={selectedScanType === type.id}
+                  onClick={() => {
+                    setSelectedScanType(type.id);
+                    handleClear();
+                  }}
+                />
+              ))}
+            </div>
+
+            <div className="bg-card rounded-xl shadow-brand p-6 md:p-8 mb-8">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-primary/10 rounded-lg">
+                    <Icon name={currentScanType?.icon as any} size={24} variant="solid" className="text-primary" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-headline font-bold text-foreground">{currentScanType?.title}</h2>
+                    <p className="text-sm text-muted-foreground">{currentScanType?.description}</p>
+                  </div>
+                </div>
+                <HelpTooltip
+                  content="Paste or upload the content you want to verify. Our AI will analyze it for fraud indicators and provide a detailed safety report."
+                  position="left"
+                />
+              </div>
+
+              <div className="mb-6">
+                {currentScanType?.inputType === 'text' && (
+                  selectedScanType === 'company' ? (
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={textInput}
+                        onChange={(e) => setTextInput(e.target.value)}
+                        placeholder={currentScanType.placeholder || ''}
+                        maxLength={currentScanType.maxLength || 500}
+                        className="w-full p-4 bg-muted/50 text-foreground border border-border rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary transition-all duration-200 outline-none font-medium placeholder:text-muted-foreground/60 shadow-inner"
+                      />
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground text-sm pointer-events-none">
+                        <Icon name="MagnifyingGlassIcon" size={20} />
+                      </div>
+                    </div>
+                  ) : (
+                    <TextInputArea
+                      value={textInput}
+                      onChange={setTextInput}
+                      placeholder={currentScanType.placeholder || ''}
+                      maxLength={currentScanType.maxLength || 5000}
+                    />
+                  )
+                )}
+                
+                {currentScanType?.inputType === 'link' && (
+                  <LinkInputArea 
+                    value={linkInput} 
+                    onChange={setLinkInput} 
+                    placeholder={currentScanType.placeholder}
+                  />
+                )}
+                
+                {currentScanType?.inputType === 'file' && (
+                  <FileUploadArea
+                    onFileSelect={setSelectedFile}
+                    acceptedFormats={currentScanType.acceptedFormats || []}
+                    maxSize={currentScanType.maxSize || 10 * 1024 * 1024}
+                  />
+                )}
+              </div>
+
+               {/* Analysis Options */}
+               <div className="mb-8 space-y-6">
+                <div>
+                  <h3 className="text-lg font-headline font-semibold text-foreground mb-3">Analysis Depth</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <button
+                      className={`relative p-4 rounded-xl border-2 transition-all duration-300 text-left ${
+                        analysisDepth === 'basic'
+                          ? 'border-primary bg-primary/5 shadow-brand'
+                          : 'border-border bg-card hover:border-primary/50'
+                      }`}
+                      onClick={() => setAnalysisDepth('basic')}
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <Icon name="BoltIcon" size={20} variant="solid" className="text-primary" />
+                        <span className="font-semibold text-foreground">Basic</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">Quick scan (30s)</p>
+                    </button>
+
+                    <button
+                      className={`relative p-4 rounded-xl border-2 transition-all duration-300 text-left ${
+                        analysisDepth === 'standard'
+                          ? 'border-primary bg-primary/5 shadow-brand'
+                          : 'border-border bg-card hover:border-primary/50'
+                      }`}
+                      onClick={() => setAnalysisDepth('standard')}
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <Icon name="EyeIcon" size={20} variant="solid" className="text-primary" />
+                        <span className="font-semibold text-foreground">Standard</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">Thorough analysis (1-2 min)</p>
+                    </button>
+
+                    <button
+                      className={`relative p-4 rounded-xl border-2 transition-all duration-300 text-left opacity-75 cursor-not-allowed border-amber-200/50 bg-amber-50/50`}
+                      
+                    >
+                      <div className="absolute -top-3 -right-3 z-10">
+                        <span className="bg-amber-400 text-white text-[10px] uppercase font-bold px-2 py-0.5 rounded-full shadow-sm tracking-wider">
+                          pro
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <Icon name="BeakerIcon" size={20} variant="solid" className="text-amber-500" />
+                        <span className="font-semibold text-foreground">Deep</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">Comprehensive check (3-5 min)</p>
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-headline font-semibold text-foreground mb-3">Priority Level</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <button
+                      className={`relative p-4 rounded-xl border-2 transition-all duration-300 text-left ${
+                        priorityLevel === 'normal'
+                          ? 'border-primary bg-primary/5 shadow-brand'
+                          : 'border-border bg-card hover:border-primary/50'
+                      }`}
+                      onClick={() => setPriorityLevel('normal')}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Icon name="ClockIcon" size={20} variant="solid" className="text-primary" />
+                        <span className="font-semibold text-foreground">Normal</span>
+                      </div>
+                    </button>
+
+                    <button className="relative p-4 rounded-xl border-2 border-amber-200/50 bg-amber-50/50 transition-all duration-300 text-left opacity-75 cursor-not-allowed group">
+                      <div className="absolute -top-3 -right-3 z-10">
+                         <span className="bg-amber-400 text-white text-[10px] uppercase font-bold px-2 py-0.5 rounded-full shadow-sm tracking-wider">
+                          pro
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Icon name="BoltIcon" size={20} variant="solid" className="text-amber-500" />
+                          <span className="font-semibold text-foreground">Urgent</span>
+                        </div>
+                        <Icon name="LockClosedIcon" size={16} variant="solid" className="text-amber-500/50" />
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
+                 <div className="p-3 bg-amber-50 border border-amber-100 rounded-lg flex items-start gap-3">
+                  <Icon name="InformationCircleIcon" size={18} variant="solid" className="text-amber-500 mt-0.5" />
+                  <p className="text-xs text-amber-800">
+                    Premium features require an active subscription. Upgrade to access deep analysis and priority processing.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={handleScan}
+                  disabled={!canScan()}
+                  className="flex-1 flex items-center justify-center space-x-2 px-6 py-4 bg-primary text-primary-foreground rounded-lg font-headline font-semibold hover:bg-trust-blue hover:-translate-y-0.5 hover:shadow-brand transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                >
+                  <Icon name="ShieldCheckIcon" size={24} variant="solid" />
+                  <span>{currentScanType?.buttonText || 'Start Security Scan'}</span>
+                </button>
+                <button
+                  onClick={handleClear}
+                  className="sm:w-auto px-6 py-4 border-2 border-border rounded-lg font-headline font-semibold text-foreground hover:bg-muted hover:border-primary/50 transition-all duration-300"
+                >
+                  Clear Input
+                </button>
+              </div>
+
+              <div className="mt-6 p-4 bg-muted/30 rounded-lg border border-border">
+                <div className="flex items-start space-x-3">
+                  <Icon name="InformationCircleIcon" size={20} variant="solid" className="text-primary flex-shrink-0 mt-0.5" />
+                  <div className="text-sm text-muted-foreground">
+                    <p className="font-medium text-foreground mb-1">What we check:</p>
+                    <ul className="space-y-1">
+                      <li>• Suspicious language patterns and urgency tactics</li>
+                      <li>• Company verification and domain authenticity</li>
+                      <li>• Known scam databases and fraud indicators</li>
+                      <li>• Contact information and payment request analysis</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-6 mb-12">
+              <div className="bg-card rounded-lg p-6 shadow-subtle">
+                <div className="flex items-center space-x-3 mb-3">
+                  <div className="p-2 bg-success/10 rounded-lg">
+                    <Icon name="BoltIcon" size={24} variant="solid" className="text-success" />
+                  </div>
+                  <h3 className="font-headline font-semibold text-foreground">Instant Results</h3>
+                </div>
+                <p className="text-sm text-muted-foreground">Get comprehensive fraud analysis in under 3 seconds with real-time processing</p>
+              </div>
+
+              <div className="bg-card rounded-lg p-6 shadow-subtle">
+                <div className="flex items-center space-x-3 mb-3">
+                  <div className="p-2 bg-primary/10 rounded-lg">
+                    <Icon name="ShieldCheckIcon" size={24} variant="solid" className="text-primary" />
+                  </div>
+                  <h3 className="font-headline font-semibold text-foreground">95%+ Accuracy</h3>
+                </div>
+                <p className="text-sm text-muted-foreground">AI-powered detection trained on thousands of verified scam patterns</p>
+              </div>
+
+              <div className="bg-card rounded-lg p-6 shadow-subtle">
+                <div className="flex items-center space-x-3 mb-3">
+                  <div className="p-2 bg-secondary/10 rounded-lg">
+                    <Icon name="LockClosedIcon" size={24} variant="solid" className="text-secondary" />
+                  </div>
+                  <h3 className="font-headline font-semibold text-foreground">Secure & Private</h3>
+                </div>
+                <p className="text-sm text-muted-foreground">End-to-end encryption with zero data sharing to third parties</p>
+              </div>
+            </div>
+          </div>
+      {/* </div>
+      </div> */}
+
+      <ScanProgress isScanning={isScanning} onComplete={() => {}} />
+      <KeyboardShortcuts onScan={handleScan} onClear={handleClear} />
+    </>
+  );
+}
