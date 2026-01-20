@@ -5,7 +5,8 @@ import Link from 'next/link';
 import Icon from '@/components/ui/AppIcon';
 import { ThemeToggle } from './ThemeToggle';
 import { useAuth } from '@/context/AuthContext';
-import { getAuth, signOut } from 'firebase/auth';
+import { signOut } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 
 interface HeaderProps {
   className?: string;
@@ -18,8 +19,9 @@ const Header = ({ className = '' }: HeaderProps) => {
 
   const handleLogout = async () => {
     try {
-        const auth = getAuth();
-        await signOut(auth);
+        if (auth) {
+          await signOut(auth);
+        }
         
         // Clear all auth-related local storage
         if (typeof window !== 'undefined') {

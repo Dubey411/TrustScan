@@ -1,4 +1,4 @@
-import { getAuth } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 
 export interface ScanResult {
   id: string;
@@ -24,7 +24,9 @@ export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://trustsca
  */
 export async function performScan(data: ScanRequest): Promise<ScanResult> {
   try {
-    const auth = getAuth();
+    if (!auth) {
+      throw new Error("Authentication service is not initialized.");
+    }
     const token = await auth.currentUser?.getIdToken();
 
     let body: any;
