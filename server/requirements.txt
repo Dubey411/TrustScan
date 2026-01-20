@@ -1,0 +1,8 @@
+easyocr
+pymupdf
+scikit-learn
+pandas
+numpy
+pymongo
+python-dotenv
+pillow
