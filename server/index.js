@@ -13,6 +13,10 @@ const app = express();
 await connectDB();
 initializeMLAutomation();
 
+app.get("/", (req, res) => {
+  res.status(200).json({ status: "healthy", timestamp: new Date().toISOString() });
+});
+
 app.use(cors());
 app.use(express.json());
 

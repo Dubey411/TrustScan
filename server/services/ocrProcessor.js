@@ -11,8 +11,20 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const SERVER_ROOT = path.resolve(__dirname, '..');
 
-// Initialize Google Vision Client (if credentials exist)
-const visionClient = new vision.ImageAnnotatorClient();
+// Lazy-Initialize Google Vision Client
+let visionClient = null;
+function getVisionClient() {
+    if (visionClient) return visionClient;
+    if (process.env.GOOGLE_APPLICATION_CREDENTIALS || process.env.GOOGLE_CLOUD_PROJECT) {
+        try {
+            visionClient = new vision.ImageAnnotatorClient();
+            return visionClient;
+        } catch (err) {
+            console.warn('⚠️ [OCR] Failed to initialize Google Vision client:', err.message);
+        }
+    }
+    return null;
+}
 
 /**
  * Universal OCR Processor
@@ -45,9 +57,10 @@ export async function processDocument(fileBuffer, mimeType, originalName = "") {
         else if (mimeType.startsWith('image/')) {
             try {
                 // A. Primary: Google Vision
-                if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+                const client = getVisionClient();
+                if (client) {
                     console.log('🔍 [OCR] Attempting Google Vision...');
-                    const [result] = await visionClient.textDetection(fileBuffer);
+                    const [result] = await client.textDetection(fileBuffer);
                     const detections = result.textAnnotations;
                     if (detections && detections.length > 0) {
                         text = detections[0].description;
