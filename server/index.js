@@ -9,8 +9,8 @@ dotenv.config();
 
 const app = express();
 
-// Connect to Database
-connectDB();
+// Connect to Database & Initialize Services
+await connectDB();
 initializeMLAutomation();
 
 app.use(cors());

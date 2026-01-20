@@ -121,24 +121,29 @@ const LinkAnalysisCard = ({ detectedLinks }: LinkAnalysisCardProps) => {
                 {link.url}
               </div>
 
-              {link.redirectChain && link.redirectChain.length > 0 && (
-                <div className="mt-2 space-y-2 border-t border-border pt-2">
-                  <div className="text-xs font-bold text-sky-600 flex items-center gap-1">
-                     <Icon name="ArrowPathIcon" size={14} />
-                     Deep Diver Trace:
+              {(() => {
+                const chain = link.redirectChain;
+                if (!chain || chain.length === 0) return null;
+                
+                return (
+                  <div className="mt-2 space-y-2 border-t border-border pt-2">
+                    <div className="text-xs font-bold text-sky-600 flex items-center gap-1">
+                      <Icon name="ArrowPathIcon" size={14} />
+                      Deep Diver Trace:
+                    </div>
+                    <div className="space-y-1">
+                      {chain.map((hop, hIdx) => (
+                        <div key={hIdx} className="flex items-center gap-2 text-[10px] text-muted-foreground ml-2">
+                          <span className="text-muted-foreground/50">↳</span>
+                          <span className={`px-1.5 py-0.5 rounded ${hIdx === chain.length - 1 ? 'bg-red-100 text-red-700 font-bold border border-red-200' : 'bg-background border border-border'}`}>
+                             {hIdx === chain.length - 1 ? `🎯 Final: ${hop}` : hop}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    {link.redirectChain.map((hop, hIdx) => (
-                      <div key={hIdx} className="flex items-center gap-2 text-[10px] text-muted-foreground ml-2">
-                         <span className="text-muted-foreground/50">↳</span>
-                         <span className={`px-1.5 py-0.5 rounded ${hIdx === link.redirectChain.length - 1 ? 'bg-red-100 text-red-700 font-bold border border-red-200' : 'bg-background border border-border'}`}>
-                            {hIdx === link.redirectChain.length - 1 ? `🎯 Final: ${hop}` : hop}
-                         </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+                );
+              })()}
             </div>
           </div>
         ))}
