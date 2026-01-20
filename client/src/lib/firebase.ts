@@ -1,13 +1,21 @@
-import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider, FacebookAuthProvider } from "firebase/auth";
+import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
+import { getAuth, GoogleAuthProvider, FacebookAuthProvider, Auth } from "firebase/auth";
 import { firebaseConfig } from "./firebaseConfig";
 
 // Initialize Firebase
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const auth = getAuth(app);
+let _app: FirebaseApp | undefined;
+let _auth: Auth | undefined;
+let _googleProvider: GoogleAuthProvider | undefined;
+let _facebookProvider: FacebookAuthProvider | undefined;
 
-// Providers
-const googleProvider = new GoogleAuthProvider();
-const facebookProvider = new FacebookAuthProvider();
+if (firebaseConfig.apiKey) {
+  _app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+  _auth = getAuth(_app);
+  _googleProvider = new GoogleAuthProvider();
+  _facebookProvider = new FacebookAuthProvider();
+}
 
-export { auth, googleProvider, facebookProvider };
+export const app = _app;
+export const auth = _auth as Auth;
+export const googleProvider = _googleProvider as GoogleAuthProvider;
+export const facebookProvider = _facebookProvider as FacebookAuthProvider;
