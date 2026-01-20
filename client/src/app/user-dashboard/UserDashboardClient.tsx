@@ -7,6 +7,7 @@ import GPTDashboardLayout from './components/gpt-layout/GPTDashboardLayout';
   /* eslint-disable @typescript-eslint/no-unused-vars */
   import { useAuth } from '@/context/AuthContext';
   import { useEffect, useState } from 'react';
+  import { API_BASE_URL } from '@/api/scan';
 
   interface Scan {
     _id: string;
@@ -23,7 +24,7 @@ import GPTDashboardLayout from './components/gpt-layout/GPTDashboardLayout';
 
     useEffect(() => {
         if (user) {
-            fetch(`http://localhost:5000/api/history/${user.uid}`)
+            fetch(`${API_BASE_URL}/history/${user.uid}`)
                 .then(res => res.json())
                 .then(data => setScans(data))
                 .catch(err => console.error("Failed to fetch history:", err));

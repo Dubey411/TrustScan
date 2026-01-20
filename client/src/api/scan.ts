@@ -16,7 +16,7 @@ interface ScanRequest {
   file?: File;
 }
 
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://trustscan.onrender.com/api";
 
 /**
  * Performs a fraud scan by calling the backend API.
