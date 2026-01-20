@@ -1,6 +1,4 @@
 'use client';
-// Force build update
-
 
 import React from 'react';
 import Icon from '@/components/ui/AppIcon';
@@ -134,14 +132,32 @@ const LinkAnalysisCard = ({ detectedLinks }: LinkAnalysisCardProps) => {
                       Deep Diver Trace:
                     </div>
                     <div className="space-y-1">
-                      {chain.map((hop, hIdx) => (
+                      {/* {chain.map((hop, hIdx) => (
                         <div key={hIdx} className="flex items-center gap-2 text-[10px] text-muted-foreground ml-2">
                           <span className="text-muted-foreground/50">↳</span>
                           <span className={`px-1.5 py-0.5 rounded ${hIdx === chain.length - 1 ? 'bg-red-100 text-red-700 font-bold border border-red-200' : 'bg-background border border-border'}`}>
                              {hIdx === chain.length - 1 ? `🎯 Final: ${hop}` : hop}
                           </span>
                         </div>
-                      ))}
+                      ))} */}
+                      {chain.map((hop, hIdx) => (
+  <div
+    key={hIdx}
+    className="flex items-center gap-2 text-[10px] text-muted-foreground ml-2"
+  >
+    <span className="text-muted-foreground/50">↳</span>
+    <span
+      className={`px-1.5 py-0.5 rounded ${
+        hIdx === chain.length - 1
+          ? 'bg-red-100 text-red-700 font-bold border border-red-200'
+          : 'bg-background border border-border'
+      }`}
+    >
+      {hIdx === chain.length - 1 ? `🎯 Final: ${hop}` : hop}
+    </span>
+  </div>
+))}
+
                     </div>
                   </div>
                 );
