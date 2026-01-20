@@ -61,6 +61,10 @@ const LoginForm = ({ onSwitchToRegister }: LoginFormProps) => {
       const { auth } = await import('@/lib/firebase');
       const { signInWithEmailAndPassword } = await import('firebase/auth');
       
+      if (!auth) {
+        throw new Error("Authentication is not configured. Please check environment variables.");
+      }
+
       const userCredential = await signInWithEmailAndPassword(
         auth, 
         formData.email, 
@@ -108,6 +112,10 @@ const LoginForm = ({ onSwitchToRegister }: LoginFormProps) => {
          alert("LinkedIn login requires advanced configuration. Please use Google or Email.");
          setIsLoading(false);
          return;
+      }
+
+      if (!auth) {
+        throw new Error("Authentication is not configured. Please check environment variables.");
       }
 
       if (provider) {
