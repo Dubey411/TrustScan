@@ -106,9 +106,9 @@ export async function processDocument(fileBuffer, mimeType, originalName = "") {
             console.log(`🚀 [OCR] DEEP SCAN TRIGGERED (IsUnreadablePDF: ${isUnreadablePDF})...`);
             const fileExt = isPDF ? '.pdf' : '.png';
             
-            // Flexible Timeout: 30s base or 30s per page for PDFs
+            // Flexible Timeout: 120s base (for model download) or 30s per page
             const pageCount = (pdfMetadata && pdfMetadata.pageCount) || 1;
-            const dynamicTimeout = Math.min(Math.max(30000, pageCount * 30000), 240000); // 30s-240s
+            const dynamicTimeout = Math.min(Math.max(120000, pageCount * 30000), 300000); // 120s-300s
             
             console.log(`⏱️ [OCR] Dynamic Timeout Applied: ${dynamicTimeout/1000}s`);
             const deepScanResult = await runPreciseOCR(fileBuffer, fileExt, dynamicTimeout);
@@ -118,6 +118,8 @@ export async function processDocument(fileBuffer, mimeType, originalName = "") {
                 console.log(`✅ [OCR] Deep Scan added/recovered ${deepScanResult.text.length} chars.`);
                 text = (text && text.length > 0) ? (text + "\n" + deepScanResult.text) : deepScanResult.text;
                 extractionSource = extractionSource === "NONE" ? "EASYOCR" : (extractionSource + " + EASYOCR");
+            } else if (deepScanResult.error === "Timeout") {
+                text = (text || "") + " (V:D14-TIMEOUT)";
             }
         } catch (deepErr) {
             console.error('❌ [OCR Processor] Deep Scan Failed:', deepErr);
