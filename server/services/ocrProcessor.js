@@ -129,7 +129,7 @@ export async function processDocument(fileBuffer, mimeType, originalName = "") {
     if (!text || text.trim().length === 0) {
         const reason = isPDF ? "Scanned PDF / No text layer found" : (mimeType?.startsWith('image/') ? "Blurry / Deep scan failed" : "Unsupported format");
         console.warn(`⚠️ [OCR Processor] No text extracted (${reason}). Using fallback message.`);
-        text = `[Document Content Not Readable - ${reason}]`;
+        text = `[Document Content Not Readable - ${reason}] (V:D14-SECURE)`;
         isUnreadable = true;
     }
 
