@@ -124,11 +124,12 @@ export async function processDocument(fileBuffer, mimeType, originalName = "") {
         }
     }
 
-    // Fallback Text
+    // Fallback Text 
     let isUnreadable = false;
     if (!text || text.trim().length === 0) {
-        console.warn('⚠️ [OCR Processor] No text extracted. Using fallback.');
-        text = "[Document Content Not Readable - Analysis based on Metadata only]";
+        const reason = isPDF ? "Scanned PDF / No text layer found" : (mimeType?.startsWith('image/') ? "Blurry / Deep scan failed" : "Unsupported format");
+        console.warn(`⚠️ [OCR Processor] No text extracted (${reason}). Using fallback message.`);
+        text = `[Document Content Not Readable - ${reason}]`;
         isUnreadable = true;
     }
 
@@ -172,45 +173,32 @@ async function processPDF(buffer, externalSignals, trustSignals) {
     let data;
     try {
         console.log('⏳ [PDF] Calling pdf-parse...');
-        // pdf-parse v2+ is a function, not a constructor. 
-        // Using 'new' was causing it to skip the actual parsing logic.
-        data = await PDFParser(buffer);
-        console.log(`✅ [PDF] pdf-parse finished. Pages: ${data.numpages}, Text Length: ${data.text?.length || 0}`);
+        // Try both as function (standard) and constructor (v2 style)
+        if (typeof PDFParser === 'function') {
+            data = await PDFParser(buffer);
+        } else {
+            console.log('DEBUG: PDFParser is NOT a function, trying as constructor...');
+            data = await new PDFParser(buffer);
+        }
+        
+        if (!data || !data.text) {
+             console.warn('⚠️ [PDF] pdf-parse returned empty data structure.');
+             return { text: "", metadata: {} };
+        }
+        
+        console.log(`✅ [PDF] pdf-parse success. Pages: ${data.numpages}, Text Length: ${data.text?.length || 0}`);
+        return { 
+            text: data.text, 
+            metadata: { 
+                producer: data.info?.Producer || "", 
+                creator: data.info?.Creator || "",
+                pageCount: data.numpages 
+            } 
+        };
     } catch (err) {
-        console.warn('⚠️ [PDF] PDF parsing failed:', err.message);
-        throw new Error(`PDF parsing failed: ${err.message}`);
+        console.error('❌ [PDF] Parsing Error:', err.message);
+        throw err;
     }
-    
-    if (!data || !data.text) {
-        console.warn('⚠️ [PDF] pdf-parse returned no text content.');
-        return { text: "", metadata: {} };
-    }
-    const text = data.text;
-    
-    // Metadata Analysis
-    const producer = data.info?.Producer || "";
-    const creator = data.info?.Creator || "";
-    
-    // Red Flags: Design Software
-    if (checkSoftwareMetadata(producer) || checkSoftwareMetadata(creator)) {
-        console.warn(`⚠️ [OCR] Suspicious PDF Producer: ${producer}`);
-         externalSignals.softwareMetadata = 1;
-         externalSignals.metadataAnomalies = 1; // Legacy support
-    }
-
-    // Green Flags: Standard Software
-    if (producer.includes('Microsoft') || producer.includes('Adobe') || producer.includes('Skia/PDF')) {
-        trustSignals.validMetadata = 1;
-    }
-
-    return { 
-        text, 
-        metadata: { 
-            producer, 
-            creator,
-            pageCount: data.numpages 
-        } 
-    };
 }
 
 function checkSoftwareMetadata(metaString) {

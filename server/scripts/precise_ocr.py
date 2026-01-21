@@ -18,7 +18,9 @@ def process_image(reader, image_data):
 def process_ocr(input_path):
     try:
         # Initialize reader
+        print(f"DEBUG: Initializing EasyOCR Reader...", file=sys.stderr)
         reader = easyocr.Reader(['en'], gpu=False)
+        print(f"DEBUG: EasyOCR Reader initialized successfully", file=sys.stderr)
         
         all_text = []
         all_confidences = []
