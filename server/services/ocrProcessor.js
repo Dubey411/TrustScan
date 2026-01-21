@@ -128,7 +128,7 @@ export async function processDocument(fileBuffer, mimeType, originalName = "") {
     let isUnreadable = false;
     if (!text || text.trim().length === 0) {
         const reason = isPDF ? "Scanned PDF / No text layer found" : (mimeType?.startsWith('image/') ? "Blurry / Deep scan failed" : "Unsupported format");
-        console.warn(`⚠️ [OCR Processor] No text extracted (${reason}). Using fallback message.`);
+        console.warn(`⚠️ [OCR Processor] No text extracted (${reason}).`);
         text = `[Document Content Not Readable - ${reason}] (V:D14-SECURE)`;
         isUnreadable = true;
     }
@@ -152,7 +152,8 @@ export async function processDocument(fileBuffer, mimeType, originalName = "") {
         timestamp: new Date().toISOString(),
         producer: pdfMetadata.producer || null,
         creator: pdfMetadata.creator || null,
-        verdictLabel
+        verdictLabel,
+        internalDebug: `isPDF:${isPDF}, source:${extractionSource}`
     };
 
     console.log(`✅ [OCR Complete] Source: ${extractionSource}, TextLen: ${text.length}`);
@@ -168,18 +169,16 @@ async function processPDF(buffer, externalSignals, trustSignals) {
     
     // pdf-parse v2.4.5+ exports a class constructor, not a function
     // We need to use 'new' to instantiate it
-    const PDFParser = (typeof pdf === 'function') ? pdf : (pdf.default || pdf.PDFParse || pdf);
-    
-    let data;
     try {
-        console.log('⏳ [PDF] Calling pdf-parse...');
-        // Try both as function (standard) and constructor (v2 style)
-        if (typeof PDFParser === 'function') {
-            data = await PDFParser(buffer);
-        } else {
-            console.log('DEBUG: PDFParser is NOT a function, trying as constructor...');
-            data = await new PDFParser(buffer);
+        // Detect exports
+        const PDFParserFunc = (typeof pdf === 'function') ? pdf : (pdf.default || pdf.PDFParse);
+        
+        if (!PDFParserFunc) {
+            throw new Error('pdf-parse could not be initialized from the module.');
         }
+
+        console.log('⏳ [PDF] Parsing buffer...');
+        data = await PDFParserFunc(buffer);
         
         if (!data || !data.text) {
              console.warn('⚠️ [PDF] pdf-parse returned empty data structure.');
