@@ -177,7 +177,18 @@ async function processPDF(buffer, externalSignals, trustSignals) {
         }
 
         console.log('⏳ [PDF] Parsing buffer...');
-        let data = await PDFParserFunc(buffer);
+        let data;
+        try {
+            // Try standard function call
+            data = await PDFParserFunc(buffer);
+        } catch (callErr) {
+            if (callErr.message.includes("constructors cannot be invoked without 'new'")) {
+                console.log('DEBUG: PDFParser requires "new", instantiating...');
+                data = await new PDFParserFunc(buffer);
+            } else {
+                throw callErr;
+            }
+        }
         
         if (!data || !data.text) {
              console.warn('⚠️ [PDF] pdf-parse returned empty data structure.');

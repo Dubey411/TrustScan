@@ -24,6 +24,9 @@ ENV PATH="/opt/venv/bin:$PATH"
 COPY requirements.txt .
 RUN pip3 install --no-cache-dir -r requirements.txt
 
+# Pre-download EasyOCR models to avoid runtime download/timeout
+RUN python3 -c "import easyocr; reader = easyocr.Reader(['en'], gpu=False)"
+
 # Copy package.json and install Node dependencies
 COPY package*.json ./
 RUN npm install
