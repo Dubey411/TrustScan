@@ -118,8 +118,6 @@ export async function processDocument(fileBuffer, mimeType, originalName = "") {
                 console.log(`✅ [OCR] Deep Scan added/recovered ${deepScanResult.text.length} chars.`);
                 text = (text && text.length > 0) ? (text + "\n" + deepScanResult.text) : deepScanResult.text;
                 extractionSource = extractionSource === "NONE" ? "EASYOCR" : (extractionSource + " + EASYOCR");
-            } else if (deepScanResult.error === "Timeout") {
-                text = (text || "") + " (V:D14-TIMEOUT)";
             }
         } catch (deepErr) {
             console.error('❌ [OCR Processor] Deep Scan Failed:', deepErr);
@@ -131,7 +129,7 @@ export async function processDocument(fileBuffer, mimeType, originalName = "") {
     if (!text || text.trim().length === 0) {
         const reason = isPDF ? "Scanned PDF / No text layer found" : (mimeType?.startsWith('image/') ? "Blurry / Deep scan failed" : "Unsupported format");
         console.warn(`⚠️ [OCR Processor] No text extracted (${reason}).`);
-        text = `[Document Content Not Readable - ${reason}] (V:D14-SECURE)`;
+        text = `[Document Content Not Readable - ${reason}]`;
         isUnreadable = true;
     }
 
@@ -155,7 +153,6 @@ export async function processDocument(fileBuffer, mimeType, originalName = "") {
         producer: pdfMetadata.producer || null,
         creator: pdfMetadata.creator || null,
         verdictLabel,
-        internalDebug: `isPDF:${isPDF}, source:${extractionSource}`
     };
 
     console.log(`✅ [OCR Complete] Source: ${extractionSource}, TextLen: ${text.length}`);

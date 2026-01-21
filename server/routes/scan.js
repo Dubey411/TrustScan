@@ -34,6 +34,7 @@ router.get("/diagnose", async (req, res) => {
 
 // --- Unified Scan Route (Text + Documents) ---
 router.post("/scan", upload.single('file'), async (req, res) => {
+  console.log('📥 [Scan API] Received request - Type:', req.body.type || 'unknown');
   try {
     let { content, type, userId } = req.body;
     let externalSignals = {};
