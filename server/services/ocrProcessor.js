@@ -107,14 +107,14 @@ export async function processDocument(fileBuffer, mimeType, originalName = "") {
             const fileExt = isPDF ? '.pdf' : '.png';
             
             // Flexible Timeout: 30s base or 30s per page for PDFs
-            const pageCount = (pdfMetadata && pdfMetadata.pages) || 1;
+            const pageCount = (pdfMetadata && pdfMetadata.pageCount) || 1;
             const dynamicTimeout = Math.min(Math.max(30000, pageCount * 30000), 240000); // 30s-240s
             
             console.log(`⏱️ [OCR] Dynamic Timeout Applied: ${dynamicTimeout/1000}s`);
             const deepScanResult = await runPreciseOCR(fileBuffer, fileExt, dynamicTimeout);
             
-            console.log(`📊 [OCR] Deep Scan Result Success: ${deepScanResult.success}`);
-            if (deepScanResult.success && (deepScanResult.text?.length > 5)) {
+            console.log(`📊 [OCR] Deep Scan Result Success: ${deepScanResult.success}, Len: ${deepScanResult.text?.length || 0}`);
+            if (deepScanResult.success && deepScanResult.text && deepScanResult.text.trim().length > 0) {
                 console.log(`✅ [OCR] Deep Scan added/recovered ${deepScanResult.text.length} chars.`);
                 text = (text && text.length > 0) ? (text + "\n" + deepScanResult.text) : deepScanResult.text;
                 extractionSource = extractionSource === "NONE" ? "EASYOCR" : (extractionSource + " + EASYOCR");
@@ -178,7 +178,7 @@ async function processPDF(buffer, externalSignals, trustSignals) {
         }
 
         console.log('⏳ [PDF] Parsing buffer...');
-        data = await PDFParserFunc(buffer);
+        let data = await PDFParserFunc(buffer);
         
         if (!data || !data.text) {
              console.warn('⚠️ [PDF] pdf-parse returned empty data structure.');

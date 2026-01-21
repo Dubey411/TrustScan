@@ -10,6 +10,28 @@ import mongoose from "mongoose";
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
+// --- Diagnostic Route (Check Dependencies) ---
+router.get("/diagnose", async (req, res) => {
+    const results = {
+        node: process.version,
+        platform: process.platform,
+        python: null,
+        easyocr: null,
+        fitz: null
+    };
+
+    try {
+        const { execSync } = await import('child_process');
+        results.python = execSync('python3 --version || python --version').toString().trim();
+        results.easyocr = execSync('python3 -c "import easyocr; print(\'installed\')" || python -c "import easyocr; print(\'installed\')"').toString().trim();
+        results.fitz = execSync('python3 -c "import fitz; print(\'installed\')" || python -c "import fitz; print(\'installed\')"').toString().trim();
+    } catch (e) {
+        results.error = e.message;
+    }
+
+    res.json(results);
+});
+
 // --- Unified Scan Route (Text + Documents) ---
 router.post("/scan", upload.single('file'), async (req, res) => {
   try {
