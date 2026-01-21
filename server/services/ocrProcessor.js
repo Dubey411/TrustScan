@@ -297,6 +297,15 @@ function initializeTrustSignals() {
     };
 }
 /**
+ * Helper to get the correct python command for the environment
+ */
+function getPythonCommand() {
+    // On Windows local (nodemon), 'python' is standard.
+    // On Render/Docker (Linux), 'python3' is standard.
+    return process.platform === 'win32' ? 'python' : 'python3';
+}
+
+/**
  * Python Worker Bridge for EasyOCR
  */
 async function runPreciseOCR(buffer, extension = '.png', timeoutMs = 60000) {
@@ -305,7 +314,9 @@ async function runPreciseOCR(buffer, extension = '.png', timeoutMs = 60000) {
         fs.writeFileSync(tempPath, buffer);
 
         const scriptPath = path.join(SERVER_ROOT, 'scripts', 'precise_ocr.py');
-        const pythonProcess = spawn('python3', [scriptPath, tempPath]);
+        const pythonCmd = getPythonCommand();
+        console.log(`📡 [OCR] Spawning ${pythonCmd} for Deep Scan...`);
+        const pythonProcess = spawn(pythonCmd, [scriptPath, tempPath]);
         let output = '';
         let errorOutput = '';
 
@@ -328,6 +339,11 @@ async function runPreciseOCR(buffer, extension = '.png', timeoutMs = 60000) {
             pythonProcess.kill();
             resolve({ success: false, error: "Timeout" });
         }, timeoutMs);
+
+        pythonProcess.on('error', (err) => {
+            console.error(`❌ [OCR] Failed to start Python process (${pythonCmd}):`, err.message);
+            resolve({ success: false, error: err.message });
+        });
 
         pythonProcess.on('close', (code) => {
             clearTimeout(timeout);

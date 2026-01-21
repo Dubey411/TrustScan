@@ -43,7 +43,7 @@ export async function runMLTraining() {
         console.log('🧠 [ML Manager] Starting Background Retraining...');
         
         const scriptPath = path.join(__dirname, '..', 'scripts', 'train_layer1.py');
-        const venvPythonPath = 'python3'; // Use python3 explicitly for Docker/Render
+        const venvPythonPath = process.platform === 'win32' ? 'python' : 'python3';
         
         exec(`"${venvPythonPath}" "${scriptPath}"`, (error, stdout, stderr) => {
             if (error) {
