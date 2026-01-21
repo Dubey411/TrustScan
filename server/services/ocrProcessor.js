@@ -171,10 +171,11 @@ async function processPDF(buffer, externalSignals, trustSignals) {
     
     let data;
     try {
-        console.log('⏳ [PDF] Calling pdf-parse with constructor...');
-        // Always use 'new' for pdf-parse v2.4.5+
-        data = await new PDFParser(buffer);
-        console.log('✅ [PDF] pdf-parse finished successfully.');
+        console.log('⏳ [PDF] Calling pdf-parse...');
+        // pdf-parse v2+ is a function, not a constructor. 
+        // Using 'new' was causing it to skip the actual parsing logic.
+        data = await PDFParser(buffer);
+        console.log(`✅ [PDF] pdf-parse finished. Pages: ${data.numpages}, Text Length: ${data.text?.length || 0}`);
     } catch (err) {
         console.warn('⚠️ [PDF] PDF parsing failed:', err.message);
         throw new Error(`PDF parsing failed: ${err.message}`);
@@ -317,7 +318,7 @@ async function runPreciseOCR(buffer, extension = '.png', timeoutMs = 60000) {
         fs.writeFileSync(tempPath, buffer);
 
         const scriptPath = path.join(SERVER_ROOT, 'scripts', 'precise_ocr.py');
-        const pythonProcess = spawn('python', [scriptPath, tempPath]);
+        const pythonProcess = spawn('python3', [scriptPath, tempPath]);
         let output = '';
         let errorOutput = '';
 
