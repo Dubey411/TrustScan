@@ -15,13 +15,32 @@ const SERVER_ROOT = path.resolve(__dirname, '..');
 let visionClient = null;
 function getVisionClient() {
     if (visionClient) return visionClient;
-    if (process.env.GOOGLE_APPLICATION_CREDENTIALS || process.env.GOOGLE_CLOUD_PROJECT) {
-        try {
+
+    try {
+        // Option A: Direct JSON from environment variable (Most reliable for multi-line)
+        if (process.env.GOOGLE_CREDENTIALS_JSON) {
+            console.log('🔍 [OCR] Initializing Vision with direct JSON credentials...');
+            const creds = JSON.parse(process.env.GOOGLE_CREDENTIALS_JSON);
+            
+            // Fix private key newlines if they are escaped as literal '\n'
+            if (creds.private_key) {
+                // Aggressive fix for all types of escaped newlines
+                creds.private_key = creds.private_key
+                    .replace(/\\n/g, '\n')
+                    .replace(/\n\n/g, '\n'); // Remove accidental double newlines
+            }
+
+            visionClient = new vision.ImageAnnotatorClient({ credentials: creds });
+            return visionClient;
+        }
+
+        // Option B: Standard filename pointer
+        if (process.env.GOOGLE_APPLICATION_CREDENTIALS || process.env.GOOGLE_CLOUD_PROJECT) {
             visionClient = new vision.ImageAnnotatorClient();
             return visionClient;
-        } catch (err) {
-            console.warn('⚠️ [OCR] Failed to initialize Google Vision client:', err.message);
         }
+    } catch (err) {
+        console.warn('⚠️ [OCR] Failed to initialize Google Vision client:', err.message);
     }
     return null;
 }
