@@ -104,20 +104,35 @@ export async function processDocument(fileBuffer, mimeType, originalName = "") {
     if (isUnreadablePDF || (mimeType && mimeType.startsWith('image/') && (isLowConfidence || hasDeepScanTriggers || externalSignals.lowOcrConfidence))) {
         try {
             console.log(`🚀 [OCR] DEEP SCAN TRIGGERED (IsUnreadablePDF: ${isUnreadablePDF})...`);
-            const fileExt = isPDF ? '.pdf' : '.png';
             
-            // Flexible Timeout: 120s base (for model download) or 30s per page
-            const pageCount = (pdfMetadata && pdfMetadata.pageCount) || 1;
-            const dynamicTimeout = Math.min(Math.max(120000, pageCount * 30000), 300000); // 120s-300s
-            
-            console.log(`⏱️ [OCR] Dynamic Timeout Applied: ${dynamicTimeout/1000}s`);
-            const deepScanResult = await runPreciseOCR(fileBuffer, fileExt, dynamicTimeout);
-            
-            console.log(`📊 [OCR] Deep Scan Result Success: ${deepScanResult.success}, Len: ${deepScanResult.text?.length || 0}`);
-            if (deepScanResult.success && deepScanResult.text && deepScanResult.text.trim().length > 0) {
-                console.log(`✅ [OCR] Deep Scan added/recovered ${deepScanResult.text.length} chars.`);
-                text = (text && text.length > 0) ? (text + "\n" + deepScanResult.text) : deepScanResult.text;
-                extractionSource = extractionSource === "NONE" ? "EASYOCR" : (extractionSource + " + EASYOCR");
+            // A. Primary Booster: Google Vision (Zero Memory, High Accuracy)
+            const client = getVisionClient();
+            if (client) {
+                console.log('🔍 [OCR] Deep Scan: Using Google Vision Cloud...');
+                const [result] = await client.textDetection(fileBuffer);
+                const detections = result.textAnnotations;
+                if (detections && detections.length > 0) {
+                    const recoveredText = detections[0].description;
+                    console.log(`✅ [OCR] Google Vision recovered ${recoveredText.length} chars.`);
+                    text = (text && text.length > 0) ? (text + "\n" + recoveredText) : recoveredText;
+                    extractionSource = extractionSource === "NONE" ? "GOOGLE_VISION" : (extractionSource + " + GOOGLE_VISION");
+                }
+            }
+
+            // B. Fallback Booster: Tesseract (if Vision didn't run or didn't recover enough)
+            if (!text || text.length < 50) {
+                const fileExt = isPDF ? '.pdf' : '.png';
+                const pageCount = (pdfMetadata && pdfMetadata.pageCount) || 1;
+                const dynamicTimeout = Math.min(Math.max(120000, pageCount * 30000), 300000); 
+                
+                console.log(`⏱️ [OCR] Dynamic Timeout Applied: ${dynamicTimeout/1000}s`);
+                const deepScanResult = await runPreciseOCR(fileBuffer, fileExt, dynamicTimeout);
+                
+                if (deepScanResult.success && deepScanResult.text && deepScanResult.text.trim().length > 0) {
+                    console.log(`✅ [OCR] Deep Scan (Tesseract) recovered ${deepScanResult.text.length} chars.`);
+                    text = (text && text.length > 0) ? (text + "\n" + deepScanResult.text) : deepScanResult.text;
+                    extractionSource = extractionSource === "NONE" ? "TESSERACT_DEEP" : (extractionSource + " + TESSERACT_DEEP");
+                }
             }
         } catch (deepErr) {
             console.error('❌ [OCR Processor] Deep Scan Failed:', deepErr);
@@ -153,6 +168,7 @@ export async function processDocument(fileBuffer, mimeType, originalName = "") {
         producer: pdfMetadata.producer || null,
         creator: pdfMetadata.creator || null,
         verdictLabel,
+        confidence: isUnreadable ? "Low" : (extractionSource.includes("GOOGLE") ? "Very High" : "High"),
     };
 
     console.log(`✅ [OCR Complete] Source: ${extractionSource}, TextLen: ${text.length}`);
