@@ -29,10 +29,10 @@
     },
     {
         "id": "GENERIC_EDITED_METADATA",
-        "riskLevel": "high",
+        "riskLevel": "medium",
         "category": "softwareMetadata",
-        "reason": "File metadata indicates use of editing software (Canva/Photoshop)",
-        "impliedRisk": 80,
+        "reason": "File appears edited or exported via design software (Canva/Photoshop)",
+        "impliedRisk": 40,
         "logic": {
             "and": [
                 {
@@ -353,6 +353,20 @@
             "and": [
                 {
                     "hasSignal": "invalidBusinessId"
+                }
+            ]
+        }
+    },
+    {
+        "id": "AI_GENERATED_CONTENT",
+        "riskLevel": "low",
+        "category": "isAiGenerated",
+        "reason": "Content contains traces of AI generation (e.g. self-attribution, AI agents)",
+        "impliedRisk": 20,
+        "logic": {
+            "and": [
+                {
+                    "hasSignal": "isAiGenerated"
                 }
             ]
         }

@@ -6,6 +6,13 @@ import { getRecommendedActions } from "../services/recommendationEngine.js";
 import { checkTriggersAndTrain } from "../services/mlManager.js";
 import Scan from "../models/Scan.js";
 import mongoose from "mongoose";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const SERVER_ROOT = path.resolve(__dirname, '..');
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -35,6 +42,7 @@ router.get("/diagnose", async (req, res) => {
 
 // --- Unified Scan Route (Text + Documents) ---
 router.post("/scan", upload.single('file'), async (req, res) => {
+  console.log('DEBUG: ENTERING SCAN ROUTE');
   console.log('📥 [Scan API] Received request - Type:', req.body.type || 'unknown');
   try {
     let { content, type, userId } = req.body;
@@ -68,6 +76,16 @@ router.post("/scan", upload.single('file'), async (req, res) => {
     const result = await runRules(content, externalSignals, trustSignals);
 
     let finalRisk = result.riskScore || 0;
+
+    // --- Override for Unreadable Documents ---
+    // User Requirement: "Never mark such documents as fully safe."
+    if (externalSignals.isUnreadable) {
+        console.log('⚠️ [Rules] Document is unreadable. Enforcing minimum risk status.');
+        finalRisk = Math.max(finalRisk, 65); // High Warning / Suspicious
+        result.reasons.unshift("Document Content Unreadable - Manual Verified Required.");
+        scanMeta.verdictLabel = "Unreadable / Scanned Document";
+        scanMeta.confidence = "Low";
+    }
 
     // 3. 🔥 INTENT / COMBO LOGIC (accuracy booster)
     if (

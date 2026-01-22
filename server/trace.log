@@ -1,0 +1,88 @@
+TEST_ROOT_WRITE
+VERIFY_DISK_WRITE
+[2026-01-22T17:31:20.798Z] SERVER RESTART: Listening on port 5000
+[2026-01-22T17:31:40.553Z] SERVER RESTART: Listening on port 5000
+[2026-01-22T17:32:41.698Z] SERVER RESTART: Listening on port 5000
+[2026-01-22T17:33:21.740Z] SERVER RESTART: Listening on port 5000
+[2026-01-22T17:34:04.365Z] SERVER RESTART: Listening on port 5000
+[2026-01-22T17:35:42.334Z] SERVER RESTART: Listening on port 5000, PID=15648
+[2026-01-22T17:37:06.128Z] SERVER RESTART: Listening on port 5000, PID=20364
+[2026-01-22T17:38:17.663Z] TRACE: /api/scan ENTERED. ReqBodyType=document, File=YES
+[2026-01-22T17:38:17.665Z] TRACE: processDocument called. Name=upload.png, Mime=image/png, Size=93983
+[2026-01-22T17:38:17.666Z] TRACE: Starting image processing... mime=image/png
+[2026-01-22T17:38:17.668Z] TRACE: Calling Google Vision REST...
+[2026-01-22T17:38:17.676Z] TRACE: Google Vision REST failed: error:1E08010C:DECODER routines::unsupported
+[2026-01-22T17:38:17.676Z] TRACE: Starting Tesseract Fallback...
+[2026-01-22T17:38:18.056Z] TRACE: Tesseract worker created.
+[2026-01-22T17:38:18.234Z] TRACE: Tesseract recognition complete. Confidence: 58
+[2026-01-22T17:38:18.235Z] TRACE: Tesseract worker terminated.
+[2026-01-22T17:39:23.047Z] SERVER RESTART: Listening on port 5000, PID=25784
+[2026-01-22T17:41:59.036Z] TRACE: /api/scan ENTERED. ReqBodyType=document, File=YES
+[2026-01-22T17:41:59.046Z] TRACE: processDocument called. Name=Akshat Ajit Kardak.pdf, Mime=application/pdf, Size=168190
+[2026-01-22T17:42:00.467Z] CRASH (Uncaught): Error: Error attempting to read image.
+Error: Error: Error attempting to read image.
+    at Worker.<anonymous> (C:\Chakra\Code\CheckIt\server\node_modules\tesseract.js\src\createWorker.js:217:15)
+    at Worker.emit (node:events:508:28)
+    at MessagePort.<anonymous> (node:internal/worker:331:53)
+    at [nodejs.internal.kHybridDispatch] (node:internal/event_target:845:20)
+    at MessagePort.<anonymous> (node:internal/per_context/messageport:23:28)
+[2026-01-22T17:44:06.323Z] SERVER RESTART: Listening on port 5000, PID=29616
+[2026-01-22T17:44:14.960Z] TRACE: /api/scan ENTERED. ReqBodyType=document, File=YES
+[2026-01-22T17:44:14.963Z] TRACE: processDocument called. Name=upload.png, Mime=image/png, Size=93983
+[2026-01-22T17:44:14.964Z] TRACE: Starting image processing... mime=image/png
+[2026-01-22T17:44:14.965Z] TRACE: Calling Google Vision REST...
+[2026-01-22T17:44:14.971Z] TRACE: Google Vision REST failed: error:1E08010C:DECODER routines::unsupported
+[2026-01-22T17:44:14.971Z] TRACE: Starting Tesseract Fallback...
+[2026-01-22T17:44:15.334Z] TRACE: Tesseract worker created.
+[2026-01-22T17:44:15.487Z] TRACE: Tesseract recognition complete. Confidence: 58
+[2026-01-22T17:44:15.488Z] TRACE: Tesseract worker terminated.
+[2026-01-22T17:45:15.692Z] SERVER RESTART: Listening on port 5000, PID=18208
+[2026-01-22T17:45:39.215Z] SERVER RESTART: Listening on port 5000, PID=10092
+[2026-01-22T17:49:46.980Z] SERVER RESTART: Listening on port 5000, PID=27488
+[2026-01-22T17:50:59.210Z] SERVER RESTART: Listening on port 5000, PID=26068
+[2026-01-22T17:51:48.749Z] SERVER RESTART: Listening on port 5000, PID=29000
+[2026-01-22T17:52:07.515Z] SERVER RESTART: Listening on port 5000, PID=27344
+[2026-01-22T17:53:43.095Z] SERVER RESTART: Listening on port 5000, PID=19800
+[2026-01-22T17:54:19.299Z] SERVER RESTART: Listening on port 5000, PID=24332
+[2026-01-22T17:54:30.764Z] SERVER RESTART: Listening on port 5000, PID=27036
+[2026-01-22T18:01:18.882Z] SERVER RESTART: Listening on port 5000, PID=23152
+[2026-01-22T18:01:20.190Z] SERVER RESTART: Listening on port 5000, PID=30384
+[2026-01-22T18:01:22.171Z] SERVER RESTART: Listening on port 5000, PID=28024
+[2026-01-22T18:01:35.522Z] SERVER RESTART: Listening on port 5000, PID=28088
+[2026-01-22T18:05:38.120Z] SERVER RESTART: Listening on port 5000, PID=6948
+[2026-01-22T18:06:05.483Z] SERVER RESTART: Listening on port 5000, PID=26048
+[2026-01-22T18:06:27.613Z] SERVER RESTART: Listening on port 5000, PID=9028
+[2026-01-22T18:07:24.698Z] SERVER RESTART: Listening on port 5000, PID=16292
+[2026-01-22T18:07:42.983Z] SERVER RESTART: Listening on port 5000, PID=4820
+[2026-01-22T18:08:00.102Z] SERVER RESTART: Listening on port 5000, PID=3728
+[2026-01-22T18:08:14.423Z] SERVER RESTART: Listening on port 5000, PID=25044
+[2026-01-22T18:08:38.673Z] SERVER RESTART: Listening on port 5000, PID=27792
+[2026-01-22T18:09:03.658Z] SERVER RESTART: Listening on port 5000, PID=2248
+[2026-01-22T18:13:02.990Z] SERVER RESTART: Listening on port 5000, PID=25332
+[2026-01-22T18:13:14.448Z] SERVER RESTART: Listening on port 5000, PID=10972
+[2026-01-22T18:16:22.564Z] SERVER RESTART: Listening on port 5000, PID=27940
+[2026-01-22T18:16:31.943Z] CRASH (Rejection): Error: Unsupported MIME type: undefined
+[2026-01-22T18:18:28.386Z] SERVER RESTART: Listening on port 5000, PID=30240
+[2026-01-22T18:20:39.794Z] SERVER RESTART: Listening on port 5000, PID=25640
+[2026-01-22T18:21:12.118Z] SERVER RESTART: Listening on port 5000, PID=8208
+[2026-01-22T18:54:13.703Z] SERVER RESTART: Listening on port 5000, PID=15220
+[2026-01-22T18:56:34.032Z] SERVER RESTART: Listening on port 5000, PID=30124
+[2026-01-22T19:00:19.372Z] SERVER RESTART: Listening on port 5000, PID=22384
+[2026-01-22T19:00:39.485Z] SERVER RESTART: Listening on port 5000, PID=22488
+[2026-01-22T19:03:58.107Z] SERVER RESTART: Listening on port 5000, PID=28460
+[2026-01-22T19:06:45.071Z] SERVER RESTART: Listening on port 5000, PID=14380
+[2026-01-22T19:09:02.841Z] SERVER RESTART: Listening on port 5000, PID=28520
+[2026-01-22T19:11:44.194Z] SERVER RESTART: Listening on port 5000, PID=25208
+[2026-01-22T19:11:52.427Z] SERVER RESTART: Listening on port 5000, PID=23880
+[2026-01-22T19:12:00.082Z] SERVER RESTART: Listening on port 5000, PID=10216
+[2026-01-22T19:14:42.704Z] SERVER RESTART: Listening on port 5000, PID=10184
+[2026-01-22T19:15:03.810Z] SERVER RESTART: Listening on port 5000, PID=9096
+[2026-01-22T19:16:50.281Z] SERVER RESTART: Listening on port 5000, PID=9920
+[2026-01-22T19:17:05.285Z] SERVER RESTART: Listening on port 5000, PID=20184
+[2026-01-22T19:17:20.298Z] SERVER RESTART: Listening on port 5000, PID=17748
+[2026-01-22T19:24:50.058Z] SERVER RESTART: Listening on port 5000, PID=20324
+[2026-01-22T19:25:26.002Z] SERVER RESTART: Listening on port 5000, PID=4420
+[2026-01-22T19:25:41.582Z] SERVER RESTART: Listening on port 5000, PID=24928
+[2026-01-22T19:25:43.374Z] SERVER RESTART: Listening on port 5000, PID=24620
+[2026-01-22T19:25:59.524Z] SERVER RESTART: Listening on port 5000, PID=25440
+[2026-01-22T19:28:16.137Z] SERVER RESTART: Listening on port 5000, PID=7148

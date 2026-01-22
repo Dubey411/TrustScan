@@ -86,6 +86,8 @@ export async function runRules(content, externalSignals = {}, trustSignals = {})
     ocrConfidenceParadox: externalSignals.ocrConfidenceParadox || 0,
     lowOcrConfidence: externalSignals.lowOcrConfidence || 0,
     contextMismatch: externalSignals.contextMismatch || 0,
+    isAiGenerated: externalSignals.isAiGenerated || 0,
+    isManipulated: externalSignals.isManipulated || 0,
     
     // -- Legacy Document Signals --
     registrationFee: externalSignals.registrationFee || 0,

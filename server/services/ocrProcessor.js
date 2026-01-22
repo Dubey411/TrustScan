@@ -1,460 +1,108 @@
 import { createRequire } from 'module';
 import { createWorker } from 'tesseract.js';
-import { spawn } from 'child_process';
-import os from 'os';
 import path from 'path';
-import fs from 'fs';
-import { GoogleAuth } from 'google-auth-library';
 import { fileURLToPath } from 'url';
+import { runDocumentPipeline } from './documentPipeline.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const SERVER_ROOT = path.resolve(__dirname, '..');
 
-// Google Auth Instance (Pure REST Bypass)
-let googleAuth = null;
-function getAuthClient() {
-    if (googleAuth) return googleAuth;
-    if (process.env.GOOGLE_CREDENTIALS_JSON) {
-        try {
-            const creds = JSON.parse(process.env.GOOGLE_CREDENTIALS_JSON);
-            if (creds.private_key) {
-                creds.private_key = creds.private_key.replace(/\\n/g, '\n');
-            }
-            googleAuth = new GoogleAuth({
-                credentials: creds,
-                scopes: ['https://www.googleapis.com/auth/cloud-platform']
-            });
-            return googleAuth;
-        } catch (err) {
-            console.warn('⚠️ [OCR] Failed to initialize Google Auth:', err.message);
-        }
-    }
-    return null;
-}
-
-/**
- * Universal OCR Processor
- * Strategy: Hybrid (Google Vision Primary -> Tesseract Fallback)
- */
-export async function processDocument(fileBuffer, mimeType, originalName = "") {
-    console.log(`📄 [OCR Processor] Processing: ${originalName || 'Buffer'} (${mimeType}) - Size: ${fileBuffer?.length} bytes`);
-    
-    let text = "";
-    let externalSignals = initializeSignals();
-    let trustSignals = initializeTrustSignals();
-    let extractionSource = "NONE";
-    let pdfMetadata = {};
-    
-    // Robust detection: Mimetype OR Filename extension
-    const isPDF = (mimeType && mimeType.toLowerCase().includes('pdf')) || (originalName && originalName.toLowerCase().endsWith('.pdf'));
-
-    try {
-
-        // --- 1. PDF Processing ---
-        if (isPDF) {
-            console.log('🔍 [OCR] PDF detected, starting processPDF...');
-            const pdfResult = await processPDF(fileBuffer, externalSignals, trustSignals);
-            text = pdfResult.text || "";
-            pdfMetadata = pdfResult.metadata || {};
-            extractionSource = "PDF_PARSE";
-            console.log(`✅ [OCR] PDF_PARSE complete. Extracted ${text.length} chars.`);
-
-            // C. Deep Scan for PDF (if no text found)
-            if (!text || text.trim().length === 0) {
-                console.log('🚀 [OCR] DEEP SCAN TRIGGERED for PDF...');
-                
-                // Try Google Vision via REST first (best quality)
-                const auth = getAuthClient();
-                if (auth) {
-                    try {
-                        const authClient = await auth.getClient();
-                        const visionUrl = 'https://vision.googleapis.com/v1/images:annotate';
-                        const visionRes = await authClient.request({
-                            url: visionUrl,
-                            method: 'POST',
-                            data: {
-                                requests: [
-                                    {
-                                        image: { content: fileBuffer.toString('base64') },
-                                        features: [{ type: 'TEXT_DETECTION' }]
-                                    }
-                                ]
-                            }
-                        });
-
-                        const responses = visionRes.data?.responses;
-                        if (responses && responses[0]?.textAnnotations?.length > 0) {
-                            text = responses[0].textAnnotations[0].description;
-                            extractionSource = "GOOGLE_VISION_REST";
-                        }
-                    } catch (vErr) {
-                        console.warn('⚠️ [OCR] Google Vision REST failed for PDF:', vErr.message);
-                    }
-                }
-
-                // Final Tesseract Fallback if still no text
-                if (!text || text.trim().length === 0) {
-                    const fallbackResult = await runPreciseOCR(fileBuffer, '.pdf', 60000);
-                    if (fallbackResult.success && fallbackResult.text) {
-                        text = fallbackResult.text;
-                        extractionSource = "TESSERACT_DEEP";
-                    }
-                }
-            }
-        } 
-        // --- 2. Image Processing (Hybrid) ---
-        else if (mimeType.startsWith('image/')) {
-            try {
-                // A. Primary: Google Vision (REST API Bypass)
-                const auth = getAuthClient();
-                if (auth) {
-                    console.log('🔍 [OCR] Attempting Google Vision (REST)...');
-                    const authClient = await auth.getClient();
-                    const visionUrl = 'https://vision.googleapis.com/v1/images:annotate';
-                    
-                    const visionRes = await authClient.request({
-                        url: visionUrl,
-                        method: 'POST',
-                        data: {
-                            requests: [
-                                {
-                                    image: { content: fileBuffer.toString('base64') },
-                                    features: [{ type: 'TEXT_DETECTION' }]
-                                }
-                            ]
-                        }
-                    });
-
-                    const responses = visionRes.data?.responses;
-                    if (responses && responses[0]?.textAnnotations?.length > 0) {
-                        text = responses[0].textAnnotations[0].description;
-                        extractionSource = "GOOGLE_VISION_REST";
-                        
-                        // Check confidence (optional via REST)
-                        const confidence = responses[0]?.textAnnotations[0]?.confidence || 1.0;
-                        if (confidence < 0.8) {
-                             externalSignals.ocrConfidenceParadox = 1;
-                        }
-                    }
-                }
-            } catch (gErr) {
-                console.warn('⚠️ [OCR] Google Vision REST failed, falling back to Tesseract:', gErr.message);
-            }
-
-            // B. Fallback: Tesseract.js
-            if (!text) {
-                console.log('🔍 [OCR] Using Tesseract Fallback...');
-                const worker = await createWorker('eng');
-                const { data: { text: ocrText, confidence } } = await worker.recognize(fileBuffer);
-                text = ocrText;
-                await worker.terminate();
-                extractionSource = "TESSERACT";
-                
-                if (confidence < 60) {
-                     externalSignals.lowOcrConfidence = 1;
-                }
-            }
-        }
-
-    } catch (err) {
-        console.error('❌ [OCR Processor] Primary Layer Failed:', err);
-    }
-
-    // --- 3. Gated Deep Scan (EasyOCR Booster) ---
-    // Safety Net: Run if unreadable, or high-risk, or low-confidence
-    const isLowConfidence = extractionSource === "GOOGLE_VISION" ? false : true; 
-    const hasDeepScanTriggers = /payment|transaction|txn|upi|receipt|offer|letter|proof/i.test(text);
-    const isUnreadablePDF = isPDF && (!text || text.trim().length === 0);
-    
-    if (isUnreadablePDF || (mimeType && mimeType.startsWith('image/') && (isLowConfidence || hasDeepScanTriggers || externalSignals.lowOcrConfidence))) {
-        try {
-            console.log(`🚀 [OCR] DEEP SCAN TRIGGERED (IsUnreadablePDF: ${isUnreadablePDF})...`);
-            
-            // A. Primary Booster: Google Vision (Zero Memory, High Accuracy)
-            const client = getVisionClient();
-            if (client) {
-                console.log('🔍 [OCR] Deep Scan: Using Google Vision Cloud...');
-                const [result] = await client.textDetection(fileBuffer);
-                const detections = result.textAnnotations;
-                if (detections && detections.length > 0) {
-                    const recoveredText = detections[0].description;
-                    console.log(`✅ [OCR] Google Vision recovered ${recoveredText.length} chars.`);
-                    text = (text && text.length > 0) ? (text + "\n" + recoveredText) : recoveredText;
-                    extractionSource = extractionSource === "NONE" ? "GOOGLE_VISION" : (extractionSource + " + GOOGLE_VISION");
-                }
-            }
-
-            // B. Fallback Booster: Tesseract (if Vision didn't run or didn't recover enough)
-            if (!text || text.length < 50) {
-                const fileExt = isPDF ? '.pdf' : '.png';
-                const pageCount = (pdfMetadata && pdfMetadata.pageCount) || 1;
-                const dynamicTimeout = Math.min(Math.max(120000, pageCount * 30000), 300000); 
-                
-                console.log(`⏱️ [OCR] Dynamic Timeout Applied: ${dynamicTimeout/1000}s`);
-                const deepScanResult = await runPreciseOCR(fileBuffer, fileExt, dynamicTimeout);
-                
-                if (deepScanResult.success && deepScanResult.text && deepScanResult.text.trim().length > 0) {
-                    console.log(`✅ [OCR] Deep Scan (Tesseract) recovered ${deepScanResult.text.length} chars.`);
-                    text = (text && text.length > 0) ? (text + "\n" + deepScanResult.text) : deepScanResult.text;
-                    extractionSource = extractionSource === "NONE" ? "TESSERACT_DEEP" : (extractionSource + " + TESSERACT_DEEP");
-                }
-            }
-        } catch (deepErr) {
-            console.error('❌ [OCR Processor] Deep Scan Failed:', deepErr);
-        }
-    }
-
-    // Fallback Text 
-    let isUnreadable = false;
-    if (!text || text.trim().length === 0) {
-        const reason = isPDF ? "Scanned PDF / No text layer found" : (mimeType?.startsWith('image/') ? "Blurry / Deep scan failed" : "Unsupported format");
-        console.warn(`⚠️ [OCR Processor] No text extracted (${reason}).`);
-        text = `[Document Content Not Readable - ${reason}]`;
-        isUnreadable = true;
-    }
-
-    // Determine Verdict Label
-    let verdictLabel = "Document Analysis Complete";
-    if (isUnreadable) {
-        verdictLabel = "Unreadable / Scanned PDF";
-    } else if (externalSignals.softwareMetadata || externalSignals.metadataAnomalies) {
-        verdictLabel = "Edited / Manipulated";
-    } else if (externalSignals.genericSuccessMsg || externalSignals.missingCriticalFields) {
-        verdictLabel = "Synthetic / AI Generated";
-    } else if (trustSignals.standardStructure || trustSignals.officialDomain) {
-        verdictLabel = "Legitimate Document";
-    }
-
-    const scanMeta = {
-        source: extractionSource,
-        textLength: text.length,
-        mimeType: mimeType,
-        timestamp: new Date().toISOString(),
-        producer: pdfMetadata.producer || null,
-        creator: pdfMetadata.creator || null,
-        verdictLabel,
-        confidence: isUnreadable ? "Low" : (extractionSource.includes("GOOGLE") ? "Very High" : "High"),
-    };
-
-    console.log(`✅ [OCR Complete] Source: ${extractionSource}, TextLen: ${text.length}`);
-    return { text, externalSignals, trustSignals, scanMeta };
-}
-
-// --- Helpers ---
-
-// Robust PDF Parsing
-async function processPDF(buffer, externalSignals, trustSignals) {
-    const require = createRequire(import.meta.url);
-    const pdf = require('pdf-parse');
-    
-    // pdf-parse v2.4.5+ exports a class constructor, not a function
-    // We need to use 'new' to instantiate it
-    try {
-        // Detect exports
-        const PDFParserFunc = (typeof pdf === 'function') ? pdf : (pdf.default || pdf.PDFParse);
-        
-        if (!PDFParserFunc) {
-            throw new Error('pdf-parse could not be initialized from the module.');
-        }
-
-        console.log('⏳ [PDF] Parsing buffer...');
-        let data;
-        try {
-            // Try standard function call
-            data = await PDFParserFunc(buffer);
-        } catch (callErr) {
-            if (callErr.message.includes("constructors cannot be invoked without 'new'")) {
-                console.log('DEBUG: PDFParser requires "new", instantiating...');
-                data = await new PDFParserFunc(buffer);
-            } else {
-                throw callErr;
-            }
-        }
-        
-        if (!data || !data.text) {
-             console.warn('⚠️ [PDF] pdf-parse returned empty data structure.');
-             return { text: "", metadata: {} };
-        }
-        
-        console.log(`✅ [PDF] pdf-parse success. Pages: ${data.numpages}, Text Length: ${data.text?.length || 0}`);
-        return { 
-            text: data.text, 
-            metadata: { 
-                producer: data.info?.Producer || "", 
-                creator: data.info?.Creator || "",
-                pageCount: data.numpages 
-            } 
-        };
-    } catch (err) {
-        console.error('❌ [PDF] Parsing Error:', err.message);
-        throw err;
-    }
-}
-
-function checkSoftwareMetadata(metaString) {
-    if (!metaString) return false;
-    const suspiciousTools = [
-        // AI Generators
-        'midjourney', 'dall-e', 'stable diffusion', 'openai', 'jasper', 'huggingface', 'generative', 'ai-generated',
-        // Advanced Editors
-        'photoshop', 'gimp', 'figma', 'sketch', 'canva', 'paint.net', 'pixlr', 'coreldraw', 'illustrator',
-        // Document Converters/Manipulators (often used for fakes)
-        'ilovepdf', 'smallpdf', 'sejda', 'online-convert', 'pdf-editor'
-    ];
-    return suspiciousTools.some(tool => metaString.toLowerCase().includes(tool));
-}
-
-// Universal Signal Logic
-function extractUniversalSignals(text, signals, trust) {
-    if (!text) return; 
-    const content = text.toLowerCase();
-
-    // 1. Context Detection
-    const isPayment = /payment|transaction|txn|upi|gpay|paytm|phonepe|amount|received|paid/i.test(content);
-    const isOffer = /offer|letter|appointment|internship|job|salary|joining|stipend/i.test(content);
-    
-    // 2. AI Tool Traces in Text (Self-Attribution)
-    if (/(generated by ai|midjourney|dall-e|stablediffusion|openai|image generated)/i.test(content)) {
-        signals.genericSuccessMsg = 1; // Mark as synthetic
-    }
-
-    // 3. Text Behavior Signals (Red Flags)
-    
-    // Generic Success Messages (often used in fake generators)
-    if (/payment successful/i.test(content) && !/txn|ref|id/i.test(content)) {
-        signals.genericSuccessMsg = 1;
-    }
-
-    // Missing Critical Fields (Context Aware)
-    if (isPayment) {
-        if (!/(txn|ref|upi id|reference|utr)/i.test(content)) {
-             signals.missingCriticalFields = 1;
-        }
-    }
-    if (isOffer) {
-        if (!/date|ref|hr|manager|authorized/i.test(content)) {
-             signals.missingCriticalFields = 1;
-        }
-    }
-
-    // Urgency / Demand
-    if (/immediately|urgent|within \d+ hours|cancel|block/i.test(content)) {
-        signals.urgency = 1;
-    }
-    
-    // Context Mismatch (e.g. Internship asking for > 5000 fee)
-    if (isOffer && /registration|deposit|fee/i.test(content)) {
-         signals.contextMismatch = 1;
-    }
-
-    // 3. Trust Signals (Green Flags)
-    
-    // Official Domains
-    if (/@(google|microsoft|amazon|infosys|tcs|wipro|axisbank|hdfcbank|icicibank)\.com/i.test(content)) {
-        trust.officialDomain = 1;
-    }
-
-    // Standard Structure (No urgency + good context)
-    if ((isPayment || isOffer) && !signals.urgency && !signals.softwareMetadata) {
-        trust.standardStructure = 1;
-    }
-}
-
+// Helper for signal initialization (kept for compatibility)
 function initializeSignals() {
     return {
-        // Universal Signals
         missingCriticalFields: 0,
         genericSuccessMsg: 0,
         softwareMetadata: 0,
-        ocrConfidenceParadox: 0,
         lowOcrConfidence: 0,
         urgency: 0,
         contextMismatch: 0,
-        
-        // Legacy/Specific Support
         registrationFee: 0,
         unofficialDomain: 0,
         docAnomalies: 0,
         metadataAnomalies: 0,
-        corporateAnomalies: 0
+        isAiGenerated: 0,
+        isManipulated: 0
     };
 }
 
 function initializeTrustSignals() {
     return {
         officialDomain: 0,
-        validMetadata: 0,
         standardStructure: 0
     };
 }
-/**
- * Helper to get the correct python command for the environment
- */
-function getPythonCommand() {
-    // On Windows local (nodemon), 'python' is standard.
-    // On Render/Docker (Linux), 'python3' is standard.
-    return process.platform === 'win32' ? 'python' : 'python3';
-}
 
 /**
- * Python Worker Bridge for EasyOCR
+ * Universal OCR Processor (v2 - Pipeline Powered)
  */
-async function runPreciseOCR(buffer, extension = '.png', timeoutMs = 60000) {
-    return new Promise((resolve) => {
-        const tempPath = path.join(os.tmpdir(), `trustscan_ocr_${Date.now()}${extension}`);
-        fs.writeFileSync(tempPath, buffer);
+export async function processDocument(fileBuffer, mimeType, originalName = "") {
+    console.log(`📄 [OCR Processor v2] Processing: ${originalName || 'Buffer'} (${mimeType}) - Size: ${fileBuffer?.length} bytes`);
+    
+    // 1. Run the Advanced Pipeline
+    const pipelineResult = await runDocumentPipeline(fileBuffer, mimeType);
+    
+    let text = pipelineResult.text || "";
+    const externalSignals = initializeSignals();
+    const trustSignals = initializeTrustSignals();
+    
+    // 2. Map Pipeline Signals to Legacy Structure
+    if (pipelineResult.signals.visual_anomalies.includes('LOW_QUALITY_FAKE_LIKELY')) {
+        externalSignals.lowOcrConfidence = 1;
+    }
+    if (pipelineResult.signals.structures.hasAmount && !pipelineResult.signals.structures.hasTransactionId) {
+        externalSignals.missingCriticalFields = 1;
+    }
+    
+    if (pipelineResult.signals.isAiGenerated) {
+        externalSignals.isAiGenerated = 1;
+    }
+    if (pipelineResult.signals.isManipulated) {
+        externalSignals.isManipulated = 1;
+        externalSignals.softwareMetadata = 1; // Map to rules engine category
+    }
 
-        const scriptPath = path.join(SERVER_ROOT, 'scripts', 'precise_ocr.py');
-        const pythonCmd = getPythonCommand();
-        console.log(`📡 [OCR] Spawning ${pythonCmd} for Deep Scan...`);
-        const pythonProcess = spawn(pythonCmd, [scriptPath, tempPath]);
-        let output = '';
-        let errorOutput = '';
+    // 3. Verdict Logic
+    let verdictLabel = "Document Analysis Complete";
+    let isUnreadable = false;
+    const minTextLength = 20; // Lowered threshold 
 
-        pythonProcess.stdout.on('data', (data) => {
-            output += data.toString();
-        });
+    const looksUnreadable = !text || text.trim().length < minTextLength || text.includes("[Document Analysis Failed]");
+    const isLowConfidence = pipelineResult.confidence < 30;
 
-        pythonProcess.stderr.on('data', (data) => {
-            errorOutput += data.toString();
-            console.warn(`⚠️ [OCR Deep Scan] Python STDERR: ${data.toString()}`);
-        });
+    if (looksUnreadable && isLowConfidence) {
+         const reason = text.includes("Failed") ? "System Error" : "Scanned / Low Quality / No Text Layer";
+         if (!text || text.includes("Failed")) {
+            text = `[Document Content Not Readable - ${reason}]\n\nDebug Info: Method=${pipelineResult.extractionMethod.join(', ')}`;
+         }
+         isUnreadable = true;
+         verdictLabel = "Unreadable / Scanned Document";
+         externalSignals.isUnreadable = 1; 
+    } else if (externalSignals.lowOcrConfidence) {
+        verdictLabel = "Suspicious / Low Quality";
+    } else if (externalSignals.isAiGenerated || externalSignals.isManipulated) {
+        verdictLabel = "AI-Generated / Manipulated";
+    } else if (text.length > 500) {
+        verdictLabel = "High Quality Document"; 
+    }
 
-        pythonProcess.on('error', (err) => {
-            console.error('❌ [OCR Deep Scan] Process failed to start:', err);
-            resolve({ success: false, error: err.message });
-        });
+    // 4. Construct Metadata
+    const scanMeta = {
+        source: pipelineResult.extractionMethod.join(' + '),
+        textLength: text.length,
+        mimeType: mimeType,
+        timestamp: new Date().toISOString(),
+        producer: "TrustScan Pipeline v2",
+        creator: "TrustScan Pipeline v2",
+        verdictLabel,
+        isUnreadable: isUnreadable,
+        confidence: pipelineResult.confidence > 80 ? "High" : (pipelineResult.confidence > 50 ? "Medium" : "Low"),
+    };
 
-        const timeout = setTimeout(() => {
-            console.error(`❌ [OCR] Deep Scan Timeout after ${timeoutMs/1000}s`);
-            pythonProcess.kill();
-            resolve({ success: false, error: "Timeout" });
-        }, timeoutMs);
-
-        pythonProcess.on('error', (err) => {
-            console.error(`❌ [OCR] Failed to start Python process (${pythonCmd}):`, err.message);
-            resolve({ success: false, error: err.message });
-        });
-
-        pythonProcess.on('close', (code) => {
-            clearTimeout(timeout);
-            try {
-                fs.unlinkSync(tempPath); // Clean up
-                if (code === 0) {
-                    try {
-                        resolve(JSON.parse(output));
-                    } catch (pErr) {
-                        console.error('❌ [OCR Deep Scan] Failed to parse JSON output:', output);
-                        resolve({ success: false, error: "Invalid JSON output" });
-                    }
-                } else {
-                    console.error(`❌ [OCR Deep Scan] Process exited with code ${code}. Stderr: ${errorOutput}`);
-                    resolve({ success: false, error: `Process exited with code ${code}` });
-                }
-            } catch (e) {
-                resolve({ success: false, error: e.message });
-            }
-        });
-    });
+    console.log(`✅ [OCR Complete] Verdict: ${verdictLabel}, Conf: ${pipelineResult.confidence.toFixed(1)}%`);
+    return { text, externalSignals, trustSignals, scanMeta };
 }
+
+
+// --- Helpers ---
+// (No validation helpers needed here as Pipeline handles extraction)
+
