@@ -17,10 +17,20 @@ dotenv.config();
 // --- Google Cloud Vision Credential Setup ---
 if (process.env.GOOGLE_CREDENTIALS_JSON) {
   try {
+    const credText = process.env.GOOGLE_CREDENTIALS_JSON.trim();
+    console.log(`🛡️ [Env] Google OCR Credentials found. Length: ${credText.length}`);
+    
+    // Parse it to fix potential multi-line/escaping issues
+    const creds = JSON.parse(credText);
+    if (creds.private_key) {
+      // Ensure the private key has actual newlines
+      creds.private_key = creds.private_key.replace(/\\n/g, '\n');
+    }
+    
     const credsPath = path.join(os.tmpdir(), 'google-creds.json');
-    fs.writeFileSync(credsPath, process.env.GOOGLE_CREDENTIALS_JSON);
+    fs.writeFileSync(credsPath, JSON.stringify(creds));
     process.env.GOOGLE_APPLICATION_CREDENTIALS = credsPath;
-    console.log('🛡️ [Env] Google OCR Credentials configured.');
+    console.log('🛡️ [Env] Google OCR Credentials file written to temp (with fixed newlines).');
   } catch (err) {
     console.error('❌ [Env] Failed to setup Google credentials:', err.message);
   }
