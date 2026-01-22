@@ -23,7 +23,8 @@ router.get("/diagnose", async (req, res) => {
     try {
         const { execSync } = await import('child_process');
         results.python = execSync('python3 --version || python --version').toString().trim();
-        results.easyocr = execSync('python3 -c "import easyocr; print(\'installed\')" || python -c "import easyocr; print(\'installed\')"').toString().trim();
+        results.tesseract = execSync('tesseract --version').toString().split('\n')[0].trim();
+        results.pytesseract = execSync('python3 -c "import pytesseract; print(\'installed\')" || python -c "import pytesseract; print(\'installed\')"').toString().trim();
         results.fitz = execSync('python3 -c "import fitz; print(\'installed\')" || python -c "import fitz; print(\'installed\')"').toString().trim();
     } catch (e) {
         results.error = e.message;

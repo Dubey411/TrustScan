@@ -1,34 +1,34 @@
 import sys
 import os
 import json
-import base64
-import easyocr
-import io
+import pytesseract
 import fitz  # PyMuPDF
 from PIL import Image
+import io
 
-def process_image(reader, image_data):
-    """Internal helper to OCR an image or bytes"""
-    print(f"DEBUG: [EasyOCR] Reading text from image data...", file=sys.stderr)
-    result = reader.readtext(image_data)
-    print(f"DEBUG: [EasyOCR] Found {len(result)} text regions.", file=sys.stderr)
-    text = " ".join([res[1] for res in result])
-    confidences = [res[2] for res in result]
-    avg_conf = sum(confidences) / len(confidences) if confidences else 0
-    return text, avg_conf
+def process_image(image_data):
+    """Internal helper to OCR an image or bytes using Tesseract"""
+    try:
+        print(f"DEBUG: [Tesseract] Reading text from image data...", file=sys.stderr)
+        # Convert bytes to PIL Image if needed
+        if isinstance(image_data, bytes):
+            image = Image.open(io.BytesIO(image_data))
+        else:
+            image = Image.open(image_data)
+            
+        text = pytesseract.image_to_string(image)
+        print(f"DEBUG: [Tesseract] Extraction complete (Length: {len(text)}).", file=sys.stderr)
+        return text, 0.85 # Tesseract doesn't give a simple per-page confidence easily, returning fixed high placeholder
+    except Exception as e:
+        print(f"DEBUG: [Tesseract] Image Error: {str(e)}", file=sys.stderr)
+        return "", 0
 
 def process_ocr(input_path):
-    print(f"DEBUG: [OCR Process] Starting for path: {input_path}", file=sys.stderr)
+    print(f"DEBUG: [OCR Process] Starting (Lighter Tesseract Version) for: {input_path}", file=sys.stderr)
     try:
         if not os.path.exists(input_path):
-            print(f"DEBUG: [OCR Process] ERROR: File not found at {input_path}", file=sys.stderr)
             return {"success": False, "error": "File not found"}
 
-        # Initialize reader
-        print(f"DEBUG: [EasyOCR] Initializing Reader (English, no GPU)...", file=sys.stderr)
-        reader = easyocr.Reader(['en'], gpu=False)
-        print(f"DEBUG: [EasyOCR] Reader initialized.", file=sys.stderr)
-        
         all_text = []
         all_confidences = []
         
@@ -42,13 +42,11 @@ def process_ocr(input_path):
                 try:
                     print(f"DEBUG: [Page {page_num + 1}] Loading page...", file=sys.stderr)
                     page = doc.load_page(page_num)
-                    print(f"DEBUG: [Page {page_num + 1}] Rendering pixmap (2x zoom)...", file=sys.stderr)
+                    # 2x zoom usually enough for Tesseract
                     pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
                     img_data = pix.tobytes("png")
-                    print(f"DEBUG: [Page {page_num + 1}] Image rendering complete ({len(img_data)} bytes).", file=sys.stderr)
                     
-                    text, conf = process_image(reader, img_data)
-                    print(f"DEBUG: [Page {page_num + 1}] OCR Complete. Text length: {len(text)}", file=sys.stderr)
+                    text, conf = process_image(img_data)
                     all_text.append(text)
                     all_confidences.append(conf)
                 except Exception as page_e:
@@ -57,8 +55,7 @@ def process_ocr(input_path):
             doc.close()
         else:
             # Standard Image
-            print(f"DEBUG: [Image] Processing standard image...", file=sys.stderr)
-            text, conf = process_image(reader, input_path)
+            text, conf = process_image(input_path)
             all_text.append(text)
             all_confidences.append(conf)
             

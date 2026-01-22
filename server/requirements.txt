@@ -1,4 +1,4 @@
-easyocr
+pytesseract
 pymupdf
 scikit-learn
 pandas
