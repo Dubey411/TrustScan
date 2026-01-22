@@ -1,0 +1,10 @@
+Starting test with Node Crypto Standardization...
+Original Key Length: 1731
+❌ Test Failed: error:1E08010C:DECODER routines::unsupported
+Error: error:1E08010C:DECODER routines::unsupported
+    at Object.createPrivateKey (node:internal/crypto/keys:800:12)
+    at test (file:///C:/Chakra/Code/CheckIt/server/tests/test_vision.js:25:35)
+    at file:///C:/Chakra/Code/CheckIt/server/tests/test_vision.js:48:1
+    at ModuleJob.run (node:internal/modules/esm/module_job:377:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:671:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)

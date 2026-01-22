@@ -1,46 +1,34 @@
 import { createRequire } from 'module';
 import { createWorker } from 'tesseract.js';
-import vision from '@google-cloud/vision';
 import { spawn } from 'child_process';
 import os from 'os';
 import path from 'path';
 import fs from 'fs';
+import { GoogleAuth } from 'google-auth-library';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const SERVER_ROOT = path.resolve(__dirname, '..');
 
-// Lazy-Initialize Google Vision Client
-let visionClient = null;
-function getVisionClient() {
-    if (visionClient) return visionClient;
-
-    try {
-        // Option A: Direct JSON from environment variable (Most reliable for multi-line)
-        if (process.env.GOOGLE_CREDENTIALS_JSON) {
-            console.log('🔍 [OCR] Initializing Vision with direct JSON credentials...');
+// Google Auth Instance (Pure REST Bypass)
+let googleAuth = null;
+function getAuthClient() {
+    if (googleAuth) return googleAuth;
+    if (process.env.GOOGLE_CREDENTIALS_JSON) {
+        try {
             const creds = JSON.parse(process.env.GOOGLE_CREDENTIALS_JSON);
-            
-            // Fix private key newlines if they are escaped as literal '\n'
             if (creds.private_key) {
-                // Aggressive fix for all types of escaped newlines
-                creds.private_key = creds.private_key
-                    .replace(/\\n/g, '\n')
-                    .replace(/\n\n/g, '\n'); // Remove accidental double newlines
+                creds.private_key = creds.private_key.replace(/\\n/g, '\n');
             }
-
-            visionClient = new vision.ImageAnnotatorClient({ credentials: creds });
-            return visionClient;
+            googleAuth = new GoogleAuth({
+                credentials: creds,
+                scopes: ['https://www.googleapis.com/auth/cloud-platform']
+            });
+            return googleAuth;
+        } catch (err) {
+            console.warn('⚠️ [OCR] Failed to initialize Google Auth:', err.message);
         }
-
-        // Option B: Standard filename pointer
-        if (process.env.GOOGLE_APPLICATION_CREDENTIALS || process.env.GOOGLE_CLOUD_PROJECT) {
-            visionClient = new vision.ImageAnnotatorClient();
-            return visionClient;
-        }
-    } catch (err) {
-        console.warn('⚠️ [OCR] Failed to initialize Google Vision client:', err.message);
     }
     return null;
 }
@@ -71,28 +59,87 @@ export async function processDocument(fileBuffer, mimeType, originalName = "") {
             pdfMetadata = pdfResult.metadata || {};
             extractionSource = "PDF_PARSE";
             console.log(`✅ [OCR] PDF_PARSE complete. Extracted ${text.length} chars.`);
+
+            // C. Deep Scan for PDF (if no text found)
+            if (!text || text.trim().length === 0) {
+                console.log('🚀 [OCR] DEEP SCAN TRIGGERED for PDF...');
+                
+                // Try Google Vision via REST first (best quality)
+                const auth = getAuthClient();
+                if (auth) {
+                    try {
+                        const authClient = await auth.getClient();
+                        const visionUrl = 'https://vision.googleapis.com/v1/images:annotate';
+                        const visionRes = await authClient.request({
+                            url: visionUrl,
+                            method: 'POST',
+                            data: {
+                                requests: [
+                                    {
+                                        image: { content: fileBuffer.toString('base64') },
+                                        features: [{ type: 'TEXT_DETECTION' }]
+                                    }
+                                ]
+                            }
+                        });
+
+                        const responses = visionRes.data?.responses;
+                        if (responses && responses[0]?.textAnnotations?.length > 0) {
+                            text = responses[0].textAnnotations[0].description;
+                            extractionSource = "GOOGLE_VISION_REST";
+                        }
+                    } catch (vErr) {
+                        console.warn('⚠️ [OCR] Google Vision REST failed for PDF:', vErr.message);
+                    }
+                }
+
+                // Final Tesseract Fallback if still no text
+                if (!text || text.trim().length === 0) {
+                    const fallbackResult = await runPreciseOCR(fileBuffer, '.pdf', 60000);
+                    if (fallbackResult.success && fallbackResult.text) {
+                        text = fallbackResult.text;
+                        extractionSource = "TESSERACT_DEEP";
+                    }
+                }
+            }
         } 
         // --- 2. Image Processing (Hybrid) ---
         else if (mimeType.startsWith('image/')) {
             try {
-                // A. Primary: Google Vision
-                const client = getVisionClient();
-                if (client) {
-                    console.log('🔍 [OCR] Attempting Google Vision...');
-                    const [result] = await client.textDetection(fileBuffer);
-                    const detections = result.textAnnotations;
-                    if (detections && detections.length > 0) {
-                        text = detections[0].description;
-                        extractionSource = "GOOGLE_VISION";
+                // A. Primary: Google Vision (REST API Bypass)
+                const auth = getAuthClient();
+                if (auth) {
+                    console.log('🔍 [OCR] Attempting Google Vision (REST)...');
+                    const authClient = await auth.getClient();
+                    const visionUrl = 'https://vision.googleapis.com/v1/images:annotate';
+                    
+                    const visionRes = await authClient.request({
+                        url: visionUrl,
+                        method: 'POST',
+                        data: {
+                            requests: [
+                                {
+                                    image: { content: fileBuffer.toString('base64') },
+                                    features: [{ type: 'TEXT_DETECTION' }]
+                                }
+                            ]
+                        }
+                    });
+
+                    const responses = visionRes.data?.responses;
+                    if (responses && responses[0]?.textAnnotations?.length > 0) {
+                        text = responses[0].textAnnotations[0].description;
+                        extractionSource = "GOOGLE_VISION_REST";
                         
-                        // Check for text density/layout anomalies (Google specific)
-                        if (detections[0].confidence && detections[0].confidence < 0.8) {
-                             externalSignals.ocrConfidenceParadox = 1; // High quality image but low confidence
+                        // Check confidence (optional via REST)
+                        const confidence = responses[0]?.textAnnotations[0]?.confidence || 1.0;
+                        if (confidence < 0.8) {
+                             externalSignals.ocrConfidenceParadox = 1;
                         }
                     }
                 }
             } catch (gErr) {
-                console.warn('⚠️ [OCR] Google Vision failed/skipped, falling back to Tesseract:', gErr.message);
+                console.warn('⚠️ [OCR] Google Vision REST failed, falling back to Tesseract:', gErr.message);
             }
 
             // B. Fallback: Tesseract.js

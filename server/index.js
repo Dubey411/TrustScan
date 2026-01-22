@@ -14,6 +14,13 @@ const __dirname = path.dirname(__filename);
 
 dotenv.config();
 
+console.log('🛡️ [Startup] Checking GOOGLE_CREDENTIALS_JSON...');
+if (process.env.GOOGLE_CREDENTIALS_JSON) {
+  console.log(`🛡️ [Startup] Found credentials. Length: ${process.env.GOOGLE_CREDENTIALS_JSON.length}`);
+} else {
+  console.warn('⚠️ [Startup] GOOGLE_CREDENTIALS_JSON not found in environment.');
+}
+
 const app = express();
 
 // Connect to Database & Initialize Services
