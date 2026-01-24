@@ -18,31 +18,30 @@ const FooterSection = () => {
       { label: 'How It Works', href: '/homepage#how-it-works' },
       { label: 'Scan Types', href: '/scan-interface' },
       { label: 'Pricing', href: '/pricing-page' },
-      { label: 'Dashboard', href: '/user-dashboard' },
     ],
     resources: [
-      { label: 'Blog', href: '#' },
-      { label: 'Scam Alerts', href: '#' },
-      { label: 'Safety Guide', href: '#' },
-      { label: 'FAQ', href: '#' },
+      { label: 'Blog', href: '/blog' },
+      { label: 'Scam Alerts', href: '/scam-alerts' },
+      { label: 'Safety Guide', href: '/safety-guide' },
+      { label: 'FAQ', href: '/faq' },
     ],
     company: [
-      { label: 'About Us', href: '#' },
-      { label: 'Contact', href: '#' },
-      { label: 'Careers', href: '#' },
-      { label: 'Press', href: '#' },
+      { label: 'About Us', href: '/about-page' },
+      { label: 'Contact', href: '/contact' },
+      { label: 'Careers', href: '/careers' },
+      { label: 'Press', href: '/press' },
     ],
     legal: [
-      { label: 'Privacy Policy', href: '#' },
-      { label: 'Terms of Service', href: '#' },
-      { label: 'Cookie Policy', href: '#' },
-      { label: 'Disclaimer', href: '#' },
+      { label: 'Privacy Policy', href: '/privacy-policy' },
+      { label: 'Terms of Service', href: '/terms-of-service' },
+      { label: 'Cookie Policy', href: '/cookie-policy' },
+      { label: 'Disclaimer', href: '/disclaimer' },
     ],
   };
 
   const socialLinks = [
-    { icon: 'EnvelopeIcon', href: 'mailto:support@TrustScan.com', label: 'Email' },
-    { icon: 'PhoneIcon', href: 'tel:+911234567890', label: 'Phone' },
+    { icon: 'EnvelopeIcon', href: 'mailto:trustscan.ai@gmail.com', label: 'Email' },
+    { icon: 'PhoneIcon', href: 'tel:+918591694920', label: 'Phone' },
   ];
 
   return (
@@ -106,16 +105,8 @@ const FooterSection = () => {
           <p className="text-sm text-muted-foreground">
             {isHydrated ? `© ${currentYear}` : '© 2026'} TrustScan. All rights reserved.
           </p>
-
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <span className="flex items-center gap-2">
-              <Icon name="ShieldCheckIcon" size={16} className="text-success-green" />
-              SSL Secured
-            </span>
-            <span className="flex items-center gap-2">
-              <Icon name="LockClosedIcon" size={16} className="text-primary" />
-              ISO 27001 Certified
-            </span>
+          <div className="text-xs text-muted-foreground italic">
+            Protecting Indian Students • Beta v1.0
           </div>
         </div>
       </div>

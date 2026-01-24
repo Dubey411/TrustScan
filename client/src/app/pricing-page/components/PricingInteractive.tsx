@@ -319,17 +319,17 @@ const PricingInteractive = () => {
 
           {/* Trust Indicators */}
           <div className="flex flex-wrap items-center justify-center gap-8 text-center">
-            <div className="flex items-center gap-2">
-              <Icon name="ShieldCheckIcon" size={24} variant="solid" className="text-success-green" />
-              <span className="text-sm text-muted-foreground">7-Day Money Back</span>
+            <div className="flex items-center gap-2 text-muted-foreground group hover:text-foreground transition-colors">
+              <Icon name="ShieldCheckIcon" size={24} variant="solid" className="text-primary/50 group-hover:text-primary transition-colors" />
+              <span className="text-sm">Human-Vetted Rules</span>
             </div>
-            <div className="flex items-center gap-2">
-              <Icon name="LockClosedIcon" size={24} variant="solid" className="text-primary" />
-              <span className="text-sm text-muted-foreground">Secure Payments</span>
+            <div className="flex items-center gap-2 text-muted-foreground group hover:text-foreground transition-colors">
+              <Icon name="LockClosedIcon" size={24} variant="solid" className="text-primary/50 group-hover:text-primary transition-colors" />
+              <span className="text-sm">Secure In-Memory Processing</span>
             </div>
-            <div className="flex items-center gap-2">
-              <Icon name="UserGroupIcon" size={24} variant="solid" className="text-secondary" />
-              <span className="text-sm text-muted-foreground">10,000+ Students Protected</span>
+            <div className="flex items-center gap-2 text-muted-foreground group hover:text-foreground transition-colors">
+              <Icon name="CommandLineIcon" size={24} variant="solid" className="text-primary/50 group-hover:text-primary transition-colors" />
+              <span className="text-sm">Transparent Analysis Logic</span>
             </div>
           </div>
         </div>

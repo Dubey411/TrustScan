@@ -109,10 +109,10 @@ const TestimonialsSection = () => {
       <div className="container mx-auto px-4">
         <div className="text-center max-w-3xl mx-auto mb-16">
           <h2 className="text-3xl lg:text-4xl font-headline font-bold text-foreground mb-4">
-            Trusted by Students Across India
+            Protecting Our Early Community
           </h2>
           <p className="text-lg text-muted-foreground">
-            Real stories from students we've protected from job scams
+            How TrustScan is helping students stay safe in the digital job market.
           </p>
         </div>
 
@@ -132,7 +132,7 @@ const TestimonialsSection = () => {
                   </div>
                   {/* Saved Badge */}
                   <div className="absolute -bottom-2 -right-2 bg-success-green text-success-green-foreground px-3 py-1 rounded-full text-xs font-bold shadow-lg">
-                    Saved {currentTestimonial.savedAmount}
+                    Verified Authentic
                   </div>
                 </div>
               </div>
@@ -147,7 +147,7 @@ const TestimonialsSection = () => {
                 </div>
 
                 {/* Testimonial Text */}
-                <blockquote className="text-lg text-foreground leading-relaxed mb-6">
+                <blockquote className="text-lg text-foreground leading-relaxed mb-6 italic">
                   "{currentTestimonial.text}"
                 </blockquote>
 
@@ -198,22 +198,6 @@ const TestimonialsSection = () => {
 
                 <Icon name="ChevronRightIcon" size={24} variant="outline" />
               </button>
-            </div>
-          </div>
-
-          {/* Stats Bar */}
-          <div className="grid grid-cols-3 gap-4 mt-8">
-            <div className="bg-card rounded-lg p-6 text-center shadow-brand">
-              <div className="text-3xl font-headline font-bold text-success-green mb-2">50K+</div>
-              <div className="text-sm text-muted-foreground">Students Protected</div>
-            </div>
-            <div className="bg-card rounded-lg p-6 text-center shadow-brand">
-              <div className="text-3xl font-headline font-bold text-success-green mb-2">₹2Cr+</div>
-              <div className="text-sm text-muted-foreground">Money Saved</div>
-            </div>
-            <div className="bg-card rounded-lg p-6 text-center shadow-brand">
-              <div className="text-3xl font-headline font-bold text-success-green mb-2">4.9/5</div>
-              <div className="text-sm text-muted-foreground">User Rating</div>
             </div>
           </div>
         </div>
