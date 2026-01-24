@@ -27,23 +27,27 @@ const ThreatAnalysis = ({ categories }: ThreatAnalysisProps) => {
       </div>
       <div className="space-y-4">
         {categories.map((category, index) => (
-          <div key={index} className="space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Icon name={category.icon as any} size={18} variant="outline" />
-                <span className="font-headline font-semibold text-sm text-foreground">
+          <div key={index} className="space-y-2 p-3 rounded-xl hover:bg-muted/10 transition-colors">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center space-x-3 overflow-hidden">
+                <div className="w-8 h-8 rounded-lg bg-primary/5 flex items-center justify-center text-primary flex-shrink-0">
+                  <Icon name={category.icon as any} size={18} variant="outline" />
+                </div>
+                <span className="font-headline font-bold text-sm text-foreground truncate">
                   {category.name}
                 </span>
               </div>
-              <span className="text-sm font-medium text-muted-foreground">{category.score}%</span>
+              <span className="text-sm font-bold text-primary">{category.score}%</span>
             </div>
-            <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+            <div className="relative w-full bg-muted rounded-full h-2 overflow-hidden">
               <div
-                className={`h-full ${getScoreColor(category.score)} transition-all duration-500`}
+                className={`h-full ${getScoreColor(category.score)} transition-all duration-700 ease-out`}
                 style={{ width: `${category.score}%` }}
               />
             </div>
-            <p className="text-xs text-muted-foreground">{category.description}</p>
+            <p className="text-[11px] text-muted-foreground leading-relaxed px-1">
+              {category.description}
+            </p>
           </div>
         ))}
       </div>

@@ -35,40 +35,39 @@ const RedFlagsList = ({ flags }: RedFlagsListProps) => {
   };
 
   return (
-    <div className="bg-card rounded-lg p-6 shadow-brand">
-      <div className="flex items-center space-x-2 mb-4">
-        <Icon name="FlagIcon" size={24} variant="solid" className="text-error" />
+    <div className="bg-card rounded-2xl p-6 shadow-brand border border-border">
+      <div className="flex items-center space-x-3 mb-6">
+        <div className="p-2 bg-error/10 rounded-lg text-error">
+            <Icon name="FlagIcon" size={24} variant="solid" />
+        </div>
         <h3 className="text-xl font-headline font-bold text-foreground">
-          Red Flags Detected ({flags.length})
+          Critical Red Flags ({flags.length})
         </h3>
       </div>
-      <div className="space-y-3">
+      <div className="space-y-4">
         {flags.map((flag) => {
           const config = severityConfig[flag.severity];
           return (
             <div
               key={flag.id}
-              className={`${config.bgColor} border ${config.borderColor} rounded-md p-4 transition-all duration-300 hover:shadow-subtle`}
+              className={`${config.bgColor} border ${config.borderColor}/20 rounded-2xl p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-subtle group`}
             >
-              <div className="flex items-start space-x-3">
-                <Icon
-                  name={config.icon as any}
-                  size={20}
-                  variant="solid"
-                  className={config.textColor}
-                />
-                <div className="flex-1">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-headline font-semibold text-sm text-foreground">
+              <div className="flex flex-col sm:flex-row items-start gap-4">
+                <div className={`${config.textColor} mt-1 flex-shrink-0 group-hover:scale-110 transition-transform`}>
+                    <Icon name={config.icon as any} size={24} variant="solid" />
+                </div>
+                <div className="flex-1 w-full">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-2">
+                    <span className="font-headline font-bold text-base text-foreground">
                       {flag.category}
                     </span>
                     <span
-                      className={`text-xs font-medium px-2 py-1 rounded ${config.textColor} ${config.bgColor}`}
+                      className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border tracking-widest ${config.textColor} ${config.bgColor} ${config.borderColor}/30`}
                     >
                       {flag.severity.toUpperCase()}
                     </span>
                   </div>
-                  <p className="text-sm text-muted-foreground">{flag.description}</p>
+                  <p className="text-sm text-foreground/70 leading-relaxed font-medium">{flag.description}</p>
                 </div>
               </div>
             </div>

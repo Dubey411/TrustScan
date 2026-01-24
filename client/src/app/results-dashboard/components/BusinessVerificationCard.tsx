@@ -77,34 +77,34 @@ export const BusinessVerificationCard: React.FC<BusinessVerificationCardProps> =
             entities.map((entity, index) => (
             <div 
                 key={index}
-                className="group flex flex-col md:flex-row md:items-center justify-between p-4 bg-slate-900/80 border border-slate-700 rounded-xl hover:border-blue-500/50 transition-all duration-300 gap-4"
+                className="group flex flex-col sm:flex-row sm:items-center justify-between p-5 bg-slate-900/80 border border-slate-700/50 rounded-2xl hover:border-blue-500/50 transition-all duration-300 gap-6"
             >
-                <div className="flex items-center gap-4">
-                <div className={`p-3 rounded-full ${entity.isValid ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
-                    <Icon name={entity.isValid ? 'ShieldCheckIcon' : 'ExclamationTriangleIcon'} size={24} />
-                </div>
-                <div>
-                    <div className="text-sm font-medium text-slate-400 mb-0.5">{entity.label}</div>
-                    <div className="text-lg font-mono font-bold text-white tracking-wider">{entity.value}</div>
-                    <div className="flex items-center gap-2 mt-1">
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-semibold uppercase ${
-                            entity.isValid ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'
-                        }`}>
-                            {entity.isValid ? 'Valid Checksum' : 'Invalid Checksum'}
-                        </span>
+                <div className="flex items-start sm:items-center gap-4">
+                    <div className={`p-3 rounded-xl flex-shrink-0 ${entity.isValid ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
+                        <Icon name={entity.isValid ? 'ShieldCheckIcon' : 'ExclamationTriangleIcon'} size={24} variant="solid" />
                     </div>
-                </div>
+                    <div className="min-w-0">
+                        <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">{entity.label}</div>
+                        <div className="text-xl font-mono font-bold text-white tracking-wider truncate mb-2">{entity.value}</div>
+                        <div className="flex flex-wrap items-center gap-2">
+                            <span className={`text-[10px] px-2.5 py-1 rounded-lg font-bold uppercase tracking-wider ${
+                                entity.isValid ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                            }`}>
+                                {entity.isValid ? 'Valid ID' : 'Corrupted / Fake ID'}
+                            </span>
+                        </div>
+                    </div>
                 </div>
 
                 {entity.isValid && (
                     <a 
-                    href={entity.portalUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-semibold transition-all transform hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-blue-500/20"
+                        href={entity.portalUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-blue-500/20 active:scale-95"
                     >
-                    <Icon name="ArrowTopRightOnSquareIcon" size={18} />
-                    Verify on Official Portal
+                        <Icon name="ArrowTopRightOnSquareIcon" size={18} />
+                        <span>Open Govt. Portal</span>
                     </a>
                 )}
             </div>

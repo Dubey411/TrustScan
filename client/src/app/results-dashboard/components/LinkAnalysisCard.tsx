@@ -58,22 +58,24 @@ const LinkAnalysisCard = ({ detectedLinks }: LinkAnalysisCardProps) => {
       </div>
       <div className="divide-y divide-border">
         {detectedLinks.map((link, idx) => (
-          <div key={idx} className="p-6 space-y-4">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-bold text-muted-foreground uppercase mb-1">Host Verified</p>
-                <code className="text-sm text-foreground bg-muted px-2 py-1 rounded inline-block truncate max-w-full">
-                  {link.host}
-                </code>
+          <div key={idx} className="p-6 space-y-4 hover:bg-muted/10 transition-colors">
+            <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+              <div className="flex-1 min-w-0 w-full">
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Host Verified</p>
+                <div className="flex items-center gap-2 overflow-hidden">
+                    <code className="text-sm font-bold text-foreground bg-muted/50 px-3 py-1.5 rounded-lg truncate max-w-full">
+                    {link.host}
+                    </code>
+                </div>
               </div>
-              <div className="flex-shrink-0 text-right">
-                <p className="text-xs font-bold text-muted-foreground uppercase mb-1">Status</p>
+              <div className="flex-shrink-0 flex items-center gap-2 sm:flex-col sm:items-end">
+                <p className="hidden sm:block text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Security Status</p>
                 {link.flags.length > 0 ? (
-                  <span className="text-red-500 text-xs font-bold flex items-center gap-1">
+                  <span className="bg-red-500/10 text-red-500 text-[10px] font-bold px-3 py-1.5 rounded-full uppercase flex items-center gap-1.5 border border-red-500/20">
                     <Icon name="NoSymbolIcon" size={14} /> Suspicious
                   </span>
                 ) : (
-                  <span className="text-success text-xs font-bold flex items-center gap-1">
+                  <span className="bg-success/10 text-success text-[10px] font-bold px-3 py-1.5 rounded-full uppercase flex items-center gap-1.5 border border-success/20">
                     <Icon name="CheckCircleIcon" size={14} /> Clear
                   </span>
                 )}
@@ -115,10 +117,10 @@ const LinkAnalysisCard = ({ detectedLinks }: LinkAnalysisCardProps) => {
               </div>
             )}
 
-            <div className="bg-muted/30 p-3 rounded-lg space-y-2">
+            <div className="bg-muted/30 p-4 rounded-xl space-y-3">
               <div className="text-[10px] text-muted-foreground break-all">
                 <span className="font-bold uppercase mr-2 text-xs">Original Link:</span>
-                {link.url}
+                <span className="text-foreground/80">{link.url}</span>
               </div>
 
               {(() => {
@@ -126,38 +128,29 @@ const LinkAnalysisCard = ({ detectedLinks }: LinkAnalysisCardProps) => {
                 if (!chain || chain.length === 0) return null;
                 
                 return (
-                  <div className="mt-2 space-y-2 border-t border-border pt-2">
-                    <div className="text-xs font-bold text-sky-600 flex items-center gap-1">
+                  <div className="mt-3 space-y-3 border-t border-border pt-3">
+                    <div className="text-[10px] font-bold text-sky-600 flex items-center gap-2 uppercase tracking-widest">
                       <Icon name="ArrowPathIcon" size={14} />
                       Deep Diver Trace:
                     </div>
-                    <div className="space-y-1">
-                      {/* {chain.map((hop, hIdx) => (
-                        <div key={hIdx} className="flex items-center gap-2 text-[10px] text-muted-foreground ml-2">
-                          <span className="text-muted-foreground/50">↳</span>
-                          <span className={`px-1.5 py-0.5 rounded ${hIdx === chain.length - 1 ? 'bg-red-100 text-red-700 font-bold border border-red-200' : 'bg-background border border-border'}`}>
-                             {hIdx === chain.length - 1 ? `🎯 Final: ${hop}` : hop}
-                          </span>
+                    <div className="flex flex-col gap-2">
+                       {chain.map((hop, hIdx) => (
+                        <div
+                            key={hIdx}
+                            className="flex items-start gap-3 text-[10px] text-muted-foreground"
+                        >
+                            <span className="text-muted-foreground/30 mt-1">↳</span>
+                            <span
+                            className={`px-3 py-1.5 rounded-lg break-all ${
+                                hIdx === chain.length - 1
+                                ? 'bg-red-500/10 text-red-600 font-bold border border-red-500/20'
+                                : 'bg-background border border-border shadow-sm'
+                            }`}
+                            >
+                            {hIdx === chain.length - 1 ? `🎯 Final: ${hop}` : hop}
+                            </span>
                         </div>
-                      ))} */}
-                      {chain.map((hop, hIdx) => (
-  <div
-    key={hIdx}
-    className="flex items-center gap-2 text-[10px] text-muted-foreground ml-2"
-  >
-    <span className="text-muted-foreground/50">↳</span>
-    <span
-      className={`px-1.5 py-0.5 rounded ${
-        hIdx === chain.length - 1
-          ? 'bg-red-100 text-red-700 font-bold border border-red-200'
-          : 'bg-background border border-border'
-      }`}
-    >
-      {hIdx === chain.length - 1 ? `🎯 Final: ${hop}` : hop}
-    </span>
-  </div>
-))}
-
+                        ))}
                     </div>
                   </div>
                 );

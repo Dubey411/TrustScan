@@ -38,20 +38,20 @@ const ScanMetaCard = ({ meta }: ScanMetaProps) => {
   };
 
   return (
-    <div className="bg-card rounded-lg p-4 mb-6 border border-border/50">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-            <div className="p-2 bg-primary/10 rounded-full">
-                <Icon name={getSourceIcon(meta.source) as any} size={20} className="text-primary" />
+    <div className="bg-card rounded-2xl p-6 mb-6 border border-border shadow-brand overflow-hidden relative group">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center space-x-4">
+            <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                <Icon name={getSourceIcon(meta.source) as any} size={24} variant="solid" />
             </div>
             <div>
-                <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Analysis Method</p>
-                <p className="font-medium text-foreground">{getSourceLabel(meta.source)}</p>
+                <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1">Analysis Method</p>
+                <p className="font-headline font-bold text-foreground">{getSourceLabel(meta.source)}</p>
             </div>
         </div>
-        <div className="text-right hidden sm:block">
-            <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Content Processed</p>
-            <p className="font-mono text-foreground">{meta.textLength.toLocaleString()} chars</p>
+        <div className="w-full sm:w-auto text-left sm:text-right border-t sm:border-t-0 border-border pt-4 sm:pt-0">
+            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1">Content Processed</p>
+            <p className="font-mono text-foreground font-bold">{meta.textLength.toLocaleString()} chars</p>
         </div>
       </div>
       

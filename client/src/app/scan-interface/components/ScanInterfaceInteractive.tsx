@@ -265,8 +265,8 @@ export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfa
                 )}
               </div>
 
-               {/* Analysis Options */}
-               <div className="mb-8 space-y-6">
+               {/* Analysis Options - Hidden on mobile to reduce gap */}
+               <div className="hidden md:block mb-8 space-y-6">
                 <div>
                   <h3 className="text-lg font-headline font-semibold text-foreground mb-3">Analysis Depth</h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -301,8 +301,8 @@ export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfa
                     </button>
 
                     <button
-                      className={`relative p-4 rounded-xl border-2 transition-all duration-300 text-left opacity-75 cursor-not-allowed border-amber-200/50 bg-amber-50/50`}
-                      
+                      onClick={() => router.push('/pricing-page')}
+                      className={`relative p-4 rounded-xl border-2 transition-all duration-300 text-left border-amber-200/50 bg-amber-50/50 hover:bg-amber-100/50 border-dashed`}
                     >
                       <div className="absolute -top-3 -right-3 z-10">
                         <span className="bg-amber-400 text-white text-[10px] uppercase font-bold px-2 py-0.5 rounded-full shadow-sm tracking-wider">
@@ -335,7 +335,10 @@ export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfa
                       </div>
                     </button>
 
-                    <button className="relative p-4 rounded-xl border-2 border-amber-200/50 bg-amber-50/50 transition-all duration-300 text-left opacity-75 cursor-not-allowed group">
+                    <button 
+                      onClick={() => router.push('/pricing-page')}
+                      className="relative p-4 rounded-xl border-2 border-amber-200/30 bg-amber-50/30 transition-all duration-300 text-left group hover:bg-amber-100/50 border-dashed"
+                    >
                       <div className="absolute -top-3 -right-3 z-10">
                          <span className="bg-amber-400 text-white text-[10px] uppercase font-bold px-2 py-0.5 rounded-full shadow-sm tracking-wider">
                           pro
@@ -364,16 +367,26 @@ export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfa
                 <button
                   onClick={handleScan}
                   disabled={!canScan()}
-                  className="flex-1 flex items-center justify-center space-x-2 px-6 py-4 bg-primary text-primary-foreground rounded-lg font-headline font-semibold hover:bg-trust-blue hover:-translate-y-0.5 hover:shadow-brand transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                  className="flex-[2] flex items-center justify-center space-x-2 px-6 py-4 bg-primary text-primary-foreground rounded-lg font-headline font-semibold hover:bg-trust-blue hover:-translate-y-0.5 hover:shadow-brand transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
                 >
                   <Icon name="ShieldCheckIcon" size={24} variant="solid" />
                   <span>{currentScanType?.buttonText || 'Start Security Scan'}</span>
                 </button>
+
+                {/* Mobile Specific Deep Verify Button */}
+                <button 
+                  onClick={() => router.push('/pricing-page')}
+                  className="md:hidden flex-1 flex items-center justify-center space-x-2 px-6 py-4 bg-amber-500 text-white rounded-lg font-headline font-semibold hover:shadow-lg transition-all active:scale-[0.98]"
+                >
+                  <Icon name="BeakerIcon" size={20} variant="solid" />
+                  <span>Deep Verify</span>
+                </button>
+
                 <button
                   onClick={handleClear}
-                  className="sm:w-auto px-6 py-4 border-2 border-border rounded-lg font-headline font-semibold text-foreground hover:bg-muted hover:border-primary/50 transition-all duration-300"
+                  className="flex-1 px-6 py-4 border-2 border-border rounded-lg font-headline font-semibold text-foreground hover:bg-muted hover:border-primary/50 transition-all duration-300"
                 >
-                  Clear Input
+                  Clear
                 </button>
               </div>
 

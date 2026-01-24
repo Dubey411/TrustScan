@@ -69,18 +69,20 @@ const VerdictBadge = ({ verdict, score, type, customLabel }: VerdictBadgeProps) 
   const displayLabel = customLabel || config.label;
 
   return (
-    <div className={`${config.bgColor} ${config.textColor} rounded-lg p-6 shadow-brand`}>
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center space-x-3">
-          <Icon name={config.icon as any} size={32} variant="solid" />
+    <div className={`${config.bgColor} ${config.textColor} rounded-2xl p-6 shadow-brand transition-all duration-300`}>
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
+        <div className="flex flex-col sm:flex-row items-center text-center sm:text-left gap-4">
+          <div className="w-16 h-16 sm:w-16 sm:h-16 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0 animate-pulse-subtle">
+            <Icon name={config.icon as any} size={32} variant="solid" />
+          </div>
           <div>
-            <h2 className="text-2xl font-headline font-bold">{displayLabel}</h2>
-            <p className="text-sm opacity-90">{config.description}</p>
+            <h2 className="text-2xl sm:text-3xl font-headline font-bold mb-1">{displayLabel}</h2>
+            <p className="text-sm opacity-90 max-w-sm">{config.description}</p>
           </div>
         </div>
-        <div className="text-right">
-          <div className="text-3xl font-headline font-bold">{score}%</div>
-          <div className="text-xs opacity-80">Fraud Risk Score</div>
+        <div className="flex flex-col items-center sm:items-end text-center sm:text-right border-t sm:border-t-0 sm:border-l border-white/20 pt-4 sm:pt-0 sm:pl-8 w-full sm:w-auto">
+          <div className="text-4xl sm:text-5xl font-headline font-bold mb-1">{score}%</div>
+          <div className="text-[10px] sm:text-xs uppercase font-bold tracking-widest opacity-80">Fraud Risk Score</div>
         </div>
       </div>
     </div>
