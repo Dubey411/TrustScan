@@ -97,9 +97,10 @@ interface Feature {
     recommendation?: Action[];
     riskScore?: number;
   };
+  showFeedback?: boolean;
 }
 
-const ResultsInteractive = ({ scanData }: ResultsInteractiveProps) => {
+const ResultsInteractive = ({ scanData, showFeedback = true }: ResultsInteractiveProps) => {
   const [isHydrated, setIsHydrated] = useState(false);
   const [actions, setActions] = useState<Action[]>([]);
 
@@ -362,47 +363,49 @@ const ResultsInteractive = ({ scanData }: ResultsInteractiveProps) => {
         {/* Right Column - Actions & Upgrades */}
         <div className="space-y-6">
           {/* User Feedback Loop */}
-          <div className="bg-card rounded-xl shadow-brand p-6 border border-border">
-            <h3 className="font-headline font-semibold text-foreground mb-2">How accurate was this result?</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              Your rating directly trains our security model for better accuracy.
-            </p>
-            
-            {!feedbackSubmitted ? (
-              <div className="flex flex-col items-center gap-4">
-                <div className="flex items-center gap-2">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      key={star}
-                      onClick={() => submitFeedback(star)}
-                      onMouseEnter={() => setHoverRating(star)}
-                      onMouseLeave={() => setHoverRating(0)}
-                      disabled={isSubmittingFeedback}
-                      className={`p-1 transition-all duration-200 ${isSubmittingFeedback ? 'opacity-50 cursor-not-allowed' : 'hover:scale-110'}`}
-                    >
-                      <Icon 
-                        name="StarIcon" 
-                        size={32} 
-                        variant={(hoverRating || 0) >= star ? "solid" : "outline"}
-                        className={`${(hoverRating || 0) >= star ? "text-amber-400" : "text-muted-foreground"}`}
-                      />
-                    </button>
-                  ))}
+          {showFeedback !== false && (
+            <div className="bg-card rounded-xl shadow-brand p-6 border border-border">
+                <h3 className="font-headline font-semibold text-foreground mb-2">How accurate was this result?</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                Your rating directly trains our security model for better accuracy.
+                </p>
+                
+                {!feedbackSubmitted ? (
+                <div className="flex flex-col items-center gap-4">
+                    <div className="flex items-center gap-2">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                        key={star}
+                        onClick={() => submitFeedback(star)}
+                        onMouseEnter={() => setHoverRating(star)}
+                        onMouseLeave={() => setHoverRating(0)}
+                        disabled={isSubmittingFeedback}
+                        className={`p-1 transition-all duration-200 ${isSubmittingFeedback ? 'opacity-50 cursor-not-allowed' : 'hover:scale-110'}`}
+                        >
+                        <Icon 
+                            name="StarIcon" 
+                            size={32} 
+                            variant={(hoverRating || 0) >= star ? "solid" : "outline"}
+                            className={`${(hoverRating || 0) >= star ? "text-amber-400" : "text-muted-foreground"}`}
+                        />
+                        </button>
+                    ))}
+                    </div>
+                    <div className="flex justify-between w-full px-2 text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
+                    <span>Inaccurate</span>
+                    <span>Perfect</span>
+                    </div>
                 </div>
-                <div className="flex justify-between w-full px-2 text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
-                  <span>Inaccurate</span>
-                  <span>Perfect</span>
+                ) : (
+                <div className="py-4 text-center animate-fade-in">
+                    <div className="inline-flex items-center justify-center p-2 bg-success/10 rounded-full mb-2">
+                    <Icon name="CheckCircleIcon" size={24} className="text-success" />
+                    </div>
+                    <p className="text-sm font-semibold text-success">Thanks! Feedback recorded for training.</p>
                 </div>
-              </div>
-            ) : (
-              <div className="py-4 text-center animate-fade-in">
-                <div className="inline-flex items-center justify-center p-2 bg-success/10 rounded-full mb-2">
-                  <Icon name="CheckCircleIcon" size={24} className="text-success" />
-                </div>
-                <p className="text-sm font-semibold text-success">Thanks! Feedback recorded for training.</p>
-              </div>
-            )}
-          </div>
+                )}
+            </div>
+          )}
 
           <ShareResults 
             scanId={String(scanData?.id || "SCN-2026-001234")} 

@@ -79,7 +79,7 @@ export default function SharedResultsPage() {
                 </span>
                 <h1 className="text-4xl font-headline font-bold text-foreground">Safety Analysis Report</h1>
             </div>
-            <ResultsInteractive scanData={scanData} />
+            <ResultsInteractive scanData={scanData} showFeedback={false} />
         </div>
       </main>
       <FooterSection />
