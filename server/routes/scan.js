@@ -282,7 +282,7 @@ router.post("/feedback", async (req, res) => {
 });
 
 // 📜 Get single scan result (for sharing)
-router.get("/:id", async (req, res) => {
+router.get("/scan/:id", async (req, res) => {
   try {
     const { id } = req.params;
     
