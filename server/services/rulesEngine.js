@@ -135,17 +135,23 @@ export async function runRules(content, externalSignals = {}, trustSignals = {})
     return false;
   };
 
+  let maxImpliedRisk = 0;
   fraudRules.forEach(rule => {
     if (rule.logic?.and && rule.logic.and.every(cond => checkRuleCondition(cond, normalizedText))) {
       reasons.push(rule.reason);
       rulesFired.push(rule.id);
+      
+      if (rule.impliedRisk && rule.impliedRisk > maxImpliedRisk) {
+        maxImpliedRisk = rule.impliedRisk;
+      }
+
       if (rule.category && (rule.category in signals)) {
         signals[rule.category] = (signals[rule.category] || 0) + 1;
       }
     }
   });
 
-  console.log(`🧠 [RulesEngine] Result: ${reasons.length} reasons, Signals:`, signals);
+  console.log(`🧠 [RulesEngine] Result: ${reasons.length} reasons, Max Implied Risk: ${maxImpliedRisk}%, Signals:`, signals);
 
   // 2. WEIGHTED INFERENCE (Logistic Regression)
   let z = modelWeights.bias || 0;
@@ -162,7 +168,10 @@ export async function runRules(content, externalSignals = {}, trustSignals = {})
 
   // 3. Sigmoid Function: 1 / (1 + exp(-z))
   const probability = 1 / (1 + Math.exp(-z));
-  const finalScore = probability * 100;
+  const mlScore = probability * 100;
+  
+  // 4. Hybrid Scoring Logic: Use ML score but ensure it doesn't drop below the highest rule risk
+  const finalScore = Math.max(mlScore, maxImpliedRisk);
 
   // 4. Generate Explanatory Flags
   const flags = {

@@ -370,5 +370,68 @@
                 }
             ]
         }
+    },
+    {
+        "id": "GLOBAL_CRYPTO_EXTORTION",
+        "riskLevel": "high",
+        "category": "financial",
+        "reason": "Document contains a cryptocurrency address in a suspicious context (Extortion/Blackmail)",
+        "impliedRisk": 95,
+        "logic": {
+            "and": [
+                {
+                    "hasSignal": "structuralAnomalies"
+                },
+                {
+                    "hasKeywordsAny": [
+                        "bitcoin",
+                        "wallet",
+                        "crypto",
+                        "payment",
+                        "unlock",
+                        "decrypt",
+                        "private"
+                    ]
+                }
+            ]
+        }
+    },
+    {
+        "id": "INTERNATIONAL_IBAN_SCAM",
+        "riskLevel": "high",
+        "category": "financial",
+        "reason": "Mention of an International Bank Account Number (IBAN) for unverified transfers",
+        "impliedRisk": 85,
+        "logic": {
+            "and": [
+                {
+                    "hasKeywordsAny": [
+                        "iban",
+                        "swift",
+                        "wire transfer",
+                        "beneficiary"
+                    ]
+                }
+            ]
+        }
+    },
+    {
+        "id": "US_SSN_PHISHING",
+        "riskLevel": "high",
+        "category": "personalData",
+        "reason": "Unsolicited request for Social Security Number (SSN) detected",
+        "impliedRisk": 90,
+        "logic": {
+            "and": [
+                {
+                    "hasKeywordsAny": [
+                        "ssn",
+                        "social security",
+                        "tax identification",
+                        "tin"
+                    ]
+                }
+            ]
+        }
     }
 ]

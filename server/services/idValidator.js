@@ -90,22 +90,95 @@ export function validateUPI(upiString) {
 }
 
 /**
+ * Validates US Social Security Number (SSN)
+ */
+export function validateSSN(ssn) {
+    if (!ssn) return false;
+    const cleanSSN = ssn.replace(/-/g, '');
+    if (cleanSSN.length !== 9) return false;
+    
+    // SSN Rules: 
+    // - Cannot start with 666, 000, 9xx
+    // - Cannot be 00-00-0000
+    if (/^000|^666|^9/.test(cleanSSN)) return false;
+    if (cleanSSN.substring(3, 5) === '00' || cleanSSN.substring(5) === '0000') return false;
+    
+    return /^\d{3}-?\d{2}-?\d{4}$/.test(ssn);
+}
+
+/**
+ * Validates International Bank Account Number (IBAN)
+ */
+export function validateIBAN(iban) {
+    if (!iban) return false;
+    const cleanIban = iban.replace(/\s/g, '').toUpperCase();
+    
+    // Basic structural check: Country code (2) + Check digits (2) + BBAN (up to 30)
+    const ibanRegex = /^[A-Z]{2}\d{2}[A-Z\d]{10,30}$/;
+    if (!ibanRegex.test(cleanIban)) return false;
+    
+    // Mod-97 check
+    const rearranged = cleanIban.substring(4) + cleanIban.substring(0, 4);
+    const numeric = rearranged.split('').map(c => {
+        const code = c.charCodeAt(0);
+        return (code >= 65 && code <= 90) ? (code - 55).toString() : c;
+    }).join('');
+    
+    // BigInt needed for mod-97 since numeric string is very long
+    try {
+        const remainder = BigInt(numeric) % 97n;
+        return remainder === 1n;
+    } catch (e) {
+        return false;
+    }
+}
+
+/**
+ * Validates Bitcoin/Crypto Addresses (Common in global scams)
+ */
+export function validateCryptoAddress(address) {
+    if (!address) return false;
+    // BTC (Legacy, SegWit, bech32)
+    const btcRegex = /^(1[a-km-zA-HJ-NP-Z1-9]{25,34}|3[a-km-zA-HJ-NP-Z1-9]{25,34}|bc1[ac-hj-np-z02-9]{11,71})$/;
+    // ETH
+    const ethRegex = /^0x[a-fA-F0-9]{40}$/;
+    
+    return btcRegex.test(address) || ethRegex.test(address);
+}
+
+/**
  * Scans text and extracts all IDs, validating each
  * Returns true if ANY invalid ID structure is found
  */
 export function detectStructuralAnomalies(text) {
     if (!text) return false;
     
-    // 1. Aadhaar Patterns (Groups of 4 digits, or 12 digits)
+    // 1. Aadhaar Patterns
     const aadhaarMatches = text.match(/\b\d{4}[\s-]\d{4}[\s-]\d{4}\b|\b\d{12}\b/g) || [];
     for (const match of aadhaarMatches) {
-        if (!validateAadhaar(match)) return true; // Found invalid Aadhaar
+        if (!validateAadhaar(match)) return true;
     }
     
-    // 2. PAN Patterns (ABCDE1234F)
+    // 2. PAN Patterns
     const panMatches = text.match(/\b[A-Z]{5}[0-9]{4}[A-Z]\b/gi) || [];
     for (const match of panMatches) {
-        if (!validatePAN(match)) return true; // Found invalid PAN
+        if (!validatePAN(match)) return true;
+    }
+
+    // 3. SSN Patterns (US Context)
+    const ssnMatches = text.match(/\b\d{3}-\d{2}-\d{4}\b/g) || [];
+    for (const match of ssnMatches) {
+        if (!validateSSN(match)) return true;
+    }
+
+    // 4. Crypto Addresses (Global Risk)
+    // Often found in "Send BTC to get job" scams
+    const cryptoMatches = text.match(/\b(1|3|bc1|0x)[a-zA-Z0-9]{25,71}\b/g) || [];
+    for (const match of cryptoMatches) {
+        if (validateCryptoAddress(match)) {
+            // Mentioning a crypto address in an unsolicited offer is itself a structural anomaly for our motive
+            return true; 
+        }
     }
     
     return false;

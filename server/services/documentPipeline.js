@@ -159,35 +159,27 @@ async function renderAndNormalizeParams(page, scale = 2.0) {
 }
 
 /**
- * STEP 6: MULTI-PASS OCR
+ * STEP 6: MULTI-PASS OCR (Optimized for RAM)
+ * Reuses a single worker to avoid RAM spikes on 512MB servers
  */
-async function runMultiPassOCR(imageBuffer) {
-    const worker = await createWorker('eng');
-    
+async function runMultiPassOCR(imageBuffer, worker) {
     // Pass 1: Standard
     let { data: { text, confidence } } = await worker.recognize(imageBuffer);
     
     // Pass 2: Aggressive Recovery (if confidence < 75%)
     if (confidence < 75 && text.length > 10) {
-        console.log(`🔄 [OCR] Low confidence (${confidence.toFixed(1)}%). Running Pass 2 (Aggressive)...`);
-        
-        // Re-process image with thresholding/binarization for cleaner edges
         const image = await Jimp.read(imageBuffer);
         image.threshold({ max: 150 }); // Binarize
         const pass2Buffer = await image.getBuffer('image/png');
         
         const pass2 = await worker.recognize(pass2Buffer);
         
-        // Merge strategy: Keep the one with higher confidence or more text?
-        // Usually higher confidence is safer for fraud signals.
         if (pass2.data.confidence > confidence) {
-            console.log(`✅ [OCR] Pass 2 improved confidence to ${pass2.data.confidence.toFixed(1)}%`);
             text = pass2.data.text;
             confidence = pass2.data.confidence;
         }
     }
     
-    await worker.terminate();
     return { text, confidence };
 }
 
@@ -249,6 +241,7 @@ export async function runDocumentPipeline(fileBuffer, mimeType) {
         text: "",
         docType: "UNKNOWN",
         pagesAnalyzed: 0,
+        totalPages: 0,
         extractionMethod: [],
         confidence: 0,
         signals: {
@@ -265,6 +258,7 @@ export async function runDocumentPipeline(fileBuffer, mimeType) {
         // --- PATH A: IMAGE DIRECT ---
         if (mimeType.startsWith('image/')) {
             pipelineResult.docType = "IMAGE";
+            pipelineResult.totalPages = 1;
             pipelineResult.extractionMethod.push("IMAGE_OCR_ENHANCED");
             
             // Step 4: Normalize
@@ -273,7 +267,10 @@ export async function runDocumentPipeline(fileBuffer, mimeType) {
             const normBuffer = await jimpImg.getBuffer('image/png');
             
             // Step 6: OCR
-            const ocrRes = await runMultiPassOCR(normBuffer);
+            const worker = await createWorker('eng');
+            const ocrRes = await runMultiPassOCR(normBuffer, worker);
+            await worker.terminate();
+            
             textAccumulator = ocrRes.text;
             totalConfidence = ocrRes.confidence;
             pagesProcessed = 1;
@@ -285,12 +282,16 @@ export async function runDocumentPipeline(fileBuffer, mimeType) {
             console.log(`🔍 [Pipeline] Analyzing PDF structure...`);
             const pdfData = await analyzePdfStructure(fileBuffer);
             pipelineResult.docType = pdfData.docType;
+            pipelineResult.totalPages = pdfData.pages.length;
             
             console.log(`📄 [Pipeline] PDF Type: ${pdfData.docType}, Total Pages: ${pdfData.pages.length}`);
 
-            // Limit processing to max 5 pages for performance in this prototype
-            const MAX_PAGES = 5;
+            // Limit processing to max 10 pages for performance in this prototype
+            const MAX_PAGES = 10;
             const pagesToProcess = pdfData.pages.slice(0, MAX_PAGES);
+
+            // Start a single worker for all pages to save RAM
+            const worker = await createWorker('eng');
 
             for (const page of pagesToProcess) {
                 try {
@@ -299,22 +300,32 @@ export async function runDocumentPipeline(fileBuffer, mimeType) {
                     let method = "";
                     let pageConf = 100;
 
-                    // Step 2: Routing
-                    if (page.type === 'DIGITAL') {
-                        // Direct text extraction
-                        const content = await page.pageRef.getTextContent();
-                        pageText = content.items.map(i => i.str).join(' ');
-                        method = "DIGITAL_PARSE";
-                    } else {
-                        // Step 3-6: Render -> Normalize -> OCR
-                        const imgBuffer = await renderAndNormalizeParams(page.pageRef);
-                        const ocr = await runMultiPassOCR(imgBuffer);
-                        pageText = ocr.text;
-                        pageConf = ocr.confidence;
-                        method = "OCR_ENHANCED";
+                    // Step 2 & 6: Routing with fallback logic
+                    const content = await page.pageRef.getTextContent();
+                    const digitalText = content.items.map(i => i.str).join(' ').trim();
+                    
+                    pageText = digitalText; // Start with digital
+                    method = "DIGITAL_PARSE";
+
+                    if (digitalText.length < 150) {
+                        // If digital text is sparse, it's likely a scan with a tiny metadata layer.
+                        // Try OCR as the primary method, but keep digital as fallback.
+                        try {
+                            // Use a slightly smaller scale (1.5x) for multi-page to save RAM on 512MB Render
+                            const imgBuffer = await renderAndNormalizeParams(page.pageRef, 1.5);
+                            const ocr = await runMultiPassOCR(imgBuffer, worker);
+                            
+                            if (ocr.text && ocr.text.trim().length > pageText.length) {
+                                pageText = ocr.text;
+                                pageConf = ocr.confidence;
+                                method = digitalText.length > 0 ? "HYBRID_OCR" : "OCR_ENHANCED";
+                            }
+                        } catch (ocrErr) {
+                            console.warn(`⚠️ [Pipeline] OCR failed for Page ${page.pageIndex}, falling back to Digital.`);
+                        }
                     }
 
-                    if (pageText.trim()) {
+                    if (pageText && pageText.trim().length > 2) {
                         textAccumulator += `--- Page ${page.pageIndex} ---\n${pageText}\n\n`;
                         totalConfidence += pageConf;
                         pagesProcessed++;
@@ -327,9 +338,10 @@ export async function runDocumentPipeline(fileBuffer, mimeType) {
                     const errMsg = pageErr.message || "Unknown Page Error";
                     console.error(`❌ [Pipeline] Failed to process Page ${page.pageIndex}:`, errMsg);
                     pipelineResult.extractionMethod.push(`P${page.pageIndex}:ERR(${errMsg.substring(0, 30)})`);
-                    // Don't stop the whole document if one page fails
                 }
             }
+            
+            await worker.terminate();
             
             if (pagesProcessed > 0) {
                 totalConfidence = totalConfidence / pagesProcessed; // Average

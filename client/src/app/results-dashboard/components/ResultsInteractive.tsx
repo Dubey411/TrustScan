@@ -75,6 +75,8 @@ interface Feature {
         producer?: string;
         creator?: string;
         verdictLabel?: string;
+        pagesAnalyzed?: number;
+        totalPages?: number;
     };
     metadata?: {
       linkCount?: number;
@@ -93,6 +95,7 @@ interface Feature {
       }>;
     };
     recommendation?: Action[];
+    riskScore?: number;
   };
 }
 
@@ -104,8 +107,16 @@ const ResultsInteractive = ({ scanData }: ResultsInteractiveProps) => {
 
   useEffect(() => {
     setIsHydrated(true);
-    setActions(scanData?.recommendation || []);
-  }, [scanData?.id]);
+    
+    if (scanData?.recommendation && scanData.recommendation.length > 0) {
+      setActions(scanData.recommendation);
+    } else if (scanData?.reasons && scanData.reasons.length > 0) {
+      // Generate actionable advice based on red flags if no backend recommendations exist
+      setActions(generateFallbackActions(scanData.reasons));
+    } else {
+      setActions([]);
+    }
+  }, [scanData?.id, scanData?.reasons]);
 
   const handleToggleAction = (id: number) => {
     if (!isHydrated) return;
@@ -240,10 +251,40 @@ const ResultsInteractive = ({ scanData }: ResultsInteractiveProps) => {
       {/* Verdict Badge */}
       <VerdictBadge 
         verdict={scanData?.result || "scam"} 
-        score={scanData?.confidence || 87} 
+        score={scanData?.riskScore !== undefined ? scanData.riskScore : Number(scanData?.confidence) || 87} 
         type={(scanData as any)?.scanType === 'document' || scanData?.scanMeta ? 'document' : 'text'}
         customLabel={scanData?.scanMeta?.verdictLabel}
       />
+
+      {/* Red Flag Warning Banner */}
+      {!isSafe && displayFlags.length > 0 && (
+          <div className="bg-warning/10 border border-warning/30 rounded-lg p-4 flex items-start gap-4 animate-fade-in">
+              <Icon name="ExclamationTriangleIcon" size={24} className="text-warning mt-0.5 flex-shrink-0" />
+              <div>
+                  <h3 className="font-bold text-warning-foreground text-base mb-1">
+                      {displayFlags.length} Red Flag{displayFlags.length !== 1 ? 's' : ''} Detected
+                  </h3>
+                  <p className="text-sm text-foreground/80">
+                      Our analysis found potential threats in this document. Please follow the <a href="#recommended-actions" className="font-bold underline hover:text-warning transition-colors">Recommended Actions</a> below to ensure your safety.
+                  </p>
+              </div>
+          </div>
+      )}
+
+      {/* Partial Analysis Warning */}
+      {isDocument && scanData?.scanMeta && (scanData.scanMeta.totalPages || 0) > (scanData.scanMeta.pagesAnalyzed || 0) && (
+          <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 flex items-start gap-4 animate-fade-in mb-6">
+              <Icon name="InformationCircleIcon" size={24} className="text-blue-500 mt-0.5 flex-shrink-0" />
+              <div>
+                  <h3 className="font-bold text-blue-500 text-base mb-1">
+                      Partial Document Analysis
+                  </h3>
+                  <p className="text-sm text-foreground/80">
+                      Standard scan analyzed the first <strong>{scanData.scanMeta.pagesAnalyzed}</strong> pages of this {scanData.scanMeta.totalPages}-page document. For full multi-page verification, please upgrade to Premium.
+                  </p>
+              </div>
+          </div>
+      )}
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -311,7 +352,11 @@ const ResultsInteractive = ({ scanData }: ResultsInteractiveProps) => {
                 <ThreatAnalysis categories={mockThreatCategories} />
             </>
           )}
-          <RecommendedActions actions={actions} onToggleAction={handleToggleAction} />
+          {actions.length > 0 && (
+             <div id="recommended-actions" className="scroll-mt-24">
+                <RecommendedActions actions={actions} onToggleAction={handleToggleAction} />
+             </div>
+          )}
         </div>
 
         {/* Right Column - Actions & Upgrades */}
@@ -390,5 +435,73 @@ async function submitFeedbackToAPI(scanId: string, feedback?: string, rating?: n
     return false;
   }
 }
+
+
+const generateFallbackActions = (reasons: string[]): Action[] => {
+  const actions: Action[] = [];
+  const text = reasons.join(' ').toLowerCase();
+
+  // Job Scam Logic
+  if (text.includes('unsolicited') || text.includes('job offer') || text.includes('salary') || text.includes('internship')) {
+    actions.push({
+      id: 901,
+      title: 'Verify Employer Identity',
+      description: 'Do not pay any upfront fees. Legitimate employers never ask for money for training, equipment, or visa fees. Verify the offer independently.',
+      priority: 'critical',
+      completed: false
+    });
+    
+    actions.push({
+      id: 902,
+      title: 'Check Official Channels',
+      description: 'Visit the company\'s official website career page to verify if this job opening exists.',
+      priority: 'important',
+      completed: false
+    });
+  }
+
+  // Business ID Logic
+  if (text.includes('missing official business id') || text.includes('cin') || text.includes('gst')) {
+    actions.push({
+      id: 903,
+      title: 'Request Business Registration',
+      description: 'Ask the recruiter for their Corporate Identity Number (CIN) or GST to verify legitimacy.',
+      priority: 'critical',
+      completed: false
+    });
+    
+    actions.push({
+      id: 904,
+      title: 'Verify with Ministry of Corporate Affairs',
+      description: 'Search for the company name on the official MCA portal to check if it is a registered entity.',
+      priority: 'recommended',
+      completed: false
+    });
+  }
+  
+  // Generic Link Warnings
+  if (text.includes('link') || text.includes('url') || text.includes('phishing')) {
+      actions.push({
+          id: 905,
+          title: 'Do Not Click Suspicious Links',
+          description: 'Links in this document may lead to phishing sites. Verify them manually before clicking.',
+          priority: 'critical',
+          completed: false
+      });
+  }
+  
+  // Fallback if we have red flags but matched no specific logic
+  if (actions.length === 0 && reasons.length > 0) {
+      actions.push({
+          id: 906,
+          title: 'Exercise Extreme Caution',
+          description: 'This document contains detected red flags. Do not share sensitive personal information or make payments.',
+          priority: 'critical',
+          completed: false
+      });
+  }
+
+  return actions;
+};
 
 export default ResultsInteractive;

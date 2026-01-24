@@ -119,8 +119,26 @@ export async function checkTriggersAndTrain() {
 /**
  * Starts the background automation.
  */
-export function initializeMLAutomation() {
+export async function initializeMLAutomation() {
     console.log('[ML Manager] Scheduled background check initialized (Hourly).');
+    
+    // Cold Start Protection: If database is empty, run bootstrap
+    try {
+        const prodCount = await Scan.countDocuments({ source: { $ne: 'kaggle_import' } });
+        if (prodCount === 0) {
+            console.log('❄️ [ML Manager] Cold Start Detected (Empty DB). Triggering Bootstrap...');
+            const scriptPath = path.join(__dirname, '..', 'scripts', 'bootstrap_ml.py');
+            const pythonPath = process.platform === 'win32' ? 'python' : 'python3';
+            
+            exec(`"${pythonPath}" "${scriptPath}"`, (err, stdout) => {
+                if (err) console.error('[ML Manager] Bootstrap failed:', err);
+                else console.log('[ML Manager] Bootstrap successful:', stdout);
+            });
+        }
+    } catch (err) {
+        console.error('[ML Manager] Startup check failed:', err);
+    }
+
     checkTriggersAndTrain();
 
     cron.schedule('0 * * * *', () => {

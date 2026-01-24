@@ -96,6 +96,8 @@ export async function processDocument(fileBuffer, mimeType, originalName = "") {
         verdictLabel,
         isUnreadable: isUnreadable,
         confidence: pipelineResult.confidence > 80 ? "High" : (pipelineResult.confidence > 50 ? "Medium" : "Low"),
+        pagesAnalyzed: pipelineResult.pagesAnalyzed,
+        totalPages: pipelineResult.totalPages
     };
 
     console.log(`✅ [OCR Complete] Verdict: ${verdictLabel}, Conf: ${pipelineResult.confidence.toFixed(1)}%`);

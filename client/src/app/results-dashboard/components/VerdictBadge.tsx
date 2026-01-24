@@ -25,16 +25,16 @@ const VerdictBadge = ({ verdict, score, type, customLabel }: VerdictBadgeProps) 
       textColor: 'text-warning-foreground',
       borderColor: 'border-warning',
       icon: 'ExclamationTriangleIcon',
-      label: isDocument ? 'Potential Editing Detected' : 'Risky',
-      description: isDocument ? 'File metadata or content suggests modification' : 'Proceed with caution - some red flags detected',
+      label: isDocument ? 'Authentic / Risky Content' : 'Risky',
+      description: isDocument ? 'Structure appears valid but content triggered fraud alerts' : 'Proceed with caution - some red flags detected',
     },
     suspicious: {
       bgColor: 'bg-warning',
       textColor: 'text-warning-foreground',
       borderColor: 'border-warning',
       icon: 'ExclamationTriangleIcon',
-      label: isDocument ? 'Potential Editing Detected' : 'Suspicious',
-      description: isDocument ? 'File metadata or content suggests modification' : 'Proceed with caution - potential threats detected',
+      label: isDocument ? 'Suspicious Content' : 'Suspicious',
+      description: isDocument ? 'Potential threat detected within the document text' : 'Proceed with caution - potential threats detected',
     },
     action_required: {
       bgColor: 'bg-warning',
@@ -80,7 +80,7 @@ const VerdictBadge = ({ verdict, score, type, customLabel }: VerdictBadgeProps) 
         </div>
         <div className="text-right">
           <div className="text-3xl font-headline font-bold">{score}%</div>
-          <div className="text-xs opacity-80">Confidence Score</div>
+          <div className="text-xs opacity-80">Fraud Risk Score</div>
         </div>
       </div>
     </div>

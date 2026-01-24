@@ -129,16 +129,19 @@ router.post("/scan", upload.single('file'), async (req, res) => {
     }
 
     // 4. Final status and confidence thresholds
-    let status =
-      finalRisk >= 70
-        ? "fraud"
-        : finalRisk >= 60
-        ? "suspicious"
-        : finalRisk >= 50
-        ? "action_required" // New status for ID Missing
-        : finalRisk >= 40
-        ? "suspicious"
-        : "safe";
+    let status = "safe";
+    if (finalRisk >= 75) status = "fraud";
+    else if (finalRisk >= 60) status = "suspicious";
+    else if (finalRisk >= 50) status = "action_required";
+    else if (finalRisk >= 40) status = "risky";
+    else if (finalRisk >= 20 && result.reasons.length > 0) status = "risky";
+    else if (finalRisk >= 1) status = "safe"; 
+    
+    // Safety check: Never mark as 'safe' if there are active red flag reasons
+    if (status === "safe" && result.reasons.length > 0) {
+        status = "risky";
+        finalRisk = Math.max(finalRisk, 40);
+    }
 
     const confidence =
       finalRisk >= 85

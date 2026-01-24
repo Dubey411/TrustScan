@@ -113,12 +113,14 @@ def train_model():
     X_prod, y_prod = prepare_df(prod_scans)
     X_kaggle, y_kaggle = prepare_df(kaggle_scans)
     
-    # 5. Unified Training Strategy
-    X_train = pd.concat([X_prod, X_kaggle.sample(min(len(X_kaggle), 5000), random_state=42)])
-    y_train = pd.concat([y_prod, y_kaggle.sample(min(len(y_kaggle), 5000), random_state=42)])
+    # 5. Unified Training Strategy (REDUCED FOR 512MB RAM)
+    # We reduce sampling to 1,000 to avoid OOM (Out of Memory) on Render
+    kaggle_sample_size = min(len(X_kaggle), 1000)
+    X_train = pd.concat([X_prod, X_kaggle.sample(kaggle_sample_size, random_state=42)])
+    y_train = pd.concat([y_prod, y_kaggle.sample(kaggle_sample_size, random_state=42)])
     
-    X_test = pd.concat([X_prod, X_kaggle])
-    y_test = pd.concat([y_prod, y_kaggle])
+    X_test = pd.concat([X_prod, X_kaggle.sample(min(len(X_kaggle), 500), random_state=42)])
+    y_test = pd.concat([y_prod, y_kaggle.sample(min(len(y_kaggle), 500), random_state=42)])
 
     # 6. Load Current Production Model
     print("[CALM ML] Validating Candidate against Production...")
@@ -173,6 +175,17 @@ def train_model():
     # Save to archive
     with open(archive_path, 'w') as f:
         json.dump(candidate_weights, f, indent=4)
+
+    # 10. CLEANUP: Keep only last 7 versions to save RAM/Clutter
+    # This prevents the "Models create problem" issue on restricted storage/RAM
+    try:
+        all_versions = sorted([f for f in os.listdir(VERSION_PATH) if f.startswith('weights_v')], reverse=True)
+        if len(all_versions) > 7:
+            for old_model in all_versions[7:]:
+                os.remove(os.path.join(VERSION_PATH, old_model))
+                print(f"[CALM ML] Cleaned up old model file: {old_model}")
+    except Exception as cleanup_err:
+        print(f"[CALM ML] Cleanup Warning: {cleanup_err}")
 
     # Update production pointer
     with open(WEIGHTS_PATH, 'w') as f:
