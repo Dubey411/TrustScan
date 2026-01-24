@@ -12,11 +12,12 @@ const ShareResults = ({ scanId, verdict }: ShareResultsProps) => {
   const [copied, setCopied] = useState(false);
   const [showPrivacyNote, setShowPrivacyNote] = useState(false);
 
-  const [shareUrl, setShareUrl] = useState(`/results/${scanId}`);
+  const [shareUrl, setShareUrl] = useState('');
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      setShareUrl(`${window.location.origin}/results/${scanId}`);
+      const origin = window.location.origin;
+      setShareUrl(`${origin}/results/${scanId}`);
     }
   }, [scanId]);
 

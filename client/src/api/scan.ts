@@ -78,3 +78,13 @@ export async function performScan(data: ScanRequest): Promise<ScanResult> {
     throw new Error(error.message || "Unable to connect to the scanning service.");
   }
 }
+/**
+ * Fetches a single scan result by ID.
+ */
+export async function getScanResult(id: string): Promise<any> {
+  const response = await fetch(`${API_BASE_URL}/scan/${id}`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch scan results');
+  }
+  return response.json();
+}

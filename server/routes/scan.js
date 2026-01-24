@@ -281,6 +281,44 @@ router.post("/feedback", async (req, res) => {
   }
 });
 
+// 📜 Get single scan result (for sharing)
+router.get("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ error: "Invalid scan ID format" });
+    }
+
+    const scan = await Scan.findById(id);
+    if (!scan) {
+      return res.status(404).json({ error: "Scan record not found" });
+    }
+
+    // Prepare response in the same format as the scan result
+    res.json({
+      id: scan._id,
+      target: scan.content?.substring(0, 100) || "Scanned Content",
+      result: scan.status, // Map status to result for UI compatibility
+      status: scan.status,
+      riskScore: scan.riskScore,
+      confidence: scan.confidence,
+      reasons: scan.reasons,
+      signals: scan.signals,
+      metadata: scan.metadata,
+      recommendation: scan.recommendation,
+      date: new Date(scan.createdAt).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      })
+    });
+  } catch (error) {
+    console.error("Failed to fetch scan:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // 📜 Scan history (user-wise)
 router.get("/history/:userId", async (req, res) => {
   try {
