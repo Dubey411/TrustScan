@@ -14,6 +14,15 @@ const scanSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  fileName: {
+    type: String,
+    required: false
+  },
+  fileMimeType: {
+    type: String,
+    required: false
+  },
+
   riskScore: {
     type: Number,
     required: true
@@ -104,12 +113,41 @@ const scanSchema = new mongoose.Schema({
     enum: ['Very High', 'High', 'Medium', 'Low'],
     required: false
   },
+  
+  // -- Layer 2 & Monetization --
+  analysisLayer: {
+    type: Number,
+    enum: [1, 2],
+    default: 1
+  },
+  creditsConsumed: {
+    type: Number,
+    default: 0
+  },
+
+  // -- Fraud Map / Geo Intelligence --
+  location: {
+    city: String,
+    state: String,
+    coordinates: {
+      type: [Number], // [longitude, latitude]
+      index: '2dsphere'
+    }
+  },
+
+  // -- TTL Cleanup (7-day history for free users) --
+  expiresAt: {
+    type: Date,
+    index: { expires: 0 } // Document will be deleted at this timestamp
+  },
 
   createdAt: {
+
     type: Date,
     default: Date.now
   }
 }, { strict: false });
+
 
 const Scan = mongoose.model("Scan", scanSchema);
 

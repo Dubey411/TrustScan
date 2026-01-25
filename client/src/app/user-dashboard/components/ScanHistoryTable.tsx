@@ -24,7 +24,8 @@ const ScanHistoryTable = ({ scans, onSelectScan }: ScanHistoryTableProps) => {
       scam: { bg: 'bg-error/10', text: 'text-error', icon: 'XCircleIcon' }
     };
     
-    const badge = badges[result as keyof typeof badges];
+    const badge = badges[result as keyof typeof badges] || badges.risky; // Fallback to risky if unknown
+
     
     return (
       <div className="flex items-center gap-2">

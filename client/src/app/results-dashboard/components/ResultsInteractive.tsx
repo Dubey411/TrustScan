@@ -96,20 +96,33 @@ interface Feature {
     };
     recommendation?: Action[];
     riskScore?: number;
+    userRating?: number;
+    userFeedback?: string | null;
   };
+
   showFeedback?: boolean;
 }
 
 const ResultsInteractive = ({ scanData, showFeedback = true }: ResultsInteractiveProps) => {
   const [isHydrated, setIsHydrated] = useState(false);
   const [actions, setActions] = useState<Action[]>([]);
-
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+  const [hoverRating, setHoverRating] = useState(0);
 
   useEffect(() => {
     setIsHydrated(true);
     
+    // Check if feedback was already given
+    if (scanData?.userRating || scanData?.userFeedback) {
+        setFeedbackSubmitted(true);
+        if (scanData.userRating) setHoverRating(scanData.userRating);
+    } else {
+        setFeedbackSubmitted(false);
+        setHoverRating(0);
+    }
+
     if (scanData?.recommendation && scanData.recommendation.length > 0) {
+
       setActions(scanData.recommendation);
     } else if (scanData?.reasons && scanData.reasons.length > 0) {
       // Generate actionable advice based on red flags if no backend recommendations exist
@@ -126,9 +139,9 @@ const ResultsInteractive = ({ scanData, showFeedback = true }: ResultsInteractiv
     ));
   };
 
-  const [hoverRating, setHoverRating] = useState(0);
 
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
+
 
   const submitFeedback = async (rating: number) => {
     console.log('🚀 submitFeedback called with rating:', { scanId: scanData?.id, rating });

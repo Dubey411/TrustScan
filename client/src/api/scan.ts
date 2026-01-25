@@ -14,9 +14,13 @@ interface ScanRequest {
   type: "message" | "link" | "document" | "email" | "job" | "company";
   userId?: string;
   file?: File;
+  depth?: 'basic' | 'standard' | 'deep';
+  location?: any;
 }
 
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://trustscan.onrender.com/api";
+
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"; // Default to local backend for development
+
 
 /**
  * Performs a fraud scan by calling the backend API.
@@ -41,7 +45,10 @@ export async function performScan(data: ScanRequest): Promise<ScanResult> {
       formData.append("type", data.type);
       if (data.userId) formData.append("userId", data.userId);
       if (data.content) formData.append("content", data.content);
+      if (data.depth) formData.append("depth", data.depth);
+      if (data.location) formData.append("location", JSON.stringify(data.location));
       body = formData;
+
       // Note: Multer/Browser handles the Multi-part boundary automatically, 
       // DON'T set Content-Type manually for FormData.
     } else {

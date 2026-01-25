@@ -9,7 +9,9 @@ import FavoriteScanShortcuts from './FavoriteScanShortcuts';
 import UpgradePromptCard from './UpgradePromptCard';
 import NotificationPreferencesPanel from './NotificationPreferencesPanel';
 import SafetyBadgesPanel from './SafetyBadgesPanel';
+import FraudHotspotWidget from './FraudHotspotWidget';
 import ProfileManagementSection from './ProfileManagementSection';
+
 
 interface DashboardInteractiveProps {
   userData: {
@@ -117,7 +119,9 @@ const DashboardInteractive = ({
             totalScans={userData.totalScans}
             planName={userData.planName}
           />
+          <FraudHotspotWidget />
           <NotificationPreferencesPanel initialSettings={notificationSettings} />
+
         </div>
       </div>
       

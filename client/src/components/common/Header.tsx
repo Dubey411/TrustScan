@@ -104,9 +104,10 @@ const Header = ({ className = '' }: HeaderProps) => {
 
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center space-x-1">
-            {baseNavigationItems.map((item) => (
+            {navigationItems.map((item) => (
               <Link
                 key={item.href}
+
                 href={item.href}
                 className="flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium text-foreground hover:bg-muted hover:text-primary transition-all duration-300 hover:-translate-y-0.5"
               >
@@ -170,9 +171,10 @@ const Header = ({ className = '' }: HeaderProps) => {
             <div className="flex justify-end px-4 mb-2">
                 <ThemeToggle />
             </div>
-            {baseNavigationItems.map((item) => (
+            {navigationItems.map((item) => (
               <Link
                 key={item.href}
+
                 href={item.href}
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="flex items-center space-x-3 px-4 py-3 rounded-md text-sm font-medium text-foreground hover:bg-muted hover:text-primary transition-all duration-300"

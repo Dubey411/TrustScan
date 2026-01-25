@@ -5,8 +5,10 @@ import { processDocument } from "../services/ocrProcessor.js";
 import { getRecommendedActions } from "../services/recommendationEngine.js";
 import { checkTriggersAndTrain } from "../services/mlManager.js";
 import Scan from "../models/Scan.js";
+import User from "../models/User.js";
 import mongoose from "mongoose";
 import fs from "fs";
+
 import path from "path";
 import { fileURLToPath } from 'url';
 
@@ -40,17 +42,55 @@ router.get("/diagnose", async (req, res) => {
     res.json(results);
 });
 
+// --- User Profile & Credits ---
+router.get("/me/:uid", async (req, res) => {
+    try {
+        let user = await User.findOne({ firebaseUid: req.params.uid });
+        
+        // --- Self-Healing Sync: Ensure metrics match real history ---
+        const actualScanCount = await Scan.countDocuments({ userId: req.params.uid });
+        const actualThreats = await Scan.countDocuments({ 
+            userId: req.params.uid, 
+            status: { $in: ["fraud", "scam"] } 
+        });
+
+        if (!user) {
+            user = await User.create({ 
+                firebaseUid: req.params.uid,
+                totalScans: actualScanCount,
+                totalThreats: actualThreats
+            });
+        } else {
+            // Update if persistent stats are out of sync (drifted)
+            if (actualScanCount > user.totalScans || actualThreats > user.totalThreats) {
+                user.totalScans = Math.max(user.totalScans, actualScanCount);
+                user.totalThreats = Math.max(user.totalThreats, actualThreats);
+                await user.save();
+                console.log(`🛠️ [Self-Heal] Synced stats for user ${req.params.uid}`);
+            }
+        }
+        res.json(user);
+    } catch (error) {
+        res.status(500).json({ error: "Failed to fetch user profile" });
+    }
+});
+
+
+
 // --- Unified Scan Route (Text + Documents) ---
 router.post("/scan", upload.single('file'), async (req, res) => {
   console.log('DEBUG: ENTERING SCAN ROUTE');
   console.log('📥 [Scan API] Received request - Type:', req.body.type || 'unknown');
   try {
-    let { content, type, userId } = req.body;
+    let { content, type, userId, depth, location } = req.body;
     let externalSignals = {};
     let trustSignals = {};
     let scanMeta = undefined;
+    let analysisLayer = 1;
+    let creditsConsumed = 0;
 
-    console.log(`Scan Request received. UserID: ${userId || 'Guest'}, Type: ${type}`);
+    console.log(`Scan Request RECEIVED. UserID: ${userId || 'Guest'}, Type: ${type}, Depth: ${depth || 'basic'}`);
+
 
     // 1. If a file is uploaded, run the OCR/Visual Pre-processor
     if (req.file) {
@@ -72,10 +112,35 @@ router.post("/scan", upload.single('file'), async (req, res) => {
       return res.status(400).json({ error: "Valid content or file is required for scanning" });
     }
 
+    // --- L2 DEEP SCAN LOGIC (Currently Locked - Coming Soon) ---
+    if (depth === 'deep') {
+        if (userId) {
+            const user = await User.findOne({ firebaseUid: userId });
+            if (user && user.credits > 0) {
+                console.log(`💎 [L2] Deep Scan active. Consuming 1 credit.`);
+                user.credits -= 1;
+                await user.save();
+                analysisLayer = 2;
+                creditsConsumed = 1;
+            } else {
+                console.log(`🔒 [L2] User has 0 credits. Falling back to Basic Layer 1.`);
+            }
+        } else {
+            console.log(`👤 [L2] Guest user detected. Falling back to Basic Layer 1.`);
+        }
+    }
+
+
     // 2. Run rules engine (Feature Extraction) - REUSED
     const result = await runRules(content, externalSignals, trustSignals);
 
     let finalRisk = result.riskScore || 0;
+    
+    // Deep Scan accuracy multiplier
+    if (analysisLayer === 2) {
+        finalRisk = Math.min(100, finalRisk * 1.15); // L2 is 15% more sensitive
+    }
+
 
     // --- Override for Unreadable Documents ---
     // User Requirement: "Never mark such documents as fully safe."
@@ -152,31 +217,87 @@ router.post("/scan", upload.single('file'), async (req, res) => {
         ? "Medium"
         : "Low";
 
-    // 5. Prepare DB record with ML features
+    // 5. Prepare DB record with ML features (Minimal Storage Optimization)
+    // Reduce size for Atlas free tier / efficiency
+    const minimalMetadata = { ...result.metadata };
+    delete minimalMetadata.normalizedText; // Don't store full normalized text in DB
+
     const scanDataRecord = {
       userId: userId || null,
       type: ["message", "link", "document", "email", "job", "company"].includes(type)
         ? type
         : "message",
-      content: content.substring(0, 5000), // Cap content size
+      content: content.substring(0, 500), // Minimal text snippet
+      fileName: req.file ? req.file.originalname : null, // Store document name
+      fileMimeType: req.file ? req.file.mimetype : null, // Store document type
       riskScore: finalRisk,
       status,
       confidence,
       reasons: result.reasons?.slice(0, 3) || [],
       signals: result.signals || {},
-      metadata: result.metadata || {},
-      recommendation: getRecommendedActions(result.signals, status)
+      metadata: minimalMetadata,
+      recommendation: getRecommendedActions(result.signals, status),
+      
+      // Layer 2 & Monetization fields
+      analysisLayer: analysisLayer,
+      creditsConsumed: creditsConsumed,
+      
+      // Fraud Map / Geo Intelligence
+      location: location || undefined
     };
-    console.log(`🔍 [API] Generated ${scanDataRecord.recommendation.length} recommendations for status: ${status}`);
 
-    // 6. Save scan
+
+
+    console.log(`🔍 [API] Final Score: ${finalRisk}, UserID: ${scanDataRecord.userId || 'Guest'}`);
+    console.log(`📦 [API] Attempting to save record to MongoDB...`);
+
+    // 6. Save scan & Update User Stats
     try {
       const savedDoc = await Scan.create(scanDataRecord);
-      console.log(`✅ ${userId ? 'Auth User' : 'Guest'} Scan saved. ID: ${savedDoc._id}`);
+      
+      if (userId) {
+          const user = await User.findOne({ firebaseUid: userId });
+          if (user) {
+              // --- 1. SET HISTORY EXPIRY (TTL) ---
+              // If free user, delete this scan record automatically after 7 days
+              if (user.plan === 'free') {
+                  savedDoc.expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+                  await savedDoc.save();
+              }
+
+              // --- 2. UPDATE PERSISTENT STATS ---
+              // Decoupling: We save these to the User model so they survive history deletion
+              const oldTotal = user.totalScans || 0;
+              const currentOverall = user.overallSafetyScore || 100;
+              
+              // Simple moving average for safety score: (oldScore * oldTotal + currentScanScore) / newTotal
+              // Current scan safety = 100 - risk
+              const scanSafety = 100 - finalRisk;
+              const newTotal = oldTotal + 1;
+              const newSafety = Math.round(((currentOverall * oldTotal) + scanSafety) / newTotal);
+              
+              user.totalScans = newTotal;
+              user.overallSafetyScore = newSafety;
+              
+              // Increment persistent threats
+              if (status === 'fraud' || status === 'scam') {
+                  user.totalThreats = (user.totalThreats || 0) + 1;
+              }
+
+              await user.save();
+
+              
+              console.log(`📊 [Stats Update] UID: ${userId}, Total: ${newTotal}, Safety: ${newSafety}%`);
+          }
+      }
+
+      console.log(`✅ [Database] Permanent Save Successful! ID: ${savedDoc._id}`);
+
       
       // 7. Response to client
       res.json({
         id: savedDoc._id,
+
         status,
         riskScore: finalRisk,
         confidence,

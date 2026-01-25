@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { performScan } from '@/api/scan';
+import { useAuth } from '@/context/AuthContext';
+
 
 // Ensure these imports point to the correct relative path
 import Icon from '@/components/ui/AppIcon';
@@ -33,6 +35,7 @@ interface ScanInterfaceInteractiveProps {
 
 export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfaceInteractiveProps) {
   const router = useRouter(); 
+  const { user } = useAuth();
   const [isHydrated, setIsHydrated] = useState(false);
   const [selectedScanType, setSelectedScanType] = useState<string>('email');
   const [textInput, setTextInput] = useState('');
@@ -110,8 +113,14 @@ export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfa
   const handleScan = async () => {
     if (!canScan()) return;
     
+    if (!user) {
+        setError("You must be logged in to save your scan history. Please wait for authentication or log in again.");
+        return;
+    }
+    
     setIsScanning(true);
     setError(null);
+
 
     // Determine target/content
     let targetContent = '';
@@ -125,13 +134,22 @@ export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfa
     }
 
     try {
-        // Call API
-        const userId = localStorage.getItem('userEmail');
-        
+        // Call API - Using Firebase UID for persistent history
         const scanData: any = { 
             type: selectedScanType, 
-            userId: userId || undefined 
+            userId: user?.uid || undefined,
+            depth: analysisDepth // Pull deep/standard/basic from UI
         };
+
+        // Optional: Location tagging for the Fraud Map
+        try {
+            if (analysisDepth === 'deep' && "geolocation" in navigator) {
+                // We'll just tag it with a placeholder or prompt later
+                // scanData.location = { city: "Detecting..." }; 
+            }
+        } catch (e) { /* ignore location errors */ }
+
+
 
         if (selectedFile && selectedScanType === 'document') {
             scanData.file = selectedFile;
@@ -302,19 +320,28 @@ export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfa
 
                     <button
                       onClick={() => router.push('/pricing-page')}
-                      className={`relative p-4 rounded-xl border-2 transition-all duration-300 text-left border-amber-200/50 bg-amber-50/50 hover:bg-amber-100/50 border-dashed`}
+                      className="relative p-4 rounded-xl border-2 transition-all duration-300 text-left border-muted bg-muted/20 opacity-60 cursor-not-allowed group"
                     >
-                      <div className="absolute -top-3 -right-3 z-10">
+                      <div className="absolute -top-3 -right-3 z-10 flex gap-1">
                         <span className="bg-amber-400 text-white text-[10px] uppercase font-bold px-2 py-0.5 rounded-full shadow-sm tracking-wider">
                           pro
                         </span>
+                        <span className="bg-muted-foreground text-white text-[10px] uppercase font-bold px-2 py-0.5 rounded-full shadow-sm tracking-wider">
+                          locked
+                        </span>
                       </div>
                       <div className="flex items-center gap-2 mb-1">
-                        <Icon name="BeakerIcon" size={20} variant="solid" className="text-amber-500" />
-                        <span className="font-semibold text-foreground">Deep</span>
+                        <Icon name="BeakerIcon" size={20} variant="solid" className="text-muted-foreground" />
+                        <span className="font-semibold text-muted-foreground">Deep Scan</span>
                       </div>
-                      <p className="text-xs text-muted-foreground">Comprehensive check (3-5 min)</p>
+                      <p className="text-xs text-muted-foreground">L2 OpenAI/Vision Analysis</p>
+                      
+                      {/* Tooltip on hover */}
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 rounded-xl">
+                         <span className="text-[10px] font-bold text-primary uppercase">Click to Unlock</span>
+                      </div>
                     </button>
+
                   </div>
                 </div>
 

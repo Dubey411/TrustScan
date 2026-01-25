@@ -40,6 +40,13 @@ const GPTDashboardLayout = ({
   // Our internal state needs: id, target, result, date, time, scanType, confidence.
   // It looks compatible enough.
   const [scans, setScans] = useState(scansData);
+  
+  // Sync state with props when data is fetched
+  React.useEffect(() => {
+    if (scansData && scansData.length > 0) {
+      setScans(scansData);
+    }
+  }, [scansData]);
 
   const handleNewScan = () => {
     setCurrentView('new');
