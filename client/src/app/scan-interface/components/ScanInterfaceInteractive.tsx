@@ -35,8 +35,9 @@ interface ScanInterfaceInteractiveProps {
 
 export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfaceInteractiveProps) {
   const router = useRouter(); 
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const [isHydrated, setIsHydrated] = useState(false);
+
   const [selectedScanType, setSelectedScanType] = useState<string>('email');
   const [textInput, setTextInput] = useState('');
   const [linkInput, setLinkInput] = useState('');
@@ -113,13 +114,10 @@ export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfa
   const handleScan = async () => {
     if (!canScan()) return;
     
-    if (!user) {
-        setError("You must be logged in to save your scan history. Please wait for authentication or log in again.");
-        return;
-    }
-    
+    // Guests can scan, but history won't be saved to DB
     setIsScanning(true);
     setError(null);
+
 
 
     // Determine target/content
@@ -393,12 +391,23 @@ export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfa
               <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   onClick={handleScan}
-                  disabled={!canScan()}
+                  disabled={isScanning || !canScan()}
                   className="flex-[2] flex items-center justify-center space-x-2 px-6 py-4 bg-primary text-primary-foreground rounded-lg font-headline font-semibold hover:bg-trust-blue hover:-translate-y-0.5 hover:shadow-brand transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
                 >
-                  <Icon name="ShieldCheckIcon" size={24} variant="solid" />
-                  <span>{currentScanType?.buttonText || 'Start Security Scan'}</span>
+                  {isScanning ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin"></div>
+                      <span>Processing Scan...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Icon name="ShieldCheckIcon" size={24} variant="solid" />
+                      <span>{currentScanType?.buttonText || 'Start Security Scan'}</span>
+                    </>
+                  )}
                 </button>
+
+
 
                 {/* Mobile Specific Deep Verify Button */}
                 <button 
