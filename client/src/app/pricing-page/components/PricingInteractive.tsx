@@ -351,16 +351,15 @@ const PricingInteractive = () => {
         </div>
       </section>
 
-      {/* Payment Modal */}
+      {/* Payment Modal / Coming Soon */}
       {paymentPlanDetails && (
         <PaymentModal
           isOpen={isPaymentModalOpen}
           onClose={() => setIsPaymentModalOpen(false)}
           planName={paymentPlanDetails.name}
-          price={paymentPlanDetails.price}
-          period={paymentPlanDetails.period}
         />
       )}
+
     </div>);
 
 };

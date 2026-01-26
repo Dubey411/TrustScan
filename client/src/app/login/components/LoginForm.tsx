@@ -62,8 +62,9 @@ const LoginForm = ({ onSwitchToRegister }: LoginFormProps) => {
       const { signInWithEmailAndPassword } = await import('firebase/auth');
       
       if (!auth) {
-        throw new Error("Authentication is not configured. Please check environment variables.");
+        throw new Error("Authentication service is unavailable. Please verify that your Firebase environment variables are correctly set in .env.local.");
       }
+
 
       const userCredential = await signInWithEmailAndPassword(
         auth, 
@@ -115,8 +116,9 @@ const LoginForm = ({ onSwitchToRegister }: LoginFormProps) => {
       }
 
       if (!auth) {
-        throw new Error("Authentication is not configured. Please check environment variables.");
+        throw new Error("Authentication service is unavailable. Please verify that your Firebase environment variables are correctly set in .env.local.");
       }
+
 
       if (provider) {
         const result = await signInWithPopup(auth, provider);
