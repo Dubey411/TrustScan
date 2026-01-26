@@ -39,8 +39,14 @@ app.get("/", (req, res) => {
   res.status(200).json({ status: "healthy", timestamp: new Date().toISOString(), serverId: SERVER_ID });
 });
 
-app.use(cors());
+// Middlewares
+app.use(cors({
+  origin: "*", // Allows frontend to talk to backend from any domain (Vercel, Localhost, etc.)
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  allowedHeaders: ["Content-Type", "Authorization"]
+}));
 app.use(express.json());
+
 
 app.use("/api", scanRoute);
 
