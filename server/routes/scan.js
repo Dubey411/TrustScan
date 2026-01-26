@@ -253,6 +253,13 @@ router.post("/scan", upload.single('file'), async (req, res) => {
 
     // 6. Save scan & Update User Stats
     try {
+      // Add guest flag if no userId
+      if (!userId) {
+          scanDataRecord.isGuest = true;
+          // Set TTL for guest scans (7 days) to save space after ML processing
+          scanDataRecord.expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+      }
+
       const savedDoc = await Scan.create(scanDataRecord);
       
       if (userId) {
@@ -264,6 +271,7 @@ router.post("/scan", upload.single('file'), async (req, res) => {
                   savedDoc.expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
                   await savedDoc.save();
               }
+
 
               // --- 2. UPDATE PERSISTENT STATS ---
               // Decoupling: We save these to the User model so they survive history deletion
