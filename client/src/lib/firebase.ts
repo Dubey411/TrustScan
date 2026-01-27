@@ -1,5 +1,6 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider, FacebookAuthProvider, Auth } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, FacebookAuthProvider, GithubAuthProvider, Auth } from "firebase/auth";
+
 import { firebaseConfig } from "./firebaseConfig";
 
 // Initialize Firebase
@@ -7,6 +8,7 @@ let _app: FirebaseApp | undefined;
 let _auth: Auth | undefined;
 let _googleProvider: GoogleAuthProvider | undefined;
 let _facebookProvider: FacebookAuthProvider | undefined;
+let _githubProvider: GithubAuthProvider | undefined;
 
 if (firebaseConfig.apiKey) {
   try {
@@ -14,6 +16,7 @@ if (firebaseConfig.apiKey) {
     _auth = getAuth(_app);
     _googleProvider = new GoogleAuthProvider();
     _facebookProvider = new FacebookAuthProvider();
+    _githubProvider = new GithubAuthProvider();
     console.log("✅ Firebase initialized successfully (v10)");
   } catch (error) {
     console.error("❌ Firebase initialization error:", error);
@@ -26,4 +29,7 @@ export const app = _app;
 export const auth = _auth as Auth;
 export const googleProvider = _googleProvider as GoogleAuthProvider;
 export const facebookProvider = _facebookProvider as FacebookAuthProvider;
+export const githubProvider = _githubProvider as GithubAuthProvider;
+
+
 

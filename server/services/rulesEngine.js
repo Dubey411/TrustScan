@@ -52,7 +52,9 @@ function extractFeatures(text) {
     hasUrl: urls.length > 0,
     linkCount: urls.length,
     phoneCount: phones.length,
-    normalizedText: cleanText.toLowerCase()
+    normalizedText: cleanText.toLowerCase(),
+    // ADVANCED: Remove ALL separators to catch P-A-Y-M-E-N-T, P.A.Y.M.E.N.T, etc.
+    fuzzyNormalizedText: rawText.toLowerCase().replace(/[^a-z0-9]/g, '')
   };
 }
 
@@ -112,9 +114,13 @@ export async function runRules(content, externalSignals = {}, trustSignals = {})
   const normalizedText = metadata.normalizedText;
 
   // 1. EXECUTE RULES (Feature Engineering)
-  const checkRuleCondition = (condition, text) => {
+  const checkRuleCondition = (condition, text, fuzzyText) => {
     if (condition.hasKeywordsAny) {
-      return condition.hasKeywordsAny.some(kw => text.includes(kw.toLowerCase()));
+      return condition.hasKeywordsAny.some(kw => {
+        const lowerKw = kw.toLowerCase();
+        // Check standard AND fuzzy (e.g. "payment" matches "p-a-y-m-e-n-t" in fuzzyText)
+        return text.includes(lowerKw) || fuzzyText.includes(lowerKw.replace(/[^a-z0-9]/g, ''));
+      });
     }
     if (condition.hasFeature) {
       if (condition.hasFeature === 'url') return metadata.hasUrl;
@@ -137,7 +143,7 @@ export async function runRules(content, externalSignals = {}, trustSignals = {})
 
   let maxImpliedRisk = 0;
   fraudRules.forEach(rule => {
-    if (rule.logic?.and && rule.logic.and.every(cond => checkRuleCondition(cond, normalizedText))) {
+    if (rule.logic?.and && rule.logic.and.every(cond => checkRuleCondition(cond, normalizedText, metadata.fuzzyNormalizedText))) {
       reasons.push(rule.reason);
       rulesFired.push(rule.id);
       

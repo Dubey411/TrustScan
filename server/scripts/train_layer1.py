@@ -5,6 +5,7 @@ import numpy as np
 from pymongo import MongoClient
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import precision_score, accuracy_score
+from sklearn.model_selection import StratifiedKFold, cross_val_score
 from dotenv import load_dotenv
 from datetime import datetime
 
@@ -135,6 +136,15 @@ def train_model():
 
     # 7. Train Candidate Model (ON PRODUCTION DATA ONLY)
     model = LogisticRegression(class_weight='balanced', max_iter=1000)
+    
+    # [CROSS-VALIDATION] Validate stability across 5 folds
+    skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+    cv_scores = cross_val_score(model, X_train, y_train, cv=skf, scoring='precision')
+    print(f"[CALM ML] Cross-Validation Precision (5-Fold): {np.mean(cv_scores):.4f} (+/- {np.std(cv_scores):.4f})")
+    
+    if np.mean(cv_scores) < 0.60:
+        print("[CALM ML] Warning: Low CV Precision. Model may be unstable or data is noisy.")
+
     model.fit(X_train, y_train)
 
     candidate_weights = {
