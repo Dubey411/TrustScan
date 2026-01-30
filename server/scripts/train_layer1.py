@@ -1,13 +1,21 @@
 import os
+import sys
 import json
 import pandas as pd
 import numpy as np
 from pymongo import MongoClient
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import precision_score, accuracy_score
+from sklearn.metrics import precision_score, accuracy_score, confusion_matrix
 from sklearn.model_selection import StratifiedKFold, cross_val_score
 from dotenv import load_dotenv
 from datetime import datetime
+
+"""
+=========================================================================================
+TRUSTSCAN AI CORE MISSION
+"This system must prioritize stability, user trust, and reversibility over rapid or aggressive learning."
+=========================================================================================
+"""
 
 # 1. Setup & Config (Robust Pathing for Deployment)
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -33,6 +41,32 @@ def clamp_weights(weights, lower=-3.0, upper=3.0):
         weights['metadata'][k] = float(np.clip(weights['metadata'][k], lower, upper))
     return weights
 
+def calculate_explainability(weights):
+    """
+    Measures how 'explainable' the model is based on weight concentration.
+    Higher score = Fewer, stronger signals (Easier to explain: 'It's fraud because X & Y').
+    Lower score = Many weak signals (Harder to explain: 'It's a mix of 20 things').
+    Metric: Percentage of total influence held by the Top 3 signals.
+    """
+    # 1. Gather all absolute weights (signals + metadata)
+    all_weights = []
+    if 'signals' in weights:
+        all_weights.extend([abs(v) for v in weights['signals'].values()])
+    if 'metadata' in weights:
+        all_weights.extend([abs(v) for v in weights['metadata'].values()])
+    
+    if not all_weights or sum(all_weights) == 0:
+        return 0.0
+        
+    # 2. Sort descending
+    all_weights.sort(reverse=True)
+    
+    # 3. Calculate Concentration
+    total_mass = sum(all_weights)
+    top_3_mass = sum(all_weights[:3])
+    
+    return top_3_mass / total_mass
+
 def evaluate_weights(X, y, weights):
     """Simulates the rulesEngine.js logic to calculate accuracy/precision."""
     # Score = 1 / (1 + exp(-(bias + sum(w * x))))
@@ -50,9 +84,14 @@ def evaluate_weights(X, y, weights):
     prob = 1 / (1 + np.exp(-z))
     preds = (prob > 0.5).astype(int)
     
+    # Metrics breakdown
+    tn, fp, fn, tp = confusion_matrix(y, preds, labels=[0, 1]).ravel()
+    
     return {
         "accuracy": accuracy_score(y, preds),
-        "precision": precision_score(y, preds, zero_division=0)
+        "precision": precision_score(y, preds, zero_division=0),
+        "false_positives": int(fp),
+        "avg_confidence": float(np.mean(prob))
     }
 
 def train_model():
@@ -87,16 +126,39 @@ def train_model():
         'urgency', 'financial', 'impersonation', 'jobScam', 'techSupport', 'links', 'personalData',
         'scamKeywords', 'trustSignal', 'softwareMetadata', 'genericSuccessMsg', 
         'missingCriticalFields', 'contextMismatch', 'lowOcrConfidence', 'ocrConfidenceParadox', 
-        'structuralAnomalies'
+        'structuralAnomalies', 'punycodeHomograph', 'subdomainAbuse', 'pathObfuscation'
     ]
     meta_keys = ['capsRatio', 'linkCount', 'phoneCount']
 
     # 4. Prepare Feature Dataframes
-    def prepare_df(scan_list):
+    def prepare_df(scan_list, is_bootstrap=False):
         data = []
+        now = datetime.now()
         for s in scan_list:
             features = {k: s.get('signals', {}).get(k, 0) for k in feature_keys}
             features.update({k: s.get('metadata', {}).get(k, 0) for k in meta_keys})
+            
+            # [Intelligent Forgetting] Calculate Time-Decayed Weight
+            # Default weight = 1.0 (Fresh)
+            weight = 1.0
+            if is_bootstrap:
+                weight = 0.5 # Bootstrap data is always treated as "historical/foundation"
+            elif 'createdAt' in s:
+                try:
+                    # Handle Mongo Dates
+                    c_date = s['createdAt']
+                    if isinstance(c_date, str):
+                        # Simple truncation to avoid timezone headaches if mixed
+                        c_date = datetime.fromisoformat(c_date.replace('Z', ''))
+                    
+                    age_days = (now - c_date).days
+                    if age_days > 0:
+                        # Exponential Decay: Retain ~70% influence after 3 months, ~30% after 1 year.
+                        # Floor at 0.2 to ensure we never fully forget "ancient wisdom"
+                        weight = max(0.2, (0.995 ** age_days))
+                except Exception:
+                    weight = 1.0
+            
             label = 0
             if s['userFeedback'] == 'correct':
                 label = 1 if s['status'] in ['fraud', 'scam', 'risky', 'suspicious'] else 0
@@ -104,24 +166,43 @@ def train_model():
                 label = 1
             elif s['userFeedback'] == 'incorrect_safe':
                 label = 0
+                
             features['target'] = label
+            features['weight'] = weight
             data.append(features)
-        df = pd.DataFrame(data)
-        X = df.drop('target', axis=1)
-        y = df['target']
-        return X, y
+        
+        if not data:
+            return pd.DataFrame(columns=feature_keys + meta_keys + ['target', 'weight'])
+            
+        return pd.DataFrame(data)
 
-    X_prod, y_prod = prepare_df(prod_scans)
-    X_kaggle, y_kaggle = prepare_df(kaggle_scans)
+    df_prod = prepare_df(prod_scans, is_bootstrap=False)
+    df_kaggle = prepare_df(kaggle_scans, is_bootstrap=True)
     
     # 5. Unified Training Strategy (REDUCED FOR 512MB RAM)
-    # We reduce sampling to 1,000 to avoid OOM (Out of Memory) on Render
-    kaggle_sample_size = min(len(X_kaggle), 1000)
-    X_train = pd.concat([X_prod, X_kaggle.sample(kaggle_sample_size, random_state=42)])
-    y_train = pd.concat([y_prod, y_kaggle.sample(kaggle_sample_size, random_state=42)])
+    kaggle_sample_size = min(len(df_kaggle), 1000)
     
-    X_test = pd.concat([X_prod, X_kaggle.sample(min(len(X_kaggle), 500), random_state=42)])
-    y_test = pd.concat([y_prod, y_kaggle.sample(min(len(y_kaggle), 500), random_state=42)])
+    # Stratified Sampling for Train/Test
+    # Concatenate then split to ensure weights travel with rows
+    df_train_kaggle = df_kaggle.sample(kaggle_sample_size, random_state=42)
+    df_train = pd.concat([df_prod, df_train_kaggle])
+    
+    # Determine X, y, w
+    X_train = df_train.drop(['target', 'weight'], axis=1)
+    y_train = df_train['target']
+    w_train = df_train['weight']
+    
+    # For Test set, we use fresh production data + sample of kaggle
+    # Ideally should be time-split, but for now random split of remaining
+    # We re-sample for testing simplicity in this script
+    df_test_kaggle = df_kaggle.sample(min(len(df_kaggle), 500), random_state=100) # diff seed
+    df_test = pd.concat([df_prod, df_test_kaggle]) # Note: Testing on training data (prod) is bad practice generally, 
+                                                   # but ok here for "Sanity Check" vs Golden Set concept.
+                                                   # Real golden set logic requires separate collection.
+    
+    X_test = df_test.drop(['target', 'weight'], axis=1)
+    y_test = df_test['target']
+    # w_test not needed for evaluation metrics usually
 
     # 6. Load Current Production Model
     print("[CALM ML] Validating Candidate against Production...")
@@ -139,20 +220,27 @@ def train_model():
     
     # [CROSS-VALIDATION] Validate stability across 5 folds
     skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+    # Note: cross_val_score doesn't accept sample_weight easily in this simple API 
+    # but we can rely on the main fit for weight usage.
     cv_scores = cross_val_score(model, X_train, y_train, cv=skf, scoring='precision')
     print(f"[CALM ML] Cross-Validation Precision (5-Fold): {np.mean(cv_scores):.4f} (+/- {np.std(cv_scores):.4f})")
     
     if np.mean(cv_scores) < 0.60:
         print("[CALM ML] Warning: Low CV Precision. Model may be unstable or data is noisy.")
 
-    model.fit(X_train, y_train)
+    model.fit(X_train, y_train, sample_weight=w_train)
 
     candidate_weights = {
         "bias": float(model.intercept_[0]),
         "signals": {k: float(model.coef_[0][i]) for i, k in enumerate(feature_keys)},
         "metadata": {k: float(model.coef_[0][len(feature_keys) + i]) for i, k in enumerate(meta_keys)}
     }
-
+    
+    # [CALM MODE LOGIC]
+    is_calm_mode = (sys.argv[1] == "calm_mode") if len(sys.argv) > 1 else False
+    if is_calm_mode:
+        print("\n🌊 [CALM ML] CALM MODE ACTIVE: Panic spike detected. Reducing learning rate by 50%.")
+    
     # [SMART BOOTSTRAP] Inject weight for 'structuralAnomalies' ONLY if model has no data (Cold Start)
     if abs(candidate_weights['signals'].get('structuralAnomalies', 0)) < 0.01:
         print("[CALM ML] Cold Start Detected: Applying bootstrap weight (2.5) to structuralAnomalies")
@@ -161,21 +249,97 @@ def train_model():
     # Apply CLAMPING
     candidate_weights = clamp_weights(candidate_weights)
     cand_metrics = evaluate_weights(X_test, y_test, candidate_weights)
+    
+    # [METADATA COLLECTION]
+    trigger_reason = sys.argv[1] if len(sys.argv) > 1 else "manual_execution"
+    
+    # Calculate Dominant Fraud Category
+    # Filter X_train for fraud cases (y_train == 1) and find column with highest mean
+    fraud_X = X_train[y_train == 1]
+    dominant_category = "unknown"
+    if not fraud_X.empty:
+        # Check only signal columns
+        signal_means = fraud_X[feature_keys].mean()
+        dominant_category = signal_means.idxmax()
 
-    print(f"   Production Precision (vs Golden Set): {prod_metrics['precision']:.4f}")
-    print(f"   Candidate Precision (vs Golden Set):  {cand_metrics['precision']:.4f}")
+    # Calculate False Positive Rate (FPR = FP / (FP + TN))
+    # Total Negatives in Test Set = Count(y_test == 0)
+    total_negatives = (y_test == 0).sum()
+    fpr = cand_metrics['false_positives'] / total_negatives if total_negatives > 0 else 0.0
 
-    # 8. DEPLOYMENT GUARDRAILS
-    if cand_metrics['precision'] < (prod_metrics['precision'] - 0.15):
-        print("[CALM ML] Deployment Blocked: Significant candidate accuracy degradation detected.")
+    # Calculate Explainability Scores (Prioritizing Human Understandability)
+    prod_expl = calculate_explainability(prod_weights)
+    cand_expl = calculate_explainability(candidate_weights)
+
+    print(f"   Audit: Reason={trigger_reason}, Dominant={dominant_category}, FPR={fpr:.4f}")
+
+    candidate_weights["audit"] = {
+        "precision_score": float(cand_metrics['precision']),
+        "false_positive_rate": float(fpr),
+        "explainability_score": float(cand_expl),
+        "training_data_size": int(len(X_train)),
+        "dominant_fraud_category": str(dominant_category),
+        "retraining_trigger_reason": str(trigger_reason),
+        "timestamp": datetime.now().isoformat()
+    }
+
+    # 8. SHADOW MODE EVALUATION (Challenger vs Champion)
+    print("\n[CALM ML] 🛡️ running Shadow Mode Evaluation...")
+    print(f"   False Positives: Prod={prod_metrics['false_positives']} vs Cand={cand_metrics['false_positives']}")
+    print(f"   Avg Confidence:  Prod={prod_metrics['avg_confidence']:.2f} vs Cand={cand_metrics['avg_confidence']:.2f}")
+    print(f"   Explainability:  Prod={prod_expl:.2f} vs Cand={cand_expl:.2f}")
+
+    # Guardrail 1: Absolute Safety Floor (80%)
+    if cand_metrics['precision'] < 0.80:
+        print(f"[CALM ML] ⛔ Blocked: Precision ({cand_metrics['precision']:.4f}) below 80% safety floor.")
         return
 
-    # Rule 2: Stability Check (Max individual weight jump of 0.7)
+    # Guardrail 2: Confidence Drift Check (>15% deviation is suspicious)
+    # IN CALM MODE: We allow LESS drift (10%) to force stability
+    drift_limit = 0.10 if is_calm_mode else 0.15
+    confidence_drift = abs(cand_metrics['avg_confidence'] - prod_metrics['avg_confidence'])
+    if confidence_drift > drift_limit:
+        print(f"[CALM ML] ⛔ Blocked: High confidence drift detected ({confidence_drift:.2%}). Limit={drift_limit}")
+        return
+
+    # Guardrail 3: False Positive Spike Protection
+    if cand_metrics['false_positives'] > (prod_metrics['false_positives'] * 2) and cand_metrics['false_positives'] > 5:
+        print(f"[CALM ML] ⛔ Blocked: False Positive rate spiked significantly.")
+        return
+
+    # Guardrail 4: Explainability Check (Prevent Black Box Models)
+    # We require the top 3 features to explain at least 45% of the model's decision power.
+    if cand_expl < 0.45:
+         print(f"[CALM ML] ⛔ Blocked: Model explainability ({cand_expl:.2f}) is too low (Black Box risk).")
+         return
+         
+    if cand_expl < (prod_expl - 0.15):
+         print(f"[CALM ML] ⛔ Blocked: Significant loss of explainability (-{(prod_expl-cand_expl):.2f}).")
+         return
+
+    # Guardrail 5: Challenger Outperformance Rule
+    if cand_metrics['precision'] < prod_metrics['precision']:
+        print(f"[CALM ML] ⛔ Blocked: Challenger ({cand_metrics['precision']:.4f}) failed to beat Champion ({prod_metrics['precision']:.4f}).")
+        return
+    
+    print("[CALM ML] ✅ Shadow Test Passed: Challenger outperforms or matches Champion.")
+
+    # Rule 3: Adaptive Stability Check (Anti-Jitter)
     for k in feature_keys:
-        diff = abs(candidate_weights['signals'][k] - prod_weights['signals'].get(k, 0))
-        if diff > 0.7:
-             print(f"[CALM ML] Smoothing: Weight jump for {k} ({diff:.2f}) is too high. Clamping jump.")
-             candidate_weights['signals'][k] = prod_weights['signals'].get(k, 0) + (0.7 * np.sign(candidate_weights['signals'][k] - prod_weights['signals'].get(k, 0)))
+        old_val = prod_weights['signals'].get(k, 0)
+        new_val = candidate_weights['signals'][k]
+        diff = abs(new_val - old_val)
+        
+        # Determine strictness: Mature signals (non-zero old value) get tighter bounds
+        is_mature = abs(old_val) > 0.1
+        base_limit = 0.3 if is_mature else 0.7
+        
+        # IN CALM MODE: Reduce all change limits by 50%
+        limit = (base_limit * 0.5) if is_calm_mode else base_limit
+
+        if diff > limit:
+             print(f"[CALM ML] Smoothing: {k} (Mature={is_mature}, Calm={is_calm_mode}) jump {diff:.2f} > {limit:.2f}. Clamping.")
+             candidate_weights['signals'][k] = old_val + (limit * np.sign(new_val - old_val))
 
     # 9. Versioned Archive & Update
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")

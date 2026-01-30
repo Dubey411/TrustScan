@@ -43,8 +43,9 @@ function extractFeatures(text) {
   const capsRatio = length > 0 ? capsCount / length : 0;
   
   // Pattern extraction
-  const urls = rawText.match(/https?:\/\/[^\s]+|www\.[^\s]+|[a-zA-Z0-9-]+\.(com|net|org|io|ly|gl|co)\b/g) || [];
+  const urls = rawText.match(/https?:\/\/[^\s]+|www\.[^\s]+|[a-zA-Z0-9-]+\.(com|net|org|io|ly|co|gl|top|xyz|icu|biz|info|site|online|zip|mov)\b/gi) || [];
   const phones = rawText.match(/(\+?\d{1,3}[- ]?)?\d{10}/g) || [];
+  const emails = rawText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g) || [];
 
   return {
     textLength: length,
@@ -52,6 +53,7 @@ function extractFeatures(text) {
     hasUrl: urls.length > 0,
     linkCount: urls.length,
     phoneCount: phones.length,
+    emailCount: emails.length,
     normalizedText: cleanText.toLowerCase(),
     // ADVANCED: Remove ALL separators to catch P-A-Y-M-E-N-T, P.A.Y.M.E.N.T, etc.
     fuzzyNormalizedText: rawText.toLowerCase().replace(/[^a-z0-9]/g, '')
@@ -81,6 +83,10 @@ export async function runRules(content, externalSignals = {}, trustSignals = {})
     typosquatting: 0,
     shortenerObfuscation: 0,
     ipHost: 0,
+    punycodeHomograph: 0,
+    subdomainAbuse: 0,
+    pathObfuscation: 0,
+    contentMismatch: 0,
     // -- Universal Document Signals (Green/Red Flags) --
     missingCriticalFields: externalSignals.missingCriticalFields || 0,
     genericSuccessMsg: externalSignals.genericSuccessMsg || 0,
@@ -102,9 +108,23 @@ export async function runRules(content, externalSignals = {}, trustSignals = {})
     hasGst: 0,
     hasCin: 0,
     invalidBusinessId: 0,
+    lowInfoContent: 0,
   };
 
   const metadata = extractFeatures(content);
+  
+  // -- Gibberish / Low Info Detection --
+  const cleanContent = content.trim();
+  if (cleanContent.length > 0) {
+      const hasSpaces = cleanContent.includes(' ');
+      const hasVowels = /[aeiouy]/i.test(cleanContent);
+      const isExtremelyLongSingleWord = cleanContent.length > 25 && !hasSpaces;
+      const isGibberish = cleanContent.length > 5 && !hasVowels && /^[a-z]+$/i.test(cleanContent);
+      
+      if (isExtremelyLongSingleWord || isGibberish) {
+          signals.lowInfoContent = 1;
+      }
+  }
   const activityAnalysis = await analyzeLinks(content);
   const entityAnalysis = analyzeEntities(content);
 
@@ -172,11 +192,21 @@ export async function runRules(content, externalSignals = {}, trustSignals = {})
   z += (metadata.linkCount * (modelWeights.metadata.linkCount || 0));
   z += (metadata.phoneCount * (modelWeights.metadata.phoneCount || 0));
 
-  // 3. Sigmoid Function: 1 / (1 + exp(-z))
+  // 3. TRUST SIGNAL OVERRIDE
+  if (signals.trustedDomain) {
+    z -= 5; // Aggressive reduction for whitelisted domains
+    maxImpliedRisk = Math.min(maxImpliedRisk, 15); // Cap risk for trusted domains
+  }
+
+  if (trustSignals.officialDomain) {
+    z -= 2; 
+  }
+
+  // 4. Sigmoid Function: 1 / (1 + exp(-z))
   const probability = 1 / (1 + Math.exp(-z));
   const mlScore = probability * 100;
   
-  // 4. Hybrid Scoring Logic: Use ML score but ensure it doesn't drop below the highest rule risk
+  // 5. Hybrid Scoring Logic: Use ML score but ensure it doesn't drop below the highest rule risk
   const finalScore = Math.max(mlScore, maxImpliedRisk);
 
   // 4. Generate Explanatory Flags

@@ -5,6 +5,13 @@ import cron from 'node-cron';
 import Scan from '../models/Scan.js';
 import { fileURLToPath } from 'url';
 
+/**
+ * =========================================================================================
+ * TRUSTSCAN AI CORE MISSION
+ * "This system must prioritize stability, user trust, and reversibility over rapid or aggressive learning."
+ * =========================================================================================
+ */
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -38,14 +45,15 @@ function saveStatus(stats) {
 /**
  * Triggers the Python training script.
  */
-export async function runMLTraining() {
+export async function runMLTraining(reason = "manual") {
     return new Promise((resolve, reject) => {
-        console.log('🧠 [ML Manager] Starting Background Retraining...');
+        console.log(`🧠 [ML Manager] Starting Background Retraining (Reason: ${reason})...`);
         
         const scriptPath = path.join(__dirname, '..', 'scripts', 'train_layer1.py');
         const venvPythonPath = process.platform === 'win32' ? 'python' : 'python3';
         
-        exec(`"${venvPythonPath}" "${scriptPath}"`, (error, stdout, stderr) => {
+        // Pass reason as argument, usually enclosed in quotes to handle spaces
+        exec(`"${venvPythonPath}" "${scriptPath}" "${reason}"`, (error, stdout, stderr) => {
             if (error) {
                 console.error(`[ML Manager] Training Failed: ${error.message}`);
                 return reject(error);
@@ -94,22 +102,38 @@ export async function checkTriggersAndTrain() {
         // 2. Evaluate Trigger Conditions
         let shouldTrain = false;
         let reason = "";
+        let mode = "normal";
 
-        if (newFeedback >= 50 && wrongRate >= 0.20) {
+        // PANIC SPIKE DETECTION
+        // If >40% of recent feedback is 'incorrect_fraud', users are panicking or we are under attack.
+        const recentFraudRatio = newFeedback > 0 ? (wrongAnswers / newFeedback) : 0;
+        
+        if (newFeedback >= 20 && recentFraudRatio > 0.40) {
+             shouldTrain = true;
+             mode = "calm_mode";
+             reason = `Calm Mode Activated (Panic detection: ${(recentFraudRatio*100).toFixed(1)}% error rate)`;
+        } 
+        else if (newFeedback >= 50 && wrongRate >= 0.20) {
             shouldTrain = true;
             reason = `High Confidence Signal (New Feedback: ${newFeedback}, Wrong Rate: ${(wrongRate * 100).toFixed(1)}%)`;
         }
 
         if (shouldTrain) {
             console.log(`[ML Manager] ${reason} - Triggering CALM retraining.`);
-            await runMLTraining();
+            const output = await runMLTraining(mode);
             
-            saveStatus({
-                lastTrainedScanCount: totalScans,
-                lastTrainedFeedbackCount: totalFeedback,
-                lastTrainedWrongCount: wrongAnswers,
-                lastTrainingDate: new Date().toISOString()
-            });
+            // Only activate 24h cooldown if deployment was actually successful
+            if (output && output.includes("Promotion Successful")) {
+                saveStatus({
+                    lastTrainedScanCount: totalScans,
+                    lastTrainedFeedbackCount: totalFeedback,
+                    lastTrainedWrongCount: wrongAnswers,
+                    lastTrainingDate: new Date().toISOString()
+                });
+                console.log('🔒 [ML Manager] Deployment Successful. 24h Cooldown Activated.');
+            } else {
+                console.log('⚠️ [ML Manager] Deployment Blocked/Failed. Cooldown NOT activated (will retry next check).');
+            }
         }
     } catch (err) {
         console.error('[ML Manager] CALM Check Failed:', err);

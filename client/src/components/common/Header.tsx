@@ -51,6 +51,10 @@ const Header = ({ className = '' }: HeaderProps) => {
     { label: 'Dashboard', href: '/user-dashboard', icon: 'UserCircleIcon' },
   ];
 
+  if (user?.email === 'trustscan.ai@gmail.com') {
+    authNavigationItems.push({ label: 'Admin', href: '/admin', icon: 'ChartBarIcon' });
+  }
+
   const navigationItems = isAuthenticated
     ? [baseNavigationItems[0], ...authNavigationItems, ...baseNavigationItems.slice(1)]
     : baseNavigationItems;

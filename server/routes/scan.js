@@ -47,11 +47,19 @@ router.get("/me/:uid", async (req, res) => {
     try {
         let user = await User.findOne({ firebaseUid: req.params.uid });
         
-        // --- Self-Healing Sync: Ensure metrics match real history ---
+        // --- Self-Healing Sync: Ensure metrics match real history (Respecting User Corrections) ---
         const actualScanCount = await Scan.countDocuments({ userId: req.params.uid });
         const actualThreats = await Scan.countDocuments({ 
             userId: req.params.uid, 
-            status: { $in: ["fraud", "scam"] } 
+            $or: [
+                { 
+                    status: { $in: ["fraud", "scam"] },
+                    userFeedback: { $ne: "incorrect_safe" } // Exclude verified safe items
+                },
+                {
+                    userFeedback: "incorrect_fraud" // Include missed fraud items
+                }
+            ]
         });
 
         if (!user) {
@@ -61,12 +69,13 @@ router.get("/me/:uid", async (req, res) => {
                 totalThreats: actualThreats
             });
         } else {
-            // Update if persistent stats are out of sync (drifted)
-            if (actualScanCount > user.totalScans || actualThreats > user.totalThreats) {
-                user.totalScans = Math.max(user.totalScans, actualScanCount);
-                user.totalThreats = Math.max(user.totalThreats, actualThreats);
+            // Update if persistent stats are out of sync
+            // We force update to 'actual' values to allow correction (count going down)
+            if (user.totalScans !== actualScanCount || user.totalThreats !== actualThreats) {
+                user.totalScans = actualScanCount;
+                user.totalThreats = actualThreats;
                 await user.save();
-                console.log(`🛠️ [Self-Heal] Synced stats for user ${req.params.uid}`);
+                console.log(`🛠️ [Self-Heal] Synced stats for user ${req.params.uid} (Threats: ${actualThreats})`);
             }
         }
         res.json(user);
@@ -191,6 +200,29 @@ router.post("/scan", upload.single('file'), async (req, res) => {
                 result.flags.green.push("Verified Business Entity - Registered with MCA/GST");
             }
         }
+    }
+
+    // --- Special Logic: Link & Email Fallbacks (Professional Behavior) ---
+    if (type === 'link') {
+        const linkCount = result.metadata?.linkCount || 0;
+        if (linkCount === 0) {
+             finalRisk = Math.max(finalRisk, 50); 
+             result.reasons.unshift("Query Invalid: No valid web link detected.");
+        }
+    }
+
+    if (type === 'email') {
+        const emailCount = result.metadata?.emailCount || 0;
+        if (emailCount === 0) {
+             finalRisk = Math.max(finalRisk, 50); 
+             result.reasons.unshift("Query Invalid: No valid email address detected.");
+        }
+    }
+
+    // --- Special Logic: Gibberish/Meaningless Detection ---
+    if (result.signals?.lowInfoContent) {
+        finalRisk = Math.max(finalRisk, 55);
+        result.reasons.unshift("Unreadable Content: Input appears to be meaningless gibberish.");
     }
 
     // 4. Final status and confidence thresholds

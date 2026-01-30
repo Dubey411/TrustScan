@@ -79,7 +79,12 @@ const LoginForm = ({ onSwitchToRegister }: LoginFormProps) => {
         localStorage.setItem('userEmail', user.email || '');
       }
       
-      router.push('/user-dashboard');
+      // ADMIN REDIRECT LOGIC
+      if (user.email === 'trustscan.ai@gmail.com') {
+          router.push('/admin');
+      } else {
+          router.push('/user-dashboard');
+      }
     } catch (error: any) {
       console.error("Login error:", error);
       let message = "Invalid email or password.";
@@ -130,7 +135,12 @@ const LoginForm = ({ onSwitchToRegister }: LoginFormProps) => {
             localStorage.setItem('userName', user.displayName || '');
             localStorage.setItem('userPhoto', user.photoURL || '');
         }
-        router.push('/user-dashboard');
+
+        if (user.email === 'trustscan.ai@gmail.com') {
+            router.push('/admin');
+        } else {
+            router.push('/user-dashboard');
+        }
       }
     } catch (error: any) {
       console.error("Social login error:", error);

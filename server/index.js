@@ -7,6 +7,7 @@ import os from "os";
 import { fileURLToPath } from 'url';
 import connectDB from "./config/db.js";
 import scanRoute from "./routes/scan.js";
+import adminRoute from "./routes/admin.js";
 import { initializeMLAutomation } from "./services/mlManager.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -49,6 +50,7 @@ app.use(express.json());
 
 
 app.use("/api", scanRoute);
+app.use("/api/admin", adminRoute);
 
 const PORT = process.env.PORT || 5000;
 

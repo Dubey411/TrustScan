@@ -9,6 +9,11 @@ interface DetectedLink {
   flags: string[];
   redirectChain?: string[];
   finalDestination?: string;
+  liveMetadata?: {
+    title: string;
+    description: string;
+    status: number;
+  };
 }
 
 interface LinkAnalysisCardProps {
@@ -39,6 +44,36 @@ const FLAG_MAP: Record<string, { label: string; description: string; color: stri
     description: 'Bypasses domain registration for total anonymity; highly risky.',
     color: 'red',
     icon: 'ServerIcon'
+  },
+  HOMOGRAPH_ATTACK: {
+    label: 'Homograph Attack',
+    description: 'Uses special characters (Punycode) to look like a legitimate brand.',
+    color: 'red',
+    icon: 'MasksIcon'
+  },
+  EXCESSIVE_SUBDOMAINS: {
+    label: 'Subdomain Abuse',
+    description: 'Deep nested subdomains (a.b.c.com) are often used to hide the true host.',
+    color: 'amber',
+    icon: 'QueueListIcon'
+  },
+  CREDENTIAL_OR_PATH_OBFUSCATION: {
+    label: 'Path Obfuscation',
+    description: 'Uses "@" or credentials in URL to misdirect your browser.',
+    color: 'red',
+    icon: 'NoSymbolIcon'
+  },
+  DANGEROUS_REDIRECT_TARGET: {
+    label: 'Dangerous Target',
+    description: 'The final destination after redirects is a known malicious TLD.',
+    color: 'red',
+    icon: 'FireIcon'
+  },
+  BRAND_CONTENT_MISMATCH: {
+    label: 'Brand Mismatch',
+    description: 'The page content claims to be a trusted brand (e.g., "Facebook"), but the domain name does not match. This is a common phishing signal.',
+    color: 'red',
+    icon: 'UserIcon'
   }
 };
 
@@ -122,6 +157,25 @@ const LinkAnalysisCard = ({ detectedLinks }: LinkAnalysisCardProps) => {
                 <span className="font-bold uppercase mr-2 text-xs">Original Link:</span>
                 <span className="text-foreground/80">{link.url}</span>
               </div>
+
+              {link.liveMetadata && (
+                <div className="bg-background/50 p-3 rounded-lg border border-border/50">
+                   <div className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mb-2 flex items-center gap-1">
+                     <Icon name="GlobeAltIcon" size={12} />
+                     Live Site Intelligence
+                   </div>
+                   <div className="space-y-1">
+                      <p className="text-xs font-bold text-foreground">
+                        {link.liveMetadata.title || "No Title Found"}
+                      </p>
+                      {link.liveMetadata.description && (
+                         <p className="text-[10px] text-muted-foreground line-clamp-2 italic">
+                            "{link.liveMetadata.description}"
+                         </p>
+                      )}
+                   </div>
+                </div>
+              )}
 
               {(() => {
                 const chain = link.redirectChain;

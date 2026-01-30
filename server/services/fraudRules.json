@@ -1,5 +1,19 @@
 [
     {
+        "id": "MEANINGLESS_CONTENT",
+        "riskLevel": "medium",
+        "category": "lowInfoContent",
+        "reason": "The provided input appears to be meaningless gibberish or unformatted text",
+        "impliedRisk": 55,
+        "logic": {
+            "and": [
+                {
+                    "hasSignal": "lowInfoContent"
+                }
+            ]
+        }
+    },
+    {
         "id": "GENERIC_MISSING_FIELDS",
         "riskLevel": "high",
         "category": "missingCriticalFields",
@@ -315,6 +329,62 @@
             "and": [
                 {
                     "hasSignal": "shortenerObfuscation"
+                }
+            ]
+        }
+    },
+    {
+        "id": "LINK_HOMOGRAPH_ATTACK",
+        "riskLevel": "high",
+        "category": "punycodeHomograph",
+        "reason": "URL uses Punycode characters to look like a legitimate site (Identity Deception)",
+        "impliedRisk": 95,
+        "logic": {
+            "and": [
+                {
+                    "hasSignal": "punycodeHomograph"
+                }
+            ]
+        }
+    },
+    {
+        "id": "LINK_SUBDOMAIN_ABUSE",
+        "riskLevel": "medium",
+        "category": "subdomainAbuse",
+        "reason": "Link contains an excessive number of subdomains, potentially hiding the true destination",
+        "impliedRisk": 60,
+        "logic": {
+            "and": [
+                {
+                    "hasSignal": "subdomainAbuse"
+                }
+            ]
+        }
+    },
+    {
+        "id": "LINK_PATH_OBFUSCATION",
+        "riskLevel": "high",
+        "category": "pathObfuscation",
+        "reason": "URL contains obfuscation characters (@) designed to redirect browsers to malicious sites",
+        "impliedRisk": 90,
+        "logic": {
+            "and": [
+                {
+                    "hasSignal": "pathObfuscation"
+                }
+            ]
+        }
+    },
+    {
+        "id": "LINK_CONTENT_MISMATCH",
+        "riskLevel": "high",
+        "category": "contentMismatch",
+        "reason": "Brand Mismatch: The website title claims to be a trusted brand, but the domain is unaffiliated.",
+        "impliedRisk": 95,
+        "logic": {
+            "and": [
+                {
+                    "hasSignal": "contentMismatch"
                 }
             ]
         }

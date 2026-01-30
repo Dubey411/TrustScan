@@ -1,3 +1,4 @@
+import { notFound } from 'next/navigation';
 import Header from '@/components/common/Header';
 import FooterSection from '../homepage/components/FooterSection';
 import Icon from '@/components/ui/AppIcon';
@@ -14,7 +15,11 @@ export default async function InfoPage({ params }: { params: Promise<{ slug: str
     'disclaimer': 'Legal Disclaimer',
   };
 
-  const title = titles[slug] || 'Information';
+  if (!titles[slug]) {
+    notFound();
+  }
+
+  const title = titles[slug];
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
