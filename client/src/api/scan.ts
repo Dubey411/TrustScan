@@ -95,3 +95,14 @@ export async function getUserProfile(uid: string): Promise<any> {
     }
     return response.json();
 }
+
+/**
+ * Fetches a single scan result by ID
+ */
+export async function getScanResult(id: string): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/results/${id}`);
+    if (!response.ok) {
+        throw new Error('Failed to fetch scan results');
+    }
+    return response.json();
+}
