@@ -6,9 +6,11 @@ import Icon from '@/components/ui/AppIcon';
 interface ScanProgressProps {
   isScanning: boolean;
   onComplete: () => void;
+  depth?: 'basic' | 'standard' | 'deep';
+  type?: string;
 }
 
-export default function ScanProgress({ isScanning, onComplete }: ScanProgressProps) {
+export default function ScanProgress({ isScanning, onComplete, depth = 'basic', type = 'message' }: ScanProgressProps) {
   const [progress, setProgress] = useState(0);
   const [currentStep, setCurrentStep] = useState(0);
   const [isHydrated, setIsHydrated] = useState(false);
@@ -17,11 +19,24 @@ export default function ScanProgress({ isScanning, onComplete }: ScanProgressPro
     setIsHydrated(true);
   }, []);
 
+  // Calculate estimated duration based on type and depth
+  let estimatedDuration = 4000;
+  if (type === 'document') {
+    if (depth === 'deep') estimatedDuration = 45000;
+    else if (depth === 'standard') estimatedDuration = 20000;
+    else estimatedDuration = 10000;
+  } else if (type === 'link') {
+    estimatedDuration = 6000;
+  } else if (type === 'company') {
+    estimatedDuration = 12000;
+  }
+
   const steps = [
-    { label: 'Analyzing content', icon: 'MagnifyingGlassIcon' },
-    { label: 'Checking patterns', icon: 'ChartBarIcon' },
-    { label: 'Verifying sources', icon: 'ShieldCheckIcon' },
-    { label: 'Generating report', icon: 'DocumentTextIcon' },
+    { label: 'Initializing Pipeline', icon: 'CommandLineIcon' },
+    { label: depth === 'deep' ? 'High-Res OCR Rendering' : (type === 'document' ? 'Extracting Text Layer' : 'Analyzing Request'), icon: 'DocumentMagnifyingGlassIcon' },
+    { label: 'Analyzing Fraud Signals', icon: 'MagnifyingGlassIcon' },
+    { label: 'Risk Classification', icon: 'CpuChipIcon' },
+    { label: 'Finalizing Security Report', icon: 'ShieldCheckIcon' },
   ];
 
   useEffect(() => {
@@ -31,25 +46,26 @@ export default function ScanProgress({ isScanning, onComplete }: ScanProgressPro
       return;
     }
 
-    const totalDuration = 3000;
-    const stepDuration = totalDuration / steps.length;
-    const updateInterval = 50;
-    const progressIncrement = (100 / totalDuration) * updateInterval;
-
+    const updateInterval = 100;
+    
     const interval = setInterval(() => {
       setProgress((prev) => {
-        const newProgress = Math.min(prev + progressIncrement, 100);
+        // Slow down as we reach the end to wait for actual API response
+        let increment = (100 / (estimatedDuration / updateInterval));
+        
+        // If we are past 90%, slow down significantly
+        if (prev > 90) {
+          increment = 0.5;
+        }
+        if (prev > 98) {
+          increment = 0.05; // Almost stall at 98%
+        }
+
+        const newProgress = Math.min(prev + increment, 99.5);
         
         const newStep = Math.floor((newProgress / 100) * steps.length);
         if (newStep !== currentStep && newStep < steps.length) {
           setCurrentStep(newStep);
-        }
-        
-        if (newProgress >= 100) {
-          clearInterval(interval);
-          setTimeout(() => {
-            onComplete();
-          }, 500);
         }
         
         return newProgress;
@@ -57,27 +73,27 @@ export default function ScanProgress({ isScanning, onComplete }: ScanProgressPro
     }, updateInterval);
 
     return () => clearInterval(interval);
-  }, [isScanning, isHydrated, onComplete]);
+  }, [isScanning, isHydrated, depth, type, steps.length, currentStep]);
 
   if (!isScanning) return null;
 
   return (
     <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-card rounded-xl shadow-brand-elevated p-8 max-w-md w-full">
+      <div className="bg-card rounded-xl shadow-brand-elevated p-8 max-w-md w-full border border-primary/20">
         <div className="text-center mb-6">
           <div className="inline-flex p-4 bg-primary/10 rounded-full mb-4 animate-pulse">
             <Icon name="ShieldCheckIcon" size={48} variant="solid" className="text-primary" />
           </div>
-          <h3 className="text-2xl font-headline font-bold text-foreground mb-2">Scanning in Progress</h3>
-          <p className="text-muted-foreground">Analyzing your content for potential threats...</p>
+          <h3 className="text-2xl font-headline font-bold text-foreground mb-1">Scanning...</h3>
+          <p className="text-sm text-muted-foreground">This may take a moment for {depth === 'deep' ? 'Deep Vision' : 'Standard'} analysis</p>
         </div>
 
         <div className="space-y-6">
           <div className="space-y-2">
             <div className="flex justify-between text-sm font-medium">
               <span className="text-foreground">{isHydrated ? Math.round(progress) : 0}% Complete</span>
-              <span className="text-muted-foreground">
-                {isHydrated ? `~${Math.max(1, Math.ceil((100 - progress) / 33))}s remaining` : '~3s remaining'}
+              <span className="text-primary font-bold animate-pulse">
+                {isHydrated ? (progress > 98 ? 'Finalizing...' : `est. ${Math.max(1, Math.ceil(((1 - progress/100) * estimatedDuration) / 1000))}s remaining`) : 'Calculating...'}
               </span>
             </div>
             <div className="h-2 bg-muted rounded-full overflow-hidden">
@@ -94,9 +110,10 @@ export default function ScanProgress({ isScanning, onComplete }: ScanProgressPro
                 key={index}
                 className={`flex items-center space-x-3 p-3 rounded-lg transition-all duration-300 ${
                   index === currentStep
-                    ? 'bg-primary/10 border-2 border-primary'
+                    ? 'bg-primary/10 border border-primary/30'
                     : index < currentStep
-                    ? 'bg-success/10 border-2 border-success' :'bg-muted/30 border-2 border-transparent'
+                    ? 'bg-success/5 border border-success/20' 
+                    : 'bg-muted/30 border border-transparent opacity-50'
                 }`}
               >
                 <div
@@ -104,7 +121,8 @@ export default function ScanProgress({ isScanning, onComplete }: ScanProgressPro
                     index === currentStep
                       ? 'text-primary'
                       : index < currentStep
-                      ? 'text-success' :'text-muted-foreground'
+                      ? 'text-success' 
+                      : 'text-muted-foreground'
                   }`}
                 >
                   {index < currentStep ? (
@@ -114,11 +132,12 @@ export default function ScanProgress({ isScanning, onComplete }: ScanProgressPro
                   )}
                 </div>
                 <span
-                  className={`font-medium ${
+                  className={`text-sm font-semibold ${
                     index === currentStep
                       ? 'text-foreground'
                       : index < currentStep
-                      ? 'text-success' :'text-muted-foreground'
+                      ? 'text-success' 
+                      : 'text-muted-foreground'
                   }`}
                 >
                   {step.label}
@@ -126,9 +145,9 @@ export default function ScanProgress({ isScanning, onComplete }: ScanProgressPro
                 {index === currentStep && (
                   <div className="ml-auto">
                     <div className="flex space-x-1">
-                      <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                      <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                      <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                      <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                      <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                      <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                     </div>
                   </div>
                 )}

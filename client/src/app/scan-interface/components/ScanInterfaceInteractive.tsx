@@ -523,7 +523,12 @@ export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfa
       {/* </div>
       </div> */}
 
-      <ScanProgress isScanning={isScanning} onComplete={() => {}} />
+      <ScanProgress 
+        isScanning={isScanning} 
+        onComplete={() => {}} 
+        depth={analysisDepth}
+        type={selectedScanType}
+      />
       <KeyboardShortcuts onScan={handleScan} onClear={handleClear} />
     </>
   );

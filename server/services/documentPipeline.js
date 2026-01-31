@@ -193,42 +193,64 @@ export async function runDocumentPipeline(fileBuffer, mimeType, depth = 'basic')
             let totalConfidence = 0;
             let pagesProcessed = 0;
 
-            for (const page of targetPages) {
-                // Yield to event loop: Prevent server from becoming unresponsive
-                await new Promise(resolve => setTimeout(resolve, 200));
+            console.log(`[Pipeline] Initializing OCR Worker for sequential page processing...`);
+            const worker = await createWorker('eng');
 
-                console.log(`[Pipeline] Processing Page ${page.pageIndex}...`);
-                let pageText = page.text || "";
-                let method = "DIGITAL_PARSE";
+            try {
+                // Pre-render state
+                let nextImgBufferPromise = null;
 
-                if (page.type === 'SCANNED' || page.charCount < 100) {
-                    let pageWorker = null;
-                    try {
-                        const scale = pdfData.totalPages > 5 ? 1.5 : 2.0; 
-                        let imgBuffer = await renderPdfPageViaPython(fileBuffer, page.pageIndex, scale);
-                        if (!pipelineResult.firstImgBuffer) pipelineResult.firstImgBuffer = imgBuffer;
-                        
-                        pageWorker = await createWorker('eng');
-                        const ocr = await runMultiPassOCR(imgBuffer, pageWorker);
-                        pageText = ocr.text;
-                        totalConfidence += ocr.confidence;
-                        method = "PYTHON_OCR";
-                        
-                        await pageWorker.terminate();
-                        pageWorker = null;
-                        imgBuffer = null;
-                    } catch (e) {
-                        console.error(`[Pipeline] Page ${page.pageIndex} Error:`, e.message);
-                        method = "FAIL";
-                        if (pageWorker) await pageWorker.terminate();
+                for (let i = 0; i < targetPages.length; i++) {
+                    const page = targetPages[i];
+                    console.log(`[Pipeline] Processing Page ${page.pageIndex}...`);
+                    
+                    let pageText = page.text || "";
+                    let method = "DIGITAL_PARSE";
+
+                    if (page.type === 'SCANNED' || page.charCount < 100) {
+                        try {
+                            const scale = pdfData.totalPages > 5 ? 1.5 : 2.0; 
+                            
+                            // Get image buffer (either from current promise or starting now)
+                            let imgBuffer;
+                            if (nextImgBufferPromise) {
+                                imgBuffer = await nextImgBufferPromise;
+                            } else {
+                                imgBuffer = await renderPdfPageViaPython(fileBuffer, page.pageIndex, scale);
+                            }
+
+                            // STARTS PRE-RENDERING NEXT PAGE IMMEDIATELY
+                            if (i + 1 < targetPages.length) {
+                                const nextNextPage = targetPages[i+1];
+                                if (nextNextPage.type === 'SCANNED' || nextNextPage.charCount < 100) {
+                                    nextImgBufferPromise = renderPdfPageViaPython(fileBuffer, nextNextPage.pageIndex, scale);
+                                } else {
+                                    nextImgBufferPromise = null;
+                                }
+                            }
+
+                            if (!pipelineResult.firstImgBuffer) pipelineResult.firstImgBuffer = imgBuffer;
+                            
+                            const ocr = await runMultiPassOCR(imgBuffer, worker);
+                            pageText = ocr.text;
+                            totalConfidence += ocr.confidence;
+                            method = "PYTHON_OCR";
+                            imgBuffer = null;
+                        } catch (e) {
+                            console.error(`[Pipeline] Page ${page.pageIndex} Error:`, e.message);
+                            method = "FAIL";
+                        }
                     }
-                }
 
-                if (pageText) {
-                    textAccumulator += `--- Page ${page.pageIndex} ---\n${pageText}\n\n`;
-                    pagesProcessed++;
+                    if (pageText) {
+                        textAccumulator += `--- Page ${page.pageIndex} ---\n${pageText}\n\n`;
+                        pagesProcessed++;
+                    }
+                    pipelineResult.extractionMethod.push(`P${page.pageIndex}:${method}`);
                 }
-                pipelineResult.extractionMethod.push(`P${page.pageIndex}:${method}`);
+            } finally {
+                await worker.terminate();
+                console.log(`[Pipeline] OCR Worker terminated.`);
             }
 
             pipelineResult.text = textAccumulator;
