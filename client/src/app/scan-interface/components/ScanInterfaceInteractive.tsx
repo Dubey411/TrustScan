@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { performScan } from '@/api/scan';
+import { performScan, getUserProfile } from '@/api/scan';
 import { useAuth } from '@/context/AuthContext';
 
 
@@ -46,6 +46,32 @@ export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfa
   const [analysisDepth, setAnalysisDepth] = useState<'basic' | 'standard' | 'deep'>('basic');
   const [priorityLevel, setPriorityLevel] = useState<'normal' | 'urgent'>('normal');
   const [error, setError] = useState<string | null>(null);
+  const [userCredits, setUserCredits] = useState<number>(0);
+  const [isFetchingCredits, setIsFetchingCredits] = useState(false);
+
+
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    const fetchCredits = async () => {
+      if (user?.uid) {
+        setIsFetchingCredits(true);
+        try {
+          const profile = await getUserProfile(user.uid);
+          setUserCredits(profile.credits || 0);
+        } catch (e) {
+          console.error("Failed to fetch credits", e);
+        } finally {
+          setIsFetchingCredits(false);
+        }
+      }
+    };
+    if (isHydrated && user) {
+      fetchCredits();
+    }
+  }, [isHydrated, user]);
 
 
   useEffect(() => {
@@ -281,10 +307,16 @@ export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfa
                 )}
               </div>
 
-               {/* Analysis Options - Hidden on mobile to reduce gap */}
-               <div className="hidden md:block mb-8 space-y-6">
+              <div className="hidden md:block mb-8 space-y-6">
                 <div>
-                  <h3 className="text-lg font-headline font-semibold text-foreground mb-3">Analysis Depth</h3>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-lg font-headline font-semibold text-foreground">Analysis Depth</h3>
+                    {user && (
+                      <span className="text-[10px] uppercase font-bold text-primary bg-primary/10 px-2 py-1 rounded-md border border-primary/20">
+                        {userCredits} Credits Available
+                      </span>
+                    )}
+                  </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <button
                       className={`relative p-4 rounded-xl border-2 transition-all duration-300 text-left ${
@@ -298,7 +330,7 @@ export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfa
                         <Icon name="BoltIcon" size={20} variant="solid" className="text-primary" />
                         <span className="font-semibold text-foreground">Basic</span>
                       </div>
-                      <p className="text-xs text-muted-foreground">Quick scan (30s)</p>
+                      <p className="text-xs text-muted-foreground">Quick scan (Top pages)</p>
                     </button>
 
                     <button
@@ -313,33 +345,49 @@ export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfa
                         <Icon name="EyeIcon" size={20} variant="solid" className="text-primary" />
                         <span className="font-semibold text-foreground">Standard</span>
                       </div>
-                      <p className="text-xs text-muted-foreground">Thorough analysis (1-2 min)</p>
+                      <p className="text-xs text-muted-foreground">Thorough analysis</p>
                     </button>
 
                     <button
-                      onClick={() => router.push('/pricing-page')}
-                      className="relative p-4 rounded-xl border-2 transition-all duration-300 text-left border-muted bg-muted/20 opacity-60 cursor-not-allowed group"
+                      onClick={() => {
+                        if (userCredits > 0) {
+                          setAnalysisDepth('deep');
+                        } else {
+                          router.push('/pricing-page');
+                        }
+                      }}
+                      className={`relative p-4 rounded-xl border-2 transition-all duration-300 text-left group ${
+                        analysisDepth === 'deep'
+                          ? 'border-primary bg-primary/5 shadow-brand'
+                          : userCredits > 0 
+                            ? 'border-border bg-card hover:border-primary/50'
+                            : 'border-muted bg-muted/20 opacity-70 cursor-not-allowed'
+                      }`}
                     >
                       <div className="absolute -top-3 -right-3 z-10 flex gap-1">
-                        <span className="bg-amber-400 text-white text-[10px] uppercase font-bold px-2 py-0.5 rounded-full shadow-sm tracking-wider">
-                          pro
-                        </span>
-                        <span className="bg-muted-foreground text-white text-[10px] uppercase font-bold px-2 py-0.5 rounded-full shadow-sm tracking-wider">
-                          locked
-                        </span>
+                        {userCredits > 0 ? (
+                           <span className="bg-success text-white text-[10px] uppercase font-bold px-2 py-1 rounded-full shadow-sm tracking-widest animate-pulse">
+                            PREMIUM
+                          </span>
+                        ) : (
+                          <span className="bg-muted-foreground text-white text-[10px] uppercase font-bold px-2 py-0.5 rounded-full shadow-sm tracking-wider">
+                            LOCKED
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center gap-2 mb-1">
-                        <Icon name="BeakerIcon" size={20} variant="solid" className="text-muted-foreground" />
-                        <span className="font-semibold text-muted-foreground">Deep Scan</span>
+                        <Icon name="BeakerIcon" size={20} variant="solid" className={userCredits > 0 ? "text-primary" : "text-muted-foreground"} />
+                        <span className={`font-semibold ${userCredits > 0 ? "text-foreground" : "text-muted-foreground"}`}>Deep Scan</span>
                       </div>
-                      <p className="text-xs text-muted-foreground">L2 OpenAI/Vision Analysis</p>
+                      <p className="text-xs text-muted-foreground">Premium 10+ Page Search</p>
                       
-                      {/* Tooltip on hover */}
-                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 rounded-xl">
-                         <span className="text-[10px] font-bold text-primary uppercase">Click to Unlock</span>
-                      </div>
+                      {/* Tooltip on hover if locked */}
+                      {userCredits === 0 && (
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 rounded-xl">
+                          <span className="text-[10px] font-bold text-primary uppercase">Buy Credits</span>
+                        </div>
+                      )}
                     </button>
-
                   </div>
                 </div>
 
@@ -383,7 +431,7 @@ export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfa
                  <div className="p-3 bg-amber-50 border border-amber-100 rounded-lg flex items-start gap-3">
                   <Icon name="InformationCircleIcon" size={18} variant="solid" className="text-amber-500 mt-0.5" />
                   <p className="text-xs text-amber-800">
-                    Premium features require an active subscription. Upgrade to access deep analysis and priority processing.
+                    Logged-in users get 3 free Deep Scans monthly. For unlimited 10+ page analysis, upgrade to Pro.
                   </p>
                 </div>
               </div>
@@ -406,8 +454,6 @@ export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfa
                     </>
                   )}
                 </button>
-
-
 
                 {/* Mobile Specific Deep Verify Button */}
                 <button 

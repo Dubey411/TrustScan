@@ -66,7 +66,8 @@ router.get("/me/:uid", async (req, res) => {
             user = await User.create({ 
                 firebaseUid: req.params.uid,
                 totalScans: actualScanCount,
-                totalThreats: actualThreats
+                totalThreats: actualThreats,
+                credits: 3 // Grant 3 free scans upon first login/sync
             });
         } else {
             // Update if persistent stats are out of sync
@@ -101,10 +102,34 @@ router.post("/scan", upload.single('file'), async (req, res) => {
     console.log(`Scan Request RECEIVED. UserID: ${userId || 'Guest'}, Type: ${type}, Depth: ${depth || 'basic'}`);
 
 
+    // --- PRE-ENTRY: Check Deep Scan Permissions ---
+    let ocrDepth = 'basic';
+    if (depth === 'deep') {
+        if (userId) {
+            const user = await User.findOne({ firebaseUid: userId });
+            // New logic: 3 free scans per month mentioned by user
+            // For now we check if credits > 0. If user is new, we might need a way to grant initial 3 credits.
+            if (user && user.credits > 0) {
+                console.log(`💎 [Premium] Deep Scan active. Indexing 10+ pages.`);
+                user.credits -= 1;
+                await user.save();
+                analysisLayer = 2;
+                creditsConsumed = 1;
+                ocrDepth = 'deep';
+            } else {
+                console.log(`🔒 [Basic] No credits for Deep Scan. Scaling down.`);
+                depth = 'basic'; // Fallback
+            }
+        } else {
+            console.log(`👤 [Basic] Guest cannot use Deep Scan. Scaling down.`);
+            depth = 'basic'; // Fallback
+        }
+    }
+
     // 1. If a file is uploaded, run the OCR/Visual Pre-processor
     if (req.file) {
-      console.log(`📂 [API Scan] Document upload detected: ${req.file.originalname}`);
-      const processed = await processDocument(req.file.buffer, req.file.mimetype, req.file.originalname);
+      console.log(`📂 [API Scan] Document upload detected: ${req.file.originalname} (Depth: ${ocrDepth})`);
+      const processed = await processDocument(req.file.buffer, req.file.mimetype, req.file.originalname, ocrDepth);
       
       content = processed.text;
       externalSignals = processed.externalSignals;
@@ -115,28 +140,6 @@ router.post("/scan", upload.single('file'), async (req, res) => {
           preview: processed.text?.substring(0, 300) + (processed.text?.length > 300 ? "..." : "")
       };
       type = "document";
-    }
-
-    if (!content || typeof content !== "string") {
-      return res.status(400).json({ error: "Valid content or file is required for scanning" });
-    }
-
-    // --- L2 DEEP SCAN LOGIC (Currently Locked - Coming Soon) ---
-    if (depth === 'deep') {
-        if (userId) {
-            const user = await User.findOne({ firebaseUid: userId });
-            if (user && user.credits > 0) {
-                console.log(`💎 [L2] Deep Scan active. Consuming 1 credit.`);
-                user.credits -= 1;
-                await user.save();
-                analysisLayer = 2;
-                creditsConsumed = 1;
-            } else {
-                console.log(`🔒 [L2] User has 0 credits. Falling back to Basic Layer 1.`);
-            }
-        } else {
-            console.log(`👤 [L2] Guest user detected. Falling back to Basic Layer 1.`);
-        }
     }
 
 

@@ -10,7 +10,8 @@ const router = express.Router();
 router.get("/stats", async (req, res) => {
     try {
         const totalScans = await Scan.countDocuments();
-        const totalUsers = await User.countDocuments();
+        const registeredUsers = await User.countDocuments();
+        const guestScans = await Scan.countDocuments({ $or: [{ userId: null }, { userId: { $exists: false } }] });
         
         // Distribution by scan type
         const typeStats = await Scan.aggregate([
@@ -39,7 +40,9 @@ router.get("/stats", async (req, res) => {
 
         res.json({
             totalScans,
-            totalUsers,
+            totalUsers: registeredUsers, // Keep for backward compatibility
+            registeredUsers,
+            guestScans,
             typeStats: typeStats.reduce((acc, curr) => ({ ...acc, [curr._id]: curr.count }), {}),
             statusStats: statusStats.reduce((acc, curr) => ({ ...acc, [curr._id]: curr.count }), {})
         });

@@ -8,6 +8,8 @@ import { API_BASE_URL } from '@/api/scan';
 interface AdminStats {
   totalScans: number;
   totalUsers: number;
+  registeredUsers: number;
+  guestScans: number;
   typeStats: Record<string, number>;
   statusStats: Record<string, number>;
 }
@@ -131,14 +133,18 @@ const AdminAnalyticsClient = () => {
             </p>
           </div>
           
-          <div className="flex gap-4">
-             <div className="bg-card border border-border px-6 py-3 rounded-2xl shadow-sm">
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Total Scans</p>
+          <div className="flex flex-wrap gap-4">
+             <div className="bg-card border border-border px-6 py-3 rounded-2xl shadow-sm min-w-[120px]">
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Gross Scans</p>
                 <p className="text-2xl font-black text-foreground">{stats?.totalScans.toLocaleString()}</p>
              </div>
-             <div className="bg-primary/5 border border-primary/20 px-6 py-3 rounded-2xl shadow-sm">
-                <p className="text-[10px] font-bold text-primary uppercase tracking-wider">Total Users</p>
-                <p className="text-2xl font-black text-primary">{stats?.totalUsers.toLocaleString()}</p>
+             <div className="bg-primary/5 border border-primary/20 px-6 py-3 rounded-2xl shadow-sm min-w-[120px]">
+                <p className="text-[10px] font-bold text-primary uppercase tracking-wider">Verified Users</p>
+                <p className="text-2xl font-black text-primary">{stats?.registeredUsers.toLocaleString()}</p>
+             </div>
+             <div className="bg-slate-50 border border-slate-200 px-6 py-3 rounded-2xl shadow-sm min-w-[120px]">
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Guest Activities</p>
+                <p className="text-2xl font-black text-slate-700">{stats?.guestScans.toLocaleString()}</p>
              </div>
           </div>
         </div>
@@ -176,20 +182,19 @@ const AdminAnalyticsClient = () => {
                  <Icon name="LightBulbIcon" size={20} className="text-primary" />
                  Executive Intelligence Summary
                </h3>
-               <div className="space-y-4 text-sm leading-relaxed text-muted-foreground">
-                 <p>
-                   The platform is currently witnessing a <span className="text-foreground font-bold">{(stats?.totalScans || 0) > 100 ? 'high' : 'steady'}</span> adoption rate. 
-                   Analysis of the distribution shows that <span className="text-foreground font-bold">{stats?.typeStats['document'] || 0} document scans</span> form the core of platform activity.
-                 </p>
-                 <p>
-                   On the security front, we have isolated <span className="text-red-600 font-bold">{stats?.statusStats['fraud'] || 0} confirmed fraudulent attempts</span>. 
-                   The <span className="text-foreground font-bold">Signal Accuracy</span> is currently optimized for Indian GSTIN verification and Punycode homograph detection, 
-                   which accounts for roughly {Math.round(((stats?.statusStats['fraud'] || 0) / (stats?.totalScans || 1)) * 100)}% of the total flag volume.
-                 </p>
-                 <div className="p-4 bg-background/50 rounded-xl border border-border/50 italic text-xs">
-                   "Conclusion: Recommend scaling link redirection capacity for 'Deep Diver' scans as phishing volume via mobile-first TLDs (.top, .xyz) is increasing daily."
-                 </div>
-               </div>
+                <div className="space-y-4 text-sm leading-relaxed text-muted-foreground">
+                  <p>
+                    The platform is currently witnessing a <span className="text-foreground font-bold">{((stats?.totalScans || 0) > 100) ? 'high' : 'steady'}</span> adoption rate. 
+                    Beyond our <span className="text-primary font-bold">{stats?.registeredUsers || 0} verified users</span>, we've enabled <span className="text-slate-700 font-bold">{stats?.guestScans || 0} guest scans</span>, expanding our safety footprint across the global ecosystem.
+                  </p>
+                  <p>
+                    Security analysis shows that <span className="text-red-600 font-bold">{stats?.statusStats['fraud'] || 0} fraudulent attempts</span> have been neutralized. 
+                    Currently, {Math.round(((stats?.guestScans || 0) / (stats?.totalScans || 1)) * 100)}% of our database intelligence is powered by autonomous public verifications.
+                  </p>
+                  <div className="p-4 bg-background/50 rounded-xl border border-border/50 italic text-xs">
+                    "Intelligence Insight: Guest volume is currently {Math.round(((stats?.guestScans || 0) / (stats?.registeredUsers || 1)))}x higher than registered activity. Recommend 'User Conversion' triggers after 3 guest scans."
+                  </div>
+                </div>
             </div>
 
           </div>

@@ -86,12 +86,12 @@ export async function performScan(data: ScanRequest): Promise<ScanResult> {
   }
 }
 /**
- * Fetches a single scan result by ID.
+ * Fetches user profile including credits and stats
  */
-export async function getScanResult(id: string): Promise<any> {
-  const response = await fetch(`${API_BASE_URL}/scan/${id}`);
-  if (!response.ok) {
-    throw new Error('Failed to fetch scan results');
-  }
-  return response.json();
+export async function getUserProfile(uid: string): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/me/${uid}`);
+    if (!response.ok) {
+        throw new Error('Failed to fetch user profile');
+    }
+    return response.json();
 }

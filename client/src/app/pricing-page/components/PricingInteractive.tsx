@@ -69,13 +69,12 @@ const PricingInteractive = () => {
     monthlyPrice: '₹0',
     annualPrice: '₹0',
     features: [
-    { text: '5 scans per month', included: true },
+    { text: '5 Basic scans per month', included: true },
+    { text: '3 Deep Vision scans per month', included: true },
     { text: 'Basic fraud detection', included: true },
     { text: 'Email support', included: true },
     { text: 'Scan history (7 days)', included: true },
-    { text: 'Detailed reports', included: false },
-    { text: 'Priority support', included: false },
-    { text: 'API access', included: false }],
+    { text: 'Deep Vision (10+ Page Search)', included: false }],
 
     ctaText: 'Get Started Free'
   },
@@ -106,12 +105,12 @@ const PricingInteractive = () => {
     annualPrice: '₹2,999',
     features: [
     { text: 'Unlimited scans', included: true },
+    { text: 'Unlimited Deep Vision (10+ pg)', included: true },
     { text: 'Advanced AI + Human verification', included: true },
     { text: '24/7 priority support', included: true },
     { text: 'Unlimited scan history', included: true },
     { text: 'Detailed PDF reports', included: true },
-    { text: 'WhatsApp & SMS alerts', included: true },
-    { text: 'API access', included: true }],
+    { text: 'WhatsApp & SMS alerts', included: true }],
 
     ctaText: 'Go Premium'
   }];
@@ -174,8 +173,12 @@ const PricingInteractive = () => {
     answer: `Yes, you can change your plan at any time. When upgrading, you'll get immediate access to new features and pay the prorated difference. When downgrading, changes take effect at the end of your current billing cycle, and you'll retain access to premium features until then.`
   },
   {
-    question: 'What happens if I exceed my monthly scan limit?',
-    answer: `Free plan users will be prompted to upgrade after reaching 5 scans. Student plan users can purchase additional scan packs (10 scans for ₹49) or upgrade to Premium for unlimited scans. Your scan history and previous results remain accessible regardless of your current limit status.`
+    question: 'How many scans do I get for free?',
+    answer: `Free plan users get 5 Basic scans and 3 Deep Vision scans monthly (resets every 30 days). Basic scans are optimized for single-page documents and quick messages. Deep Vision scans enable our advanced 10+ page deep search for complex multi-page contracts and high-resolution scanned PDFs.`
+  },
+  {
+    question: 'What is Deep Vision?',
+    answer: `Deep Vision is our premium scanning mode designed for multi-page documents (10+ pages). It uses high-resolution rendering and specialized OCR workers to extract text from every page of long contracts, offer letters, or blurry PDF scans that basic scanners miss.`
   },
   {
     question: 'Is there a money-back guarantee?',

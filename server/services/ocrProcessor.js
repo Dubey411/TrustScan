@@ -35,11 +35,11 @@ function initializeTrustSignals() {
 /**
  * Universal OCR Processor (v2 - Pipeline Powered)
  */
-export async function processDocument(fileBuffer, mimeType, originalName = "") {
-    console.log(`📄 [OCR Processor v2] Processing: ${originalName || 'Buffer'} (${mimeType}) - Size: ${fileBuffer?.length} bytes`);
+export async function processDocument(fileBuffer, mimeType, originalName = "", depth = 'basic') {
+    console.log(`📄 [OCR Processor v2] Processing: ${originalName || 'Buffer'} (${mimeType}) - Depth: ${depth}`);
     
     // 1. Run the Advanced Pipeline
-    const pipelineResult = await runDocumentPipeline(fileBuffer, mimeType);
+    const pipelineResult = await runDocumentPipeline(fileBuffer, mimeType, depth);
     
     let text = pipelineResult.text || "";
     const externalSignals = initializeSignals();
