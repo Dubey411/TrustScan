@@ -54,6 +54,9 @@ router.get("/stats", async (req, res) => {
 /**
  * Get daily growth data for charts (Last 15 days)
  */
+/**
+ * Get daily growth data for charts (Last 15 days)
+ */
 router.get("/chart-data", async (req, res) => {
     try {
         const fifteenDaysAgo = new Date();
@@ -99,6 +102,69 @@ router.get("/chart-data", async (req, res) => {
         res.json(dailyStats);
     } catch (err) {
         res.status(500).json({ error: "Failed to fetch chart data" });
+    }
+});
+
+/**
+ * Get deep AI intelligence stats, learning logs and dataset recommendations
+ */
+router.get("/ai-intelligence", async (req, res) => {
+    try {
+        // 1. Calculate Accuracy per Key Category
+        const performance = await Scan.aggregate([
+            {
+                $match: {
+                    userFeedback: { $ne: null } // Only look at verified results
+                }
+            },
+            {
+                $group: {
+                    _id: "$type",
+                    totalVerified: { $sum: 1 },
+                    correct: { 
+                        $sum: { $cond: [{ $eq: ["$userFeedback", "correct"] }, 1, 0] } 
+                    }
+                }
+            },
+            {
+                $project: {
+                    category: "$_id",
+                    accuracy: { 
+                        $multiply: [{ $divide: ["$correct", "$totalVerified"] }, 100] 
+                    },
+                    totalVerified: 1
+                }
+            }
+        ]);
+
+        // 2. Load Learning Trace
+        let learningTrace = [];
+        try {
+            const fs = await import('fs');
+            const path = await import('path');
+            const { fileURLToPath } = await import('url');
+            const __dirname = path.dirname(fileURLToPath(import.meta.url));
+            const tracePath = path.join(__dirname, '../services/learningTrace.json');
+            learningTrace = JSON.parse(fs.readFileSync(tracePath, 'utf8'));
+        } catch (e) {
+            console.error("Trace load error:", e);
+        }
+
+        // 3. Dataset Recommendations
+        const recommendations = [
+            { source: "RBI Fraud Reports", type: "Financial", utility: "High-quality bank impersonation pattern matching" },
+            { source: "MHA CyberCrime Reporting", type: "Criminal", utility: "Latest WhatsApp & SMS phishing templates used in India" },
+            { source: "MCA21 Public Data", type: "Entity", utility: "Master CIN/GST list for definitive business verification" },
+            { source: "Consumer Complaint Forums", type: "NLP", utility: "Real-world conversational examples of internship extortion" }
+        ];
+
+        res.json({
+            categoryPerformance: performance,
+            learningTrace,
+            recommendations
+        });
+    } catch (err) {
+        res.status(500).json({ error: "Deep intelligence fetch failed" });
     }
 });
 

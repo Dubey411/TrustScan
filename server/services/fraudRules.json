@@ -1,5 +1,19 @@
 [
     {
+        "id": "BUSINESS_CONTEXT_MISMATCH",
+        "riskLevel": "high",
+        "category": "businessContextMismatch",
+        "reason": "Security Alert: Business registration details (CIN) do not match the document context",
+        "impliedRisk": 85,
+        "logic": {
+            "and": [
+                {
+                    "hasSignal": "businessContextMismatch"
+                }
+            ]
+        }
+    },
+    {
         "id": "MEANINGLESS_CONTENT",
         "riskLevel": "medium",
         "category": "lowInfoContent",

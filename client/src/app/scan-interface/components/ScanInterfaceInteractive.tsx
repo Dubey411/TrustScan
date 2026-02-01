@@ -48,6 +48,7 @@ export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfa
   const [error, setError] = useState<string | null>(null);
   const [userCredits, setUserCredits] = useState<number>(0);
   const [isFetchingCredits, setIsFetchingCredits] = useState(false);
+  const [senderId, setSenderId] = useState('');
 
 
   useEffect(() => {
@@ -162,7 +163,8 @@ export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfa
         const scanData: any = { 
             type: selectedScanType, 
             userId: user?.uid || undefined,
-            depth: analysisDepth // Pull deep/standard/basic from UI
+            depth: analysisDepth,
+            senderId: senderId || undefined
         };
 
         // Optional: Location tagging for the Fraud Map
@@ -204,6 +206,7 @@ export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfa
   const handleClear = () => {
     setTextInput('');
     setLinkInput('');
+    setSenderId('');
     setSelectedFile(null);
     setError(null);
   };
@@ -281,12 +284,29 @@ export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfa
                       </div>
                     </div>
                   ) : (
-                    <TextInputArea
-                      value={textInput}
-                      onChange={setTextInput}
-                      placeholder={currentScanType.placeholder || ''}
-                      maxLength={currentScanType.maxLength || 5000}
-                    />
+                    <div className="space-y-4">
+                      {selectedScanType === 'email' && (
+                         <div className="bg-muted/30 p-4 rounded-xl border border-border/50">
+                            <div className="flex items-center gap-2 mb-3">
+                               <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Optional: SMS Header / Sender ID</span>
+                               <HelpTooltip content="For Indian SMS (e.g., VM-HDFCBK). Helps detect header spoofing/masking scams." />
+                            </div>
+                            <input
+                               type="text"
+                               value={senderId}
+                               onChange={(e) => setSenderId(e.target.value)}
+                               placeholder="e.g. AD-SBINB, VM-HDFCBK"
+                               className="w-full md:w-64 p-3 bg-background text-foreground border border-border rounded-lg text-sm font-mono focus:ring-2 focus:ring-primary outline-none transition-all"
+                            />
+                         </div>
+                      )}
+                      <TextInputArea
+                        value={textInput}
+                        onChange={setTextInput}
+                        placeholder={currentScanType.placeholder || ''}
+                        maxLength={currentScanType.maxLength || 5000}
+                      />
+                    </div>
                   )
                 )}
                 

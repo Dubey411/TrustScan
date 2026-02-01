@@ -22,13 +22,13 @@ export default function ScanProgress({ isScanning, onComplete, depth = 'basic', 
   // Calculate estimated duration based on type and depth
   let estimatedDuration = 4000;
   if (type === 'document') {
-    if (depth === 'deep') estimatedDuration = 45000;
-    else if (depth === 'standard') estimatedDuration = 20000;
-    else estimatedDuration = 10000;
+    if (depth === 'deep') estimatedDuration = 15000; // Accelerated with 4x Parallel Workers
+    else if (depth === 'standard') estimatedDuration = 8000; 
+    else estimatedDuration = 5000;
   } else if (type === 'link') {
     estimatedDuration = 6000;
   } else if (type === 'company') {
-    estimatedDuration = 12000;
+    estimatedDuration = 8000;
   }
 
   const steps = [

@@ -4,6 +4,8 @@ import { fileURLToPath } from 'url';
 import { detectStructuralAnomalies } from './idValidator.js';
 import { analyzeLinks } from './linkScanner.js';
 import { analyzeEntities } from './entityScanner.js';
+import { analyzeSmsHeader } from './smsHeaderScanner.js';
+import { analyzeScamScript } from './scriptScanner.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -61,12 +63,16 @@ function extractFeatures(text) {
 }
 
 /**
- * Main Rule Execution & Inference Engine
+ * Core Decision Engine
+ * @param {string} content - Text to analyze
+ * @param {object} externalSignals - Signals from OCR/Vision layers
+ * @param {object} trustSignals - Whitelist/Internal trust signals
+ * @param {string} senderId - Optional SMS Header ID (Indian standard)
  */
-export async function runRules(content, externalSignals = {}, trustSignals = {}) {
-  let reasons = [];
-  let rulesFired = [];
-  
+export async function runRules(content, externalSignals = {}, trustSignals = {}, senderId = null) {
+  const reasons = [];
+  const rulesFired = [];
+
   // Initialize Signals Vector
   let signals = {
     urgency: 0,
@@ -108,6 +114,7 @@ export async function runRules(content, externalSignals = {}, trustSignals = {})
     hasGst: 0,
     hasCin: 0,
     invalidBusinessId: 0,
+    businessContextMismatch: 0,
     lowInfoContent: 0,
   };
 
@@ -125,11 +132,49 @@ export async function runRules(content, externalSignals = {}, trustSignals = {})
           signals.lowInfoContent = 1;
       }
   }
+
+  // --- UNIFIED INDIA FRAUD CONFIDENCE LAYER ---
   const activityAnalysis = await analyzeLinks(content);
   const entityAnalysis = analyzeEntities(content);
+  const smsAnalysis = senderId ? analyzeSmsHeader(senderId, content) : null;
+  const scriptAnalysis = analyzeScamScript(content);
 
-  // Merge signals
-  signals = { ...signals, ...activityAnalysis.signals, ...entityAnalysis.signals };
+  let indiaConfidenceRisk = 0;
+  const indiaFlags = [];
+
+  // 1. CIN/GST Layer
+  if (entityAnalysis.metadata?.entityDiscrepancies?.length > 0) {
+      indiaConfidenceRisk = Math.max(indiaConfidenceRisk, 80);
+      reasons.push(...entityAnalysis.metadata.entityDiscrepancies);
+  }
+
+  // 2. SMS Header Layer
+  if (smsAnalysis) {
+      if (smsAnalysis.isSpoofed) {
+          indiaConfidenceRisk = Math.max(indiaConfidenceRisk, smsAnalysis.riskScore);
+          reasons.push(...smsAnalysis.flags);
+      } else if (smsAnalysis.confidence === 100) {
+          indiaConfidenceRisk -= 20; // Trust Bonus
+          indiaFlags.push(`Verified SMS Identity: ${smsAnalysis.detectedBrand}`);
+      }
+  }
+
+  // 3. Script / Conversational Layer
+  if (scriptAnalysis && scriptAnalysis.riskScore > 30) {
+      indiaConfidenceRisk = Math.max(indiaConfidenceRisk, scriptAnalysis.riskScore);
+      if (scriptAnalysis.detectedFlow.length > 1) {
+          reasons.push(`Coercive Pattern: ${scriptAnalysis.detectedFlow.join(' -> ')}`);
+      }
+  }
+
+  // Merge signals for ML layer
+  signals = { 
+      ...signals, 
+      ...activityAnalysis.signals, 
+      ...entityAnalysis.signals,
+      smsSpoofRisk: smsAnalysis?.isSpoofed ? 1 : 0,
+      scamFlowDetected: scriptAnalysis?.detectedFlow.length > 2 ? 1 : 0
+  };
   
   const normalizedText = metadata.normalizedText;
 
@@ -176,6 +221,12 @@ export async function runRules(content, externalSignals = {}, trustSignals = {})
       }
     }
   });
+
+  // 1b. Add Business Entity Discrepancies
+  if (entityAnalysis.metadata?.entityDiscrepancies && entityAnalysis.metadata.entityDiscrepancies.length > 0) {
+      reasons.push(...entityAnalysis.metadata.entityDiscrepancies);
+      maxImpliedRisk = Math.max(maxImpliedRisk, 80); // Strict penalty for CIN/Context mismatch
+  }
 
   console.log(`🧠 [RulesEngine] Result: ${reasons.length} reasons, Max Implied Risk: ${maxImpliedRisk}%, Signals:`, signals);
 

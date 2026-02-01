@@ -16,6 +16,7 @@ interface ScanRequest {
   file?: File;
   depth?: 'basic' | 'standard' | 'deep';
   location?: any;
+  senderId?: string;
 }
 
 
@@ -47,6 +48,7 @@ export async function performScan(data: ScanRequest): Promise<ScanResult> {
       if (data.content) formData.append("content", data.content);
       if (data.depth) formData.append("depth", data.depth);
       if (data.location) formData.append("location", JSON.stringify(data.location));
+      if (data.senderId) formData.append("senderId", data.senderId);
       body = formData;
 
       // Note: Multer/Browser handles the Multi-part boundary automatically, 

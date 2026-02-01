@@ -8,6 +8,8 @@ import Scan from "../models/Scan.js";
 import User from "../models/User.js";
 import mongoose from "mongoose";
 import fs from "fs";
+import { analyzeSmsHeader } from "../services/smsHeaderScanner.js";
+import { analyzeScamScript } from "../services/scriptScanner.js";
 
 import path from "path";
 import { fileURLToPath } from 'url';
@@ -92,14 +94,32 @@ router.post("/scan", upload.single('file'), async (req, res) => {
   console.log('DEBUG: ENTERING SCAN ROUTE');
   console.log('📥 [Scan API] Received request - Type:', req.body.type || 'unknown');
   try {
-    let { content, type, userId, depth, location } = req.body;
+    let { content, type, userId, depth, location, senderId } = req.body;
     let externalSignals = {};
     let trustSignals = {};
     let scanMeta = undefined;
     let analysisLayer = 1;
     let creditsConsumed = 0;
+    let smsAnalysis = null;
+    let scriptAnalysis = null;
 
-    console.log(`Scan Request RECEIVED. UserID: ${userId || 'Guest'}, Type: ${type}, Depth: ${depth || 'basic'}`);
+    console.log(`Scan Request RECEIVED. UserID: ${userId || 'Guest'}, Type: ${type}, Depth: ${depth || 'basic'}${senderId ? `, Header: ${senderId}` : ''}`);
+
+    // --- RBI SMS Header Spoofing Detection ---
+    if (senderId && (type === 'message' || type === 'sms' || type === 'email')) {
+        smsAnalysis = analyzeSmsHeader(senderId, content);
+        if (smsAnalysis) {
+            console.log(`🛡️ [SMS Header] Analysis: Risk ${smsAnalysis.riskScore}% (${smsAnalysis.isSpoofed ? 'SPOOFED' : 'SAFE'})`);
+        }
+    }
+
+    // --- Script Intelligence Layer (Conversational Patterns) ---
+    if (type === 'message' || type === 'sms' || type === 'email') {
+        scriptAnalysis = analyzeScamScript(content);
+        if (scriptAnalysis && scriptAnalysis.riskScore > 0) {
+            console.log(`🗣️ [Script Intel] Flow detected: ${scriptAnalysis.detectedFlow.join(' -> ')} (Risk: ${scriptAnalysis.riskScore}%)`);
+        }
+    }
 
 
     // --- PRE-ENTRY: Check Deep Scan Permissions ---
@@ -143,8 +163,8 @@ router.post("/scan", upload.single('file'), async (req, res) => {
     }
 
 
-    // 2. Run rules engine (Feature Extraction) - REUSED
-    const result = await runRules(content, externalSignals, trustSignals);
+    // 2. Run Unified India Fraud Confidence Engine (Combined Logic)
+    const result = await runRules(content, externalSignals, trustSignals, senderId);
 
     let finalRisk = result.riskScore || 0;
     
@@ -193,10 +213,10 @@ router.post("/scan", upload.single('file'), async (req, res) => {
         } else {
             // Entities found - Check validity
             const hasInvalidId = result.signals?.invalidBusinessId > 0;
+            const hasMismatch = result.signals?.businessContextMismatch > 0;
             
-            if (hasInvalidId) {
-                finalRisk = Math.max(finalRisk, 85); // High Risk for Fake ID
-                result.reasons.unshift("Security Alert: Invalid/Fake GSTIN Detected.");
+            if (hasInvalidId || hasMismatch) {
+                finalRisk = Math.max(finalRisk, 85); // High Risk for Fake ID or Spoof
             } else {
                 // All good
                 finalRisk = Math.min(finalRisk, 10);
@@ -220,12 +240,6 @@ router.post("/scan", upload.single('file'), async (req, res) => {
              finalRisk = Math.max(finalRisk, 50); 
              result.reasons.unshift("Query Invalid: No valid email address detected.");
         }
-    }
-
-    // --- Special Logic: Gibberish/Meaningless Detection ---
-    if (result.signals?.lowInfoContent) {
-        finalRisk = Math.max(finalRisk, 55);
-        result.reasons.unshift("Unreadable Content: Input appears to be meaningless gibberish.");
     }
 
     // 4. Final status and confidence thresholds
@@ -278,7 +292,11 @@ router.post("/scan", upload.single('file'), async (req, res) => {
       creditsConsumed: creditsConsumed,
       
       // Fraud Map / Geo Intelligence
-      location: location || undefined
+      location: location || undefined,
+      
+      // SMS Header Detection
+      senderId: senderId || null,
+      smsHeaderAnalysis: smsAnalysis || null
     };
 
 

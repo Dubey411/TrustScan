@@ -71,15 +71,8 @@ async function renderPdfPageViaPython(fileBuffer, pageIndex, scale = 2.0) {
                     const buffer = Buffer.from(result.image, 'base64');
                     console.log(`   [Python Render] Success: ${buffer.length} bytes received.`);
                     
-                    // Post-process with Jimp
-                    const image = await Jimp.read(buffer);
-                    if (typeof image.greyscale === 'function') {
-                        image.greyscale().contrast(0.2).normalize();
-                    } else if (typeof image.grayscale === 'function') {
-                        image.grayscale().contrast(0.2).normalize();
-                    }
-                    
-                    resolve(await image.getBuffer('image/png'));
+                    // SKIP JIMP FOR BULET SPEED (Tesseract handles standard PNGs well)
+                    resolve(buffer);
                 } catch (err) {
                     reject(new Error(`Parse error: ${err.message}\nOutput: ${stdout.substring(0, 100)}`));
                 }
@@ -187,70 +180,72 @@ export async function runDocumentPipeline(fileBuffer, mimeType, depth = 'basic')
             }
 
             const targetPages = pdfData.pages.slice(0, MAX_PAGES);
-            console.log(`[Pipeline] Mode: ${depth.toUpperCase()}, Processing ${targetPages.length}/${pdfData.totalPages} pages.`);
+            console.log(`[Pipeline] Bullet Mode: Processing ${targetPages.length} pages in parallel.`);
 
-            let textAccumulator = "";
-            let totalConfidence = 0;
-            let pagesProcessed = 0;
+            const scheduler = (await import('tesseract.js')).createScheduler();
+            const workers = [];
+            const WORKER_COUNT = Math.min(targetPages.length, 4); // Max 4 parallel workers
 
-            console.log(`[Pipeline] Initializing OCR Worker for sequential page processing...`);
-            const worker = await createWorker('eng');
+            for (let i = 0; i < WORKER_COUNT; i++) {
+                const w = await createWorker('eng');
+                scheduler.addWorker(w);
+                workers.push(w);
+            }
 
             try {
-                // Pre-render state
-                let nextImgBufferPromise = null;
-
-                for (let i = 0; i < targetPages.length; i++) {
-                    const page = targetPages[i];
-                    console.log(`[Pipeline] Processing Page ${page.pageIndex}...`);
-                    
+                const pagePromises = targetPages.map(async (page) => {
                     let pageText = page.text || "";
                     let method = "DIGITAL_PARSE";
+                    let confidence = 100;
 
                     if (page.type === 'SCANNED' || page.charCount < 100) {
                         try {
                             const scale = pdfData.totalPages > 5 ? 1.5 : 2.0; 
+                            const imgBuffer = await renderPdfPageViaPython(fileBuffer, page.pageIndex, scale);
                             
-                            // Get image buffer (either from current promise or starting now)
-                            let imgBuffer;
-                            if (nextImgBufferPromise) {
-                                imgBuffer = await nextImgBufferPromise;
-                            } else {
-                                imgBuffer = await renderPdfPageViaPython(fileBuffer, page.pageIndex, scale);
+                            if (!pipelineResult.firstImgBuffer && page.pageIndex === 1) {
+                                pipelineResult.firstImgBuffer = imgBuffer;
                             }
 
-                            // STARTS PRE-RENDERING NEXT PAGE IMMEDIATELY
-                            if (i + 1 < targetPages.length) {
-                                const nextNextPage = targetPages[i+1];
-                                if (nextNextPage.type === 'SCANNED' || nextNextPage.charCount < 100) {
-                                    nextImgBufferPromise = renderPdfPageViaPython(fileBuffer, nextNextPage.pageIndex, scale);
-                                } else {
-                                    nextImgBufferPromise = null;
-                                }
-                            }
-
-                            if (!pipelineResult.firstImgBuffer) pipelineResult.firstImgBuffer = imgBuffer;
-                            
-                            const ocr = await runMultiPassOCR(imgBuffer, worker);
-                            pageText = ocr.text;
-                            totalConfidence += ocr.confidence;
-                            method = "PYTHON_OCR";
-                            imgBuffer = null;
+                            const ocr = await scheduler.addJob('recognize', imgBuffer);
+                            pageText = ocr.data.text;
+                            confidence = ocr.data.confidence;
+                            method = "FAST_OCR";
                         } catch (e) {
                             console.error(`[Pipeline] Page ${page.pageIndex} Error:`, e.message);
                             method = "FAIL";
+                            confidence = 0;
                         }
                     }
 
-                    if (pageText) {
-                        textAccumulator += `--- Page ${page.pageIndex} ---\n${pageText}\n\n`;
+                    return { index: page.pageIndex, text: pageText, method, confidence };
+                });
+
+                const results = await Promise.all(pagePromises);
+                
+                // Sort results back to original order
+                results.sort((a, b) => a.index - b.index);
+
+                let textAccumulator = "";
+                let totalConfidence = 0;
+                let pagesProcessed = 0;
+
+                results.forEach(res => {
+                    if (res.text) {
+                        textAccumulator += `--- Page ${res.index} ---\n${res.text}\n\n`;
+                        totalConfidence += res.confidence;
                         pagesProcessed++;
                     }
-                    pipelineResult.extractionMethod.push(`P${page.pageIndex}:${method}`);
-                }
+                    pipelineResult.extractionMethod.push(`P${res.index}:${res.method}`);
+                });
+
+                pipelineResult.text = textAccumulator;
+                pipelineResult.confidence = pagesProcessed > 0 ? totalConfidence / pagesProcessed : 0;
+                pipelineResult.pagesAnalyzed = pagesProcessed;
+
             } finally {
-                await worker.terminate();
-                console.log(`[Pipeline] OCR Worker terminated.`);
+                await scheduler.terminate();
+                console.log(`[Pipeline] Parallel OCR Workers terminated.`);
             }
 
             pipelineResult.text = textAccumulator;

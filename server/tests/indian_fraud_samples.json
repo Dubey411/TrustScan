@@ -1,0 +1,30 @@
+[
+    {
+        "name": "Internship Scam (Pay-to-Work)",
+        "type": "message",
+        "content": "Congratulations! You are selected for the Summer Internship 2026. Please pay a registration fee of ₹2500 via GPay at user@upi to confirm your batch. Hiring supported by AICTE.",
+        "expectedStatus": "fraud",
+        "reason": "Requesting fee for internship and brand impersonation (AICTE)."
+    },
+    {
+        "name": "Fake Company Offer (Invalid CIN)",
+        "type": "document",
+        "content": "This is an official offer letter from TechNova Solutions Pvt Ltd. CIN: L12345MH2025PTC123456. Location: Mumbai. DOJ: Next Monday.",
+        "expectedStatus": "fraud",
+        "reason": "CIN checksum/validation should fail if invalid (Note: Need actual invalid but correct format CIN for test)."
+    },
+    {
+        "name": "Link Phishing (Typosquatting)",
+        "type": "link",
+        "content": "Dear Customer, your HDFC bank account is blocked. Update KYC now at http://hdfc-verify-kyc.net/login. Emergency action required.",
+        "expectedStatus": "fraud",
+        "reason": "Typosquatting and urgency keywords."
+    },
+    {
+        "name": "WhatsApp Part-time Job",
+        "type": "message",
+        "content": "Simple online work! Earn ₹5000 daily by liking YouTube videos. Contact our manager on Telegram @WorkManager01 to start your first task.",
+        "expectedStatus": "fraud",
+        "reason": "Typical 'Task Scam' pattern."
+    }
+]

@@ -136,6 +136,14 @@ const scanSchema = new mongoose.Schema({
   },
 
   // -- TTL Cleanup (7-day history for free users) --
+  senderId: {
+    type: String,
+    required: false
+  },
+  smsHeaderAnalysis: {
+    type: mongoose.Schema.Types.Mixed,
+    required: false
+  },
   expiresAt: {
     type: Date,
     index: { expires: 0 } // Document will be deleted at this timestamp

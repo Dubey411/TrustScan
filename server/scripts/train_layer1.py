@@ -126,7 +126,8 @@ def train_model():
         'urgency', 'financial', 'impersonation', 'jobScam', 'techSupport', 'links', 'personalData',
         'scamKeywords', 'trustSignal', 'softwareMetadata', 'genericSuccessMsg', 
         'missingCriticalFields', 'contextMismatch', 'lowOcrConfidence', 'ocrConfidenceParadox', 
-        'structuralAnomalies', 'punycodeHomograph', 'subdomainAbuse', 'pathObfuscation'
+        'structuralAnomalies', 'punycodeHomograph', 'subdomainAbuse', 'pathObfuscation',
+        'hasGst', 'hasCin', 'invalidBusinessId', 'businessContextMismatch'
     ]
     meta_keys = ['capsRatio', 'linkCount', 'phoneCount']
 

@@ -4,6 +4,7 @@ import fs from 'fs';
 import cron from 'node-cron';
 import Scan from '../models/Scan.js';
 import { fileURLToPath } from 'url';
+import { optimizeWeightsFromFeedback } from './feedbackOptimizer.js';
 
 /**
  * =========================================================================================
@@ -165,8 +166,15 @@ export async function initializeMLAutomation() {
 
     checkTriggersAndTrain();
 
+    // 1. Heavy ML Retraining (Hourly check, but limited by 24h cooldown)
     cron.schedule('0 * * * *', () => {
         console.log('[ML Manager] Periodic threshold check...');
         checkTriggersAndTrain();
+    });
+
+    // 2. Self-Learning Feedback Loop (Every 4 hours, no cooldown)
+    cron.schedule('0 */4 * * *', async () => {
+        console.log('🔄 [ML Manager] Running Self-Learning Feedback Optimizer...');
+        await optimizeWeightsFromFeedback();
     });
 }
