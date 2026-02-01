@@ -1,0 +1,108 @@
+[
+    {
+        "brand": "HDFC Bank",
+        "officialIds": [
+            "HDFCBK",
+            "HDFCBK",
+            "HDFCBN",
+            "HDFCLO"
+        ],
+        "contentKeywords": [
+            "hdfc",
+            "personal loan",
+            "hdfcbank",
+            "credit card",
+            "mycards"
+        ],
+        "mismatchKeywords": [
+            "sbi",
+            "icici",
+            "axis",
+            "kotak",
+            "amazon",
+            "flipkart"
+        ]
+    },
+    {
+        "brand": "State Bank of India",
+        "officialIds": [
+            "SBIINB",
+            "SBIPSG",
+            "SBiyono",
+            "SBIOTP",
+            "ATMSBI"
+        ],
+        "contentKeywords": [
+            "sbi",
+            "yono",
+            "onlinesbi",
+            "state bank",
+            "otp",
+            "debit card"
+        ],
+        "mismatchKeywords": [
+            "hdfc",
+            "icici",
+            "axis",
+            "paytm",
+            "bank of baroda"
+        ]
+    },
+    {
+        "brand": "ICICI Bank",
+        "officialIds": [
+            "ICICIB",
+            "ICICIP",
+            "ICICIN"
+        ],
+        "contentKeywords": [
+            "icici",
+            "imobile",
+            "pockets",
+            "icicibank"
+        ],
+        "mismatchKeywords": [
+            "sbi",
+            "hdfc",
+            "axis",
+            "union bank"
+        ]
+    },
+    {
+        "brand": "Axis Bank",
+        "officialIds": [
+            "AXISBK",
+            "AXISBN",
+            "AXISFT"
+        ],
+        "contentKeywords": [
+            "axis bank",
+            "axisbk",
+            "grab deals",
+            "axispay"
+        ],
+        "mismatchKeywords": [
+            "hdfc",
+            "icici",
+            "sbi"
+        ]
+    },
+    {
+        "brand": "Kotak Mahindra",
+        "officialIds": [
+            "KOTAKB",
+            "KOTAKM",
+            "KMBLBK"
+        ],
+        "contentKeywords": [
+            "kotak",
+            "811",
+            "crn",
+            "kotakbank"
+        ],
+        "mismatchKeywords": [
+            "hdfc",
+            "sbi"
+        ]
+    }
+]

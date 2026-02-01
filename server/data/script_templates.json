@@ -1,0 +1,56 @@
+[
+    {
+        "id": "ind_courier_scam",
+        "name": "FedEx/India Post Narcotic Scam",
+        "flow": [
+            "Fear Trigger",
+            "Authority Impersonation",
+            "Action Request"
+        ],
+        "templates": [
+            "Your parcel containing illegal items has been intercepted by Mumbai Customs.",
+            "CBI has issued a warrant against your Aadhar number due to drug trafficking.",
+            "Press 1 to speak with the narcotics department immediately."
+        ]
+    },
+    {
+        "id": "ind_electricity_scam",
+        "name": "Electricity Disconnection Scam",
+        "flow": [
+            "Urgency Escalation",
+            "Action Request"
+        ],
+        "templates": [
+            "Dear Consumer, your electricity will be disconnected tonight at 9:30 PM.",
+            "Electricity bill not updated. Call electricity officer at 98xxxxxxx.",
+            "Pay your previous month bill to avoid blackout."
+        ]
+    },
+    {
+        "id": "ind_traffice_challan",
+        "name": "E-Challan Fake Link",
+        "flow": [
+            "Fear Trigger",
+            "Urgency Escalation",
+            "Action Request"
+        ],
+        "templates": [
+            "Digital Traffic Challan: Your vehicle violated traffic rules. Pay fine within 2 hours.",
+            "Court summons is issued for unpaid challan. Check status at bit.ly/fake-challan."
+        ]
+    },
+    {
+        "id": "ind_family_emergency",
+        "name": "Arrest/Family Emergency Scam",
+        "flow": [
+            "Fear Trigger",
+            "Urgency Escalation",
+            "Authority Impersonation"
+        ],
+        "templates": [
+            "Your son/relative is in police custody for a serious crime.",
+            "Major accident occurred. Need immediate funds for surgery at city hospital.",
+            "Police officer on line needs ₹50,000 for bail processing."
+        ]
+    }
+]

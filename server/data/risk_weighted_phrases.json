@@ -1,0 +1,42 @@
+{
+    "fear_triggers": {
+        "illegal items": 25,
+        "intercepted": 20,
+        "warrant": 30,
+        "narcotics": 30,
+        "police custody": 35,
+        "arrest": 35,
+        "court summons": 25,
+        "disconnection": 20,
+        "electricity disconnected": 25,
+        "parcel": 15
+    },
+    "authority_impersonation": {
+        "mumbai customs": 20,
+        "cbi officer": 25,
+        "electricity board": 15,
+        "eb officer": 20,
+        "police station": 20,
+        "supreme court": 20,
+        "traffic police": 15,
+        "cyber cell": 25
+    },
+    "urgency_escalation": {
+        "immediately": 15,
+        "tonight at": 20,
+        "within 2 hours": 25,
+        "emergency": 15,
+        "final notice": 20,
+        "last warning": 20,
+        "avoid blackout": 15
+    },
+    "action_requests": {
+        "press 1": 25,
+        "link below": 15,
+        "transfer funds": 30,
+        "gpay at": 25,
+        "phonepe": 25,
+        "settlement": 20,
+        "call now": 10
+    }
+}

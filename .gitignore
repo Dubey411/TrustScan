@@ -42,4 +42,4 @@ server/services/models/weights_v*.json
 !server/services/weights.json
 eng.traineddata
 test_results.log
-data/
+# server/data/ is now allowed for engine critical assets
