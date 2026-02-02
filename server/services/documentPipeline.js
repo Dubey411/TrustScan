@@ -26,22 +26,19 @@ async function initDependencies() {
 /**
  * Python-based PDF rendering (Fallback because PDF.js + Node-Canvas is unstable)
  */
-async function renderPdfPageViaPython(fileBuffer, pageIndex, scale = 2.0) {
-    const tempPdfPath = path.join(__dirname, `temp_${Date.now()}_${pageIndex}.pdf`);
-    fs.writeFileSync(tempPdfPath, fileBuffer);
-
+async function renderPdfPageViaPython(pdfPath, pageIndex, scale = 2.0) {
+    const memUsage = process.memoryUsage().heapUsed / 1024 / 1024;
+    console.log(`   [Memory] Before render: ${memUsage.toFixed(1)} MB`);
+    
+    console.log(`   [Python Render] Processing page ${pageIndex} at scale ${scale}...`);
+    
     try {
-        const memUsage = process.memoryUsage().heapUsed / 1024 / 1024;
-        console.log(`   [Memory] Before render: ${memUsage.toFixed(1)} MB`);
-        
-        console.log(`   [Python Render] Processing page ${pageIndex} at scale ${scale}...`);
-        
         // Deployment Ready: Link to system python or environment-specific path
         const pythonPath = process.env.PYTHON_PATH || (process.platform === "win32" ? "python" : "python3");
         const scriptPath = path.resolve(__dirname, '..', 'scripts', 'pdf_render.py');
         
         // Pass 0-based index to Python
-        const child = spawn(pythonPath, [scriptPath, tempPdfPath, (pageIndex - 1).toString(), scale.toString()]);
+        const child = spawn(pythonPath, [scriptPath, pdfPath, (pageIndex - 1).toString(), scale.toString()]);
         
         let stdout = "";
         let stderr = "";
@@ -51,8 +48,6 @@ async function renderPdfPageViaPython(fileBuffer, pageIndex, scale = 2.0) {
             child.stderr.on('data', (data) => stderr += data.toString());
             
             child.on('close', async (code) => {
-                if (fs.existsSync(tempPdfPath)) fs.unlinkSync(tempPdfPath);
-                
                 if (code !== 0) {
                     console.error("Python Stderr:", stderr);
                     console.error("Python Stdout:", stdout.substring(0, 200));
@@ -79,7 +74,6 @@ async function renderPdfPageViaPython(fileBuffer, pageIndex, scale = 2.0) {
             });
         });
     } catch (err) {
-        if (fs.existsSync(tempPdfPath)) fs.unlinkSync(tempPdfPath);
         throw err;
     }
 }
@@ -169,45 +163,40 @@ export async function runDocumentPipeline(fileBuffer, mimeType, depth = 'basic')
             pipelineResult.docType = pdfData.docType;
             pipelineResult.totalPages = pdfData.pages.length;
 
-            // ADAPTIVE DEPTH: Toggle between Basic and Premium (Deep) limits
             const isDeep = depth === 'deep';
-            let MAX_PAGES = 3; // Default basic scanned
-            
-            if (pdfData.docType === 'SCANNED') {
-                MAX_PAGES = isDeep ? 15 : 3;
-            } else {
-                MAX_PAGES = isDeep ? 25 : 8;
-            }
-
+            let MAX_PAGES = pdfData.docType === 'SCANNED' ? (isDeep ? 15 : 3) : (isDeep ? 25 : 8);
             const targetPages = pdfData.pages.slice(0, MAX_PAGES);
             
-            // ADAPTIVE CONCURRENCY: Render Free Tier has limited CPU/RAM. 
-            // 4 workers will cause "Thrashing" (swapping memory) which makes it 10x slower.
             const isProduction = process.env.RENDER || process.env.NODE_ENV === 'production';
             const WORKER_COUNT = isProduction ? 1 : Math.min(targetPages.length, 4); 
-            
-            console.log(`[Pipeline] Bullet Mode: Environment=${isProduction ? 'PROD' : 'LOCAL'}, Workers=${WORKER_COUNT}`);
+            const langPath = path.join(__dirname, '..');
+
+            console.log(`[Pipeline] Bullet Mode: Env=${isProduction ? 'PROD' : 'LOCAL'}, Workers=${WORKER_COUNT}, LangPath=${langPath}`);
 
             const scheduler = (await import('tesseract.js')).createScheduler();
-            const workers = [];
-
-            for (let i = 0; i < WORKER_COUNT; i++) {
-                const w = await createWorker('eng');
-                scheduler.addWorker(w);
-                workers.push(w);
-            }
+            const tempPdfPath = path.join(__dirname, `temp_${Date.now()}.pdf`);
+            fs.writeFileSync(tempPdfPath, fileBuffer);
 
             try {
-                const pagePromises = targetPages.map(async (page) => {
+                for (let i = 0; i < WORKER_COUNT; i++) {
+                    const w = await createWorker('eng', 1, { 
+                        langPath,
+                        gzip: false 
+                    });
+                    scheduler.addWorker(w);
+                }
+
+                // PROCESS PAGES
+                const results = [];
+                for (const page of targetPages) {
                     let pageText = page.text || "";
                     let method = "DIGITAL_PARSE";
                     let confidence = 100;
 
                     if (page.type === 'SCANNED' || page.charCount < 100) {
                         try {
-                            const isProduction = process.env.RENDER || process.env.NODE_ENV === 'production';
                             const scale = isProduction ? 1.5 : (pdfData.totalPages > 5 ? 1.5 : 2.0); 
-                            const imgBuffer = await renderPdfPageViaPython(fileBuffer, page.pageIndex, scale);
+                            const imgBuffer = await renderPdfPageViaPython(tempPdfPath, page.pageIndex, scale);
                             
                             if (!pipelineResult.firstImgBuffer && page.pageIndex === 1) {
                                 pipelineResult.firstImgBuffer = imgBuffer;
@@ -223,14 +212,8 @@ export async function runDocumentPipeline(fileBuffer, mimeType, depth = 'basic')
                             confidence = 0;
                         }
                     }
-
-                    return { index: page.pageIndex, text: pageText, method, confidence };
-                });
-
-                const results = await Promise.all(pagePromises);
-                
-                // Sort results back to original order
-                results.sort((a, b) => a.index - b.index);
+                    results.push({ index: page.pageIndex, text: pageText, method, confidence });
+                }
 
                 let textAccumulator = "";
                 let totalConfidence = 0;
@@ -251,7 +234,8 @@ export async function runDocumentPipeline(fileBuffer, mimeType, depth = 'basic')
 
             } finally {
                 await scheduler.terminate();
-                console.log(`[Pipeline] Parallel OCR Workers terminated.`);
+                if (fs.existsSync(tempPdfPath)) fs.unlinkSync(tempPdfPath);
+                console.log(`[Pipeline] Clean-up complete.`);
             }
 
             pipelineResult.text = textAccumulator;
