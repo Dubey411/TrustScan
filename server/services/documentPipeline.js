@@ -180,11 +180,16 @@ export async function runDocumentPipeline(fileBuffer, mimeType, depth = 'basic')
             }
 
             const targetPages = pdfData.pages.slice(0, MAX_PAGES);
-            console.log(`[Pipeline] Bullet Mode: Processing ${targetPages.length} pages in parallel.`);
+            
+            // ADAPTIVE CONCURRENCY: Render Free Tier has limited CPU/RAM. 
+            // 4 workers will cause "Thrashing" (swapping memory) which makes it 10x slower.
+            const isProduction = process.env.RENDER || process.env.NODE_ENV === 'production';
+            const WORKER_COUNT = isProduction ? 1 : Math.min(targetPages.length, 4); 
+            
+            console.log(`[Pipeline] Bullet Mode: Environment=${isProduction ? 'PROD' : 'LOCAL'}, Workers=${WORKER_COUNT}`);
 
             const scheduler = (await import('tesseract.js')).createScheduler();
             const workers = [];
-            const WORKER_COUNT = Math.min(targetPages.length, 4); // Max 4 parallel workers
 
             for (let i = 0; i < WORKER_COUNT; i++) {
                 const w = await createWorker('eng');
@@ -200,7 +205,8 @@ export async function runDocumentPipeline(fileBuffer, mimeType, depth = 'basic')
 
                     if (page.type === 'SCANNED' || page.charCount < 100) {
                         try {
-                            const scale = pdfData.totalPages > 5 ? 1.5 : 2.0; 
+                            const isProduction = process.env.RENDER || process.env.NODE_ENV === 'production';
+                            const scale = isProduction ? 1.5 : (pdfData.totalPages > 5 ? 1.5 : 2.0); 
                             const imgBuffer = await renderPdfPageViaPython(fileBuffer, page.pageIndex, scale);
                             
                             if (!pipelineResult.firstImgBuffer && page.pageIndex === 1) {
