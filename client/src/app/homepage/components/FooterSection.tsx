@@ -58,7 +58,7 @@ const FooterSection = () => {
             </Link>
 
             <p className="text-sm text-muted-foreground mb-4">
-              Your digital guardian protecting students from job scams across India.
+              India's #1 AI-powered fraud detection platform. Protecting citizens from SMS spoofing, job scams, and fraudulent businesses.
             </p>
 
             <div className="flex gap-3">

@@ -42,7 +42,7 @@ app.get("/", (req, res) => {
 
 // Middlewares
 app.use(cors({
-  origin: "*", // Allows frontend to talk to backend from any domain (Vercel, Localhost, etc.)
+  origin: ["https://www.trustscanai.in", "https://trustscanai.in", "http://localhost:3000", "http://localhost:5173"], 
   methods: ["GET", "POST", "PUT", "DELETE"],
   allowedHeaders: ["Content-Type", "Authorization"]
 }));

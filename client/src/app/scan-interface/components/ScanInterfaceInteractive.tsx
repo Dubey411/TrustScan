@@ -216,12 +216,12 @@ export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfa
     <>
       {/* Header Removed for Dashboard Integration */}
             <div className="max-w-5xl mx-auto">
-              <div className="text-center mb-8">
-                <h1 className="text-3xl md:text-4xl font-headline font-bold text-foreground mb-4">
-                  New Security Scan
+              <div className="text-center mb-10">
+                <h1 className="text-4xl md:text-5xl lg:text-6xl font-headline font-bold text-foreground mb-6 leading-tight">
+                  India's Smartest AI <span className="text-primary italic">Fraud Detection</span> Engine
                 </h1>
-                <p className="text-muted-foreground max-w-2xl mx-auto">
-                  Upload suspicious job offers, emails, links, or documents.
+                <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+                  Verify Job Offers, SMS Headers, Business IDs (CIN/GST), and suspicious links instantly with 98.7% accuracy.
                 </p>
                 {error && (
                   <div className="mt-4 p-3 bg-red-100 border border-red-200 text-red-700 rounded-lg max-w-md mx-auto">

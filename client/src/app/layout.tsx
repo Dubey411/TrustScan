@@ -10,8 +10,17 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: 'TrustScan AI | Multi-Modal Fraud Detection',
-  description: 'Production-grade fraud detection for Indian documents, payments, and messages.',
+  metadataBase: new URL('https://www.trustscanai.in'),
+  title: 'TrustScan AI | India\'s Leading Fraud Detection Engine',
+  description: 'Instant verification for Indian SMS, CIN, GST, and Documents. Protect yourself from digital scams using advanced behavioral intelligence.',
+  openGraph: {
+    title: 'TrustScan AI',
+    description: 'Instant verification for Indian digital identity and documents.',
+    url: 'https://www.trustscanai.in',
+    siteName: 'TrustScan AI',
+    locale: 'en_IN',
+    type: 'website',
+  },
   icons: {
     icon: [
       { url: '/image.png', type: 'image/png' }
@@ -26,6 +35,31 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "SoftwareApplication",
+              "name": "TrustScan AI",
+              "operatingSystem": "All",
+              "applicationCategory": "SecurityApplication",
+              "description": "India's most advanced AI fraud detection engine for SMS Headers, Business CIN/GST verification, and Scam Script analysis.",
+              "offers": {
+                "@type": "Offer",
+                "price": "0",
+                "priceCurrency": "INR"
+              },
+              "author": {
+                "@type": "Organization",
+                "name": "TrustScan AI India"
+              },
+              "areaServed": "IN"
+            })
+          }}
+        />
+      </head>
       <body suppressHydrationWarning>
         <ThemeProvider
           attribute="class"
@@ -36,8 +70,6 @@ export default function RootLayout({
           <AuthProvider>
             {children}
           </AuthProvider>
-          {/* <script type="module" async src="https://static.rocket.new/rocket-web.js?_cfg=https%3A%2F%2Fsafejobind2477back.builtwithrocket.new&_be=https%3A%2F%2Fapplication.rocket.new&_v=0.1.12" /> */}
-          {/* <script type="module" defer src="https://static.rocket.new/rocket-shot.js?v=0.0.2" /> */}
         </ThemeProvider>
       </body>
     </html>

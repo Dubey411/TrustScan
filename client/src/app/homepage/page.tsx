@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import HomepageInteractive from './components/HomepageInteractive';
 
 export const metadata: Metadata = {
-  title: 'TrustScan - Your Digital Guardian Against Scams',
-  description: 'India\'s first AI-powered job fraud detection platform protecting students and freshers from fake job offers, internship scams, and phishing attempts. Get instant verification with 98% accuracy.',
+  title: 'TrustScan AI - Best Fraud Detection Tool in India',
+  description: 'AI-powered security for India. Verify SMS Headers (RBI VSPE), check business CIN/GST (MCA21), and detect scam scripts instantly. Protecting students, freshers, and businesses from online fraud.',
 };
 
 export default function Homepage() {

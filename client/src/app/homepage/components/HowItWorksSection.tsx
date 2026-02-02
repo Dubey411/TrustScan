@@ -29,10 +29,10 @@ const HowItWorksSection = () => {
       <div className="container mx-auto px-4">
         <div className="text-center max-w-3xl mx-auto mb-16">
           <h2 className="text-3xl lg:text-4xl font-headline font-bold text-foreground mb-4">
-            How TrustScan Works
+            How TrustScan AI Works
           </h2>
           <p className="text-lg text-muted-foreground">
-            Four simple steps to protect yourself from job scams and fraudulent opportunities
+            Our multi-layered security engine protects Indian users from SMS spoofing, fake business registrations, and fraudulent job offers in four simple steps.
           </p>
         </div>
 
