@@ -43,8 +43,8 @@ export async function optimizeWeightsFromFeedback() {
         const learningRate = 0.05;
 
         recentFeedback.forEach(scan => {
-            const isFalseNegative = scan.userFeedback === 'incorrect_fraud'; // System said safe, user said fraud
-            const isFalsePositive = scan.userFeedback === 'incorrect_safe';  // System said fraud, user said safe
+            const isFalseNegative = scan.userFeedback === 'incorrect_fraud'; 
+            const isFalsePositive = scan.userFeedback === 'incorrect_safe';  
 
             // Adjust signal weights inside the scan
             for (const [signal, value] of Object.entries(scan.signals || {})) {
