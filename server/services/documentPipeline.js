@@ -164,7 +164,7 @@ export async function runDocumentPipeline(fileBuffer, mimeType, depth = 'basic')
             pipelineResult.totalPages = pdfData.pages.length;
 
             const isDeep = depth === 'deep';
-            let MAX_PAGES = pdfData.docType === 'SCANNED' ? (isDeep ? 15 : 3) : (isDeep ? 25 : 8);
+            let MAX_PAGES = pdfData.docType === 'SCANNED' ? (isDeep ? 15 : 2) : (isDeep ? 25 : 5);
             const targetPages = pdfData.pages.slice(0, MAX_PAGES);
             
             const isProduction = process.env.RENDER || process.env.NODE_ENV === 'production';
