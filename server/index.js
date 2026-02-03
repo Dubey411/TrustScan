@@ -30,18 +30,7 @@ process.on('unhandledRejection', (reason, promise) => {
 
 const app = express();
 
-// 1. CORS MUST BE FIRST
-app.use(cors({
-  origin: "*", 
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"],
-  credentials: true
-}));
-
-// 2. Body Parsers & Core Middlewares
-app.use(express.json());
-
-// 3. Connect to Database & Initialize Services
+// Connect to Database & Initialize Services
 await connectDB();
 initializeMLAutomation();
 
@@ -50,6 +39,14 @@ const SERVER_ID = Date.now();
 app.get("/", (req, res) => {
   res.status(200).json({ status: "healthy", timestamp: new Date().toISOString(), serverId: SERVER_ID });
 });
+
+// Middlewares
+app.use(cors({
+  origin: ["https://www.trustscanai.in", "https://trustscanai.in", "http://localhost:3000", "http://localhost:5173"], 
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  allowedHeaders: ["Content-Type", "Authorization"]
+}));
+app.use(express.json());
 
 
 app.use("/api", scanRoute);
