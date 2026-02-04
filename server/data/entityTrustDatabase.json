@@ -1,0 +1,215 @@
+{
+    "blacklist": [
+        {
+            "name": "Encryptix",
+            "type": "Predatory Internship",
+            "addedAt": "2024-05-28",
+            "category": "red_flag"
+        },
+        {
+            "name": "InternPe",
+            "type": "Predatory Internship",
+            "addedAt": "2024-05-28",
+            "category": "red_flag"
+        },
+        {
+            "name": "Oasis Infobyte",
+            "type": "Predatory Internship",
+            "addedAt": "2024-05-28",
+            "category": "red_flag"
+        },
+        {
+            "name": "Verzeo",
+            "type": "Predatory Internship",
+            "addedAt": "2024-05-28",
+            "category": "red_flag"
+        },
+        {
+            "name": "Orbitor",
+            "type": "Predatory Internship",
+            "addedAt": "2024-05-28",
+            "category": "red_flag"
+        },
+        {
+            "name": "SKOLAR",
+            "type": "Predatory Internship",
+            "addedAt": "2024-05-28",
+            "category": "red_flag"
+        },
+        {
+            "name": "Coding Samurai",
+            "type": "Predatory Internship",
+            "addedAt": "2024-05-28",
+            "category": "red_flag"
+        },
+        {
+            "name": "CodeAlpha",
+            "type": "Predatory Internship",
+            "addedAt": "2024-05-28",
+            "category": "red_flag"
+        },
+        {
+            "name": "Codesoft",
+            "type": "Predatory Internship",
+            "addedAt": "2024-05-28",
+            "category": "red_flag"
+        },
+        {
+            "name": "TEACHNOOK",
+            "type": "Predatory Internship",
+            "addedAt": "2024-05-28",
+            "category": "red_flag"
+        },
+        {
+            "name": "TEACHSCAPE",
+            "type": "Predatory Internship",
+            "addedAt": "2024-05-28",
+            "category": "red_flag"
+        },
+        {
+            "name": "Younity.in",
+            "type": "Predatory Internship",
+            "addedAt": "2024-05-28",
+            "category": "red_flag"
+        },
+        {
+            "name": "Digitech Branding",
+            "type": "Predatory Internship",
+            "addedAt": "2024-05-28",
+            "category": "red_flag"
+        },
+        {
+            "name": "Lernx",
+            "type": "Predatory Internship",
+            "addedAt": "2024-05-28",
+            "category": "red_flag"
+        },
+        {
+            "name": "spehre.io",
+            "type": "Predatory Internship",
+            "addedAt": "2024-05-28",
+            "category": "red_flag"
+        },
+        {
+            "name": "Prodigy InfoTech",
+            "type": "Predatory Internship",
+            "addedAt": "2024-05-28",
+            "category": "red_flag"
+        },
+        {
+            "name": "Alchemist",
+            "type": "IBC Blacklisted",
+            "addedAt": "2024-05-28",
+            "category": "red_flag"
+        },
+        {
+            "name": "Bharati Defence",
+            "type": "IBC Blacklisted",
+            "addedAt": "2024-05-28",
+            "category": "red_flag"
+        },
+        {
+            "name": "Era Infra Engineering",
+            "type": "IBC Blacklisted",
+            "addedAt": "2024-05-28",
+            "category": "red_flag"
+        },
+        {
+            "name": "Jaypee Infratech",
+            "type": "IBC Blacklisted",
+            "addedAt": "2024-05-28",
+            "category": "red_flag"
+        },
+        {
+            "name": "Lanco Infratech",
+            "type": "IBC Blacklisted",
+            "addedAt": "2024-05-28",
+            "category": "red_flag"
+        },
+        {
+            "name": "Winning Edge Software Solutions",
+            "type": "Documented Scam",
+            "addedAt": "2024-05-28",
+            "category": "red_flag"
+        }
+    ],
+    "greylist": [
+        {
+            "name": "Reliance Communications",
+            "type": "Insolvency Risk",
+            "hitCount": 0,
+            "userReports": 1,
+            "category": "grey_list"
+        },
+        {
+            "name": "Housing Development and Infrastructure Limited",
+            "type": "Insolvency Risk",
+            "hitCount": 0,
+            "userReports": 1,
+            "category": "grey_list"
+        },
+        {
+            "name": "Amtek Auto",
+            "type": "Insolvency Risk",
+            "hitCount": 0,
+            "userReports": 1,
+            "category": "grey_list"
+        },
+        {
+            "name": "GTL Infrastructure",
+            "type": "Insolvency Risk",
+            "hitCount": 0,
+            "userReports": 1,
+            "category": "grey_list"
+        },
+        {
+            "name": "IVRCL Limited",
+            "type": "Insolvency Risk",
+            "hitCount": 0,
+            "userReports": 1,
+            "category": "grey_list"
+        },
+        {
+            "name": "Jyoti Structures",
+            "type": "Insolvency Risk",
+            "hitCount": 0,
+            "userReports": 1,
+            "category": "grey_list"
+        },
+        {
+            "name": "Monnet Ispat",
+            "type": "Insolvency Risk",
+            "hitCount": 0,
+            "userReports": 1,
+            "category": "grey_list"
+        },
+        {
+            "name": "Rainbow Papers",
+            "type": "Insolvency Risk",
+            "hitCount": 0,
+            "userReports": 1,
+            "category": "grey_list"
+        },
+        {
+            "name": "Unity Infraprojects",
+            "type": "Insolvency Risk",
+            "hitCount": 0,
+            "userReports": 1,
+            "category": "grey_list"
+        },
+        {
+            "name": "Videonetics Technology",
+            "type": "Unverified Entity",
+            "hitCount": 0,
+            "userReports": 1,
+            "category": "grey_list"
+        },
+        {
+            "name": "Zylog Systems",
+            "type": "Insolvency Risk",
+            "hitCount": 0,
+            "userReports": 1,
+            "category": "grey_list"
+        }
+    ]
+}

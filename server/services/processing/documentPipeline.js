@@ -1,5 +1,5 @@
 ﻿
-import './globals.js'; // MUST BE FIRST
+import '../globals.js'; // MUST BE FIRST
 import { createWorker } from 'tesseract.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -38,7 +38,7 @@ async function renderPdfPageViaPython(fileBuffer, pageIndex, scale = 2.0) {
         
         // Deployment Ready: Link to system python or environment-specific path
         const pythonPath = process.env.PYTHON_PATH || (process.platform === "win32" ? "python" : "python3");
-        const scriptPath = path.resolve(__dirname, '..', 'scripts', 'pdf_render.py');
+        const scriptPath = path.resolve(__dirname, '..', '..', 'scripts', 'pdf_render.py');
         
         // Pass 0-based index to Python
         const child = spawn(pythonPath, [scriptPath, tempPdfPath, (pageIndex - 1).toString(), scale.toString()]);
@@ -90,7 +90,7 @@ async function renderPdfPageViaPython(fileBuffer, pageIndex, scale = 2.0) {
 async function analyzePdfStructure(buffer) {
     await initDependencies();
     
-    let fontPath = path.join(__dirname, '..', 'node_modules', 'pdfjs-dist', 'standard_fonts/');
+    let fontPath = path.join(__dirname, '..', '..', 'node_modules', 'pdfjs-dist', 'standard_fonts/');
     fontPath = fontPath.split(path.sep).join('/');
     if (!fontPath.endsWith('/')) fontPath += '/';
     
@@ -144,6 +144,33 @@ function extractStructures(text) {
         hasDate: /\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}/.test(text),
         hasTransactionId: /ID[:\s]+[A-Z0-9-]{8,}/i.test(text)
     };
+}
+
+const predatoryPath = path.join(__dirname, '..', '..', 'data', 'entityTrustDatabase.json');
+let TRUST_DB = { blacklist: [], greylist: [] };
+
+try {
+    TRUST_DB = JSON.parse(fs.readFileSync(predatoryPath, 'utf8'));
+} catch (e) {
+    console.error("Failed to load Trust Database");
+}
+
+/**
+ * Checks if text contains any items from the Red or Grey list
+ */
+function checkForFastPathFraud(text) {
+    if (!text) return null;
+    const lowerText = text.toLowerCase();
+    
+    // 1. Check Blacklist (Red Flag)
+    const blacklistedMatch = TRUST_DB.blacklist.find(b => lowerText.includes(b.name.toLowerCase()));
+    if (blacklistedMatch) return { type: 'RED', name: blacklistedMatch.name, reason: blacklistedMatch.type };
+    
+    // 2. Check Greylist (Suspicious)
+    const greylistMatch = TRUST_DB.greylist.find(g => lowerText.includes(g.name.toLowerCase()));
+    if (greylistMatch) return { type: 'GREY', name: greylistMatch.name, reason: greylistMatch.type };
+    
+    return null;
 }
 
 /**
@@ -202,6 +229,15 @@ export async function runDocumentPipeline(fileBuffer, mimeType, depth = 'basic')
                     let pageText = page.text || "";
                     let method = "DIGITAL_PARSE";
                     let confidence = 100;
+                    let isFraudMatch = false;
+                    let fraudMatchReason = null;
+
+                    // Identification Check (Don't stop, just flag)
+                    const fastFraud = checkForFastPathFraud(pageText);
+                    if (fastFraud) {
+                        isFraudMatch = true;
+                        fraudMatchReason = fastFraud;
+                    }
 
                     if (page.type === 'SCANNED' || page.charCount < 100) {
                         try {
@@ -217,6 +253,13 @@ export async function runDocumentPipeline(fileBuffer, mimeType, depth = 'basic')
                             pageText = ocr.data.text;
                             confidence = ocr.data.confidence;
                             method = "FAST_OCR";
+
+                            // Identification Check on OCR text
+                            const ocrFraud = checkForFastPathFraud(pageText);
+                            if (ocrFraud) {
+                                isFraudMatch = true;
+                                fraudMatchReason = ocrFraud;
+                            }
                         } catch (e) {
                             console.error(`[Pipeline] Page ${page.pageIndex} Error:`, e.message);
                             method = "FAIL";
@@ -224,12 +267,25 @@ export async function runDocumentPipeline(fileBuffer, mimeType, depth = 'basic')
                         }
                     }
 
-                    return { index: page.pageIndex, text: pageText, method, confidence };
+                    return { index: page.pageIndex, text: pageText, method, confidence, isFraud: isFraudMatch, fraudMatch: fraudMatchReason };
                 });
 
                 const results = await Promise.all(pagePromises);
+
+                // IDENTIFICATION: Check if any part of the document hit our blacklist or greylist
+                const fraudTrigger = results.find(r => r.isFraud);
+                if (fraudTrigger) {
+                    const hit = fraudTrigger.fraudMatch;
+                    console.log(`🎯 [Database Hit] Identified ${hit.name} (${hit.type}). Continuing OCR for ML training...`);
+                    
+                    if (hit.type === 'RED') {
+                        pipelineResult.signals.visual_anomalies.push('KNOWN_SCAM_DATABASE_HIT');
+                    } else if (hit.type === 'GREY') {
+                        pipelineResult.signals.visual_anomalies.push('GREYLIST_ENTITY_DETECTED');
+                    }
+                }
                 
-                // Sort results back to original order
+                // DATA HARVESTING: Group all text so ML can learn patterns
                 results.sort((a, b) => a.index - b.index);
 
                 let textAccumulator = "";
@@ -242,7 +298,8 @@ export async function runDocumentPipeline(fileBuffer, mimeType, depth = 'basic')
                         totalConfidence += res.confidence;
                         pagesProcessed++;
                     }
-                    pipelineResult.extractionMethod.push(`P${res.index}:${res.method}`);
+                    const hitTag = res.isFraud ? `_${res.fraudMatch.type}_HIT` : '';
+                    pipelineResult.extractionMethod.push(`P${res.index}:${res.method}${hitTag}`);
                 });
 
                 pipelineResult.text = textAccumulator;
@@ -254,17 +311,13 @@ export async function runDocumentPipeline(fileBuffer, mimeType, depth = 'basic')
                 console.log(`[Pipeline] Parallel OCR Workers terminated.`);
             }
 
-            pipelineResult.text = textAccumulator;
-            pipelineResult.confidence = pagesProcessed > 0 ? totalConfidence / pagesProcessed : 0;
-            pipelineResult.pagesAnalyzed = pagesProcessed;
-
         } else if (mimeType.startsWith('image/')) {
             console.log(`[Pipeline] Processing Image...`);
             let worker = await createWorker('eng');
             
             let processedBuffer = fileBuffer;
             try {
-                const image = await Jimp.read(fileBuffer);
+                const image = await Jimp.read(processedBuffer);
                 if (typeof image.greyscale === 'function') {
                     image.greyscale().contrast(0.2).normalize();
                     processedBuffer = await image.getBuffer('image/png');
@@ -277,12 +330,20 @@ export async function runDocumentPipeline(fileBuffer, mimeType, depth = 'basic')
             }
 
             const ocr = await runMultiPassOCR(processedBuffer, worker);
+            
+            // Flag Known Fraud but don't skip the data
+            const imgFraud = checkForFastPathFraud(ocr.text);
+            if (imgFraud) {
+                console.log(`🎯 [Database Hit] Identified ${imgFraud}. Harvesting data for ML...`);
+                pipelineResult.signals.visual_anomalies.push('KNOWN_SCAM_DATABASE_HIT');
+            }
+
             pipelineResult.text = ocr.text;
             pipelineResult.confidence = ocr.confidence;
             pipelineResult.docType = "IMAGE";
             pipelineResult.totalPages = 1;
             pipelineResult.pagesAnalyzed = 1;
-            pipelineResult.extractionMethod.push("IMAGE_OCR");
+            pipelineResult.extractionMethod.push(imgFraud ? "IMAGE_OCR_HARVEST" : "IMAGE_OCR");
             pipelineResult.firstImgBuffer = processedBuffer;
 
             await worker.terminate();

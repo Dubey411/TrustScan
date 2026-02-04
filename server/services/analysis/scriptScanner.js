@@ -6,7 +6,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const PHRASES = JSON.parse(
-    fs.readFileSync(path.join(__dirname, '..', 'data', 'risk_weighted_phrases.json'), 'utf8')
+    fs.readFileSync(path.join(__dirname, '..', '..', 'data', 'risk_weighted_phrases.json'), 'utf8')
 );
 
 /**

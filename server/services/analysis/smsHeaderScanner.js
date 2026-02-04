@@ -6,7 +6,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const BANK_DATA = JSON.parse(
-    fs.readFileSync(path.join(__dirname, '..', 'data', 'bankHeaders.json'), 'utf8')
+    fs.readFileSync(path.join(__dirname, '..', '..', 'data', 'bankHeaders.json'), 'utf8')
 );
 
 /**
@@ -114,6 +114,16 @@ export function analyzeSmsHeader(headerId, messageBody = "") {
             report.flags.push(`Content Mismatch: Header says ${closestMatch.brand} but message context is irrelevant`);
             report.riskScore += 20;
         }
+    }
+    
+    // 5b. Numeric Sender vs Bank Context (The "Grey Route" Check)
+    const isNumeric = /^\d+$/.test(senderId);
+    const hasBankKeywords = ["bank", "a/c", "debited", "credited", "otp", "upi"].some(kw => normalizedBody.includes(kw));
+    
+    if (isNumeric && hasBankKeywords && senderId.length > 5) {
+        report.isSpoofed = true;
+        report.flags.push(`Numeric Sender: Official bank alerts MUST use Alphanumeric Headers (TRAI DLT Rule)`);
+        report.riskScore = Math.max(report.riskScore, 65);
     }
 
     // 6. Final Risk Scoring

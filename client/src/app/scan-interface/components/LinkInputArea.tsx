@@ -7,9 +7,10 @@ interface LinkInputAreaProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  onScan?: () => void;
 }
 
-export default function LinkInputArea({ value, onChange, placeholder }: LinkInputAreaProps) {
+export default function LinkInputArea({ value, onChange, placeholder, onScan }: LinkInputAreaProps) {
   const [isValidUrl, setIsValidUrl] = useState(true);
 
   const validateUrl = (url: string) => {
@@ -47,6 +48,11 @@ export default function LinkInputArea({ value, onChange, placeholder }: LinkInpu
             !isValidUrl
               ? 'border-error focus:border-error focus:ring-2 focus:ring-error/20' :'border-border focus:border-primary focus:ring-2 focus:ring-primary/20'
           }`}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && onScan) {
+              onScan();
+            }
+          }}
           aria-label="URL input field"
           aria-invalid={!isValidUrl}
         />

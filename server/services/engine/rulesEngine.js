@@ -1,18 +1,18 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { detectStructuralAnomalies } from './idValidator.js';
-import { analyzeLinks } from './linkScanner.js';
-import { analyzeEntities } from './entityScanner.js';
-import { analyzeSmsHeader } from './smsHeaderScanner.js';
-import { analyzeScamScript } from './scriptScanner.js';
+import { detectStructuralAnomalies } from '../analysis/idValidator.js';
+import { analyzeLinks } from '../analysis/linkScanner.js';
+import { analyzeEntities } from '../analysis/entityScanner.js';
+import { analyzeSmsHeader } from '../analysis/smsHeaderScanner.js';
+import { analyzeScamScript } from '../analysis/scriptScanner.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Paths
-const rulesPath = path.join(__dirname, 'fraudRules.json');
-const weightsPath = path.join(__dirname, 'weights.json');
+const rulesPath = path.join(__dirname, '..', '..', 'data', 'fraudRules.json');
+const weightsPath = path.join(__dirname, '..', '..', 'data', 'weights.json');
 
 // Memory cache
 let fraudRules = [];
@@ -125,7 +125,10 @@ export async function runRules(content, externalSignals = {}, trustSignals = {},
   if (cleanContent.length > 0) {
       const hasSpaces = cleanContent.includes(' ');
       const hasVowels = /[aeiouy]/i.test(cleanContent);
-      const isExtremelyLongSingleWord = cleanContent.length > 25 && !hasSpaces;
+      
+      // FIX: Don't flag URLs as "long single words". 
+      // A string is a long single word if it has no spaces AND is not a URL.
+      const isExtremelyLongSingleWord = cleanContent.length > 25 && !hasSpaces && !metadata.hasUrl;
       const isGibberish = cleanContent.length > 5 && !hasVowels && /^[a-z]+$/i.test(cleanContent);
       
       if (isExtremelyLongSingleWord || isGibberish) {
@@ -133,49 +136,75 @@ export async function runRules(content, externalSignals = {}, trustSignals = {},
       }
   }
 
-  // --- UNIFIED INDIA FRAUD CONFIDENCE LAYER ---
+  // --- MISSION: NATURE OF LANGUAGE & BEHAVIORAL SIGNALS ---
+  const scriptAnalysis = analyzeScamScript(content);
   const activityAnalysis = await analyzeLinks(content);
+  
+  // --- MISSION: HARD IDENTIFICATION (CIN, Aadhaar, PAN, GST) ---
   const entityAnalysis = analyzeEntities(content);
   const smsAnalysis = senderId ? analyzeSmsHeader(senderId, content) : null;
-  const scriptAnalysis = analyzeScamScript(content);
+  const hasStructuralAnomaly = detectStructuralAnomalies(content);
 
-  let indiaConfidenceRisk = 0;
-  const indiaFlags = [];
-
-  // 1. CIN/GST Layer
-  if (entityAnalysis.metadata?.entityDiscrepancies?.length > 0) {
-      indiaConfidenceRisk = Math.max(indiaConfidenceRisk, 80);
-      reasons.push(...entityAnalysis.metadata.entityDiscrepancies);
-  }
-
-  // 2. SMS Header Layer
-  if (smsAnalysis) {
-      if (smsAnalysis.isSpoofed) {
-          indiaConfidenceRisk = Math.max(indiaConfidenceRisk, smsAnalysis.riskScore);
-          reasons.push(...smsAnalysis.flags);
-      } else if (smsAnalysis.confidence === 100) {
-          indiaConfidenceRisk -= 20; // Trust Bonus
-          indiaFlags.push(`Verified SMS Identity: ${smsAnalysis.detectedBrand}`);
-      }
-  }
-
-  // 3. Script / Conversational Layer
-  if (scriptAnalysis && scriptAnalysis.riskScore > 30) {
-      indiaConfidenceRisk = Math.max(indiaConfidenceRisk, scriptAnalysis.riskScore);
-      if (scriptAnalysis.detectedFlow.length > 1) {
-          reasons.push(`Coercive Pattern: ${scriptAnalysis.detectedFlow.join(' -> ')}`);
-      }
-  }
-
-  // Merge signals for ML layer
+  // Initialize Signals Vector
   signals = { 
       ...signals, 
       ...activityAnalysis.signals, 
       ...entityAnalysis.signals,
       smsSpoofRisk: smsAnalysis?.isSpoofed ? 1 : 0,
-      scamFlowDetected: scriptAnalysis?.detectedFlow.length > 2 ? 1 : 0
+      scamFlowDetected: scriptAnalysis?.riskScore > 50 ? 1 : 0,
+      structuralAnomalies: hasStructuralAnomaly ? 1 : 0,
+      knownScamSource: 0,
+      emergingRiskSource: 0
   };
-  
+
+  // --- MISSION: ENTITY RECOGNITION (RED/GREY LISTS) ---
+  const trustDbPath = path.join(__dirname, '..', '..', 'data', 'entityTrustDatabase.json');
+  try {
+      if (fs.existsSync(trustDbPath)) {
+          const trustDb = JSON.parse(fs.readFileSync(trustDbPath, 'utf8'));
+          const lowerContent = content.toLowerCase();
+          
+          // Red List (Confirmed Fraud)
+          const redHit = trustDb.blacklist.find(b => lowerContent.includes(b.name.toLowerCase()));
+          if (redHit) {
+              signals.knownScamSource = 1;
+              reasons.push(`DATABASE MATCH: Associated with known entity "${redHit.name}"`);
+          }
+
+          // Grey List & Emerging Risk
+          const greyHit = trustDb.greylist.find(g => lowerContent.includes(g.name.toLowerCase()));
+          if (greyHit) {
+              signals.emergingRiskSource = 1;
+              reasons.push(`NETWORK ALERT: "${greyHit.name}" is on our active verification list`);
+          }
+      }
+  } catch (e) {
+      console.error("RulesEngine: Trust DB Check failed", e);
+  }
+
+  // --- INTEGRATED MISSION VERDICT (Evidence First) ---
+  let indiaConfidenceRisk = 0;
+
+  // 1. Evidence: Structural Faults (Invalid ID)
+  if (hasStructuralAnomaly) {
+      indiaConfidenceRisk = Math.max(indiaConfidenceRisk, 95);
+      reasons.push("Alert: Invalid Aadhaar/PAN structure detected in content");
+  }
+
+  // 2. Evidence: Nature of Language
+  if (scriptAnalysis.riskScore > 40) {
+      indiaConfidenceRisk = Math.max(indiaConfidenceRisk, scriptAnalysis.riskScore);
+      if (scriptAnalysis.detectedFlow.length > 1) {
+          reasons.push(`Behavioral Flow: ${scriptAnalysis.detectedFlow.join(' → ')}`);
+      }
+  }
+
+  // 3. Evidence: Entity Integrity
+  if (entityAnalysis.metadata?.entityDiscrepancies?.length > 0) {
+      indiaConfidenceRisk = Math.max(indiaConfidenceRisk, 85);
+      reasons.push(...entityAnalysis.metadata.entityDiscrepancies);
+  }
+
   const normalizedText = metadata.normalizedText;
 
   // 1. EXECUTE RULES (Feature Engineering)

@@ -277,6 +277,9 @@ export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfa
                         onChange={(e) => setTextInput(e.target.value)}
                         placeholder={currentScanType.placeholder || ''}
                         maxLength={currentScanType.maxLength || 500}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleScan();
+                        }}
                         className="w-full p-4 bg-muted/50 text-foreground border border-border rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary transition-all duration-200 outline-none font-medium placeholder:text-muted-foreground/60 shadow-inner"
                       />
                       <div className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground text-sm pointer-events-none">
@@ -305,6 +308,7 @@ export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfa
                         onChange={setTextInput}
                         placeholder={currentScanType.placeholder || ''}
                         maxLength={currentScanType.maxLength || 5000}
+                        onScan={handleScan}
                       />
                     </div>
                   )
@@ -315,6 +319,7 @@ export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfa
                     value={linkInput} 
                     onChange={setLinkInput} 
                     placeholder={currentScanType.placeholder}
+                    onScan={handleScan}
                   />
                 )}
                 

@@ -1,15 +1,15 @@
 import express from "express";
 import multer from "multer";
-import { runRules } from "../services/rulesEngine.js";
-import { processDocument } from "../services/ocrProcessor.js";
-import { getRecommendedActions } from "../services/recommendationEngine.js";
-import { checkTriggersAndTrain } from "../services/mlManager.js";
+import { runRules } from "../services/engine/rulesEngine.js";
+import { processDocument } from "../services/processing/ocrProcessor.js";
+import { getRecommendedActions } from "../services/engine/recommendationEngine.js";
+import { checkTriggersAndTrain } from "../services/ml/mlManager.js";
 import Scan from "../models/Scan.js";
 import User from "../models/User.js";
 import mongoose from "mongoose";
 import fs from "fs";
-import { analyzeSmsHeader } from "../services/smsHeaderScanner.js";
-import { analyzeScamScript } from "../services/scriptScanner.js";
+import { analyzeSmsHeader } from "../services/analysis/smsHeaderScanner.js";
+import { analyzeScamScript } from "../services/analysis/scriptScanner.js";
 
 import path from "path";
 import { fileURLToPath } from 'url';

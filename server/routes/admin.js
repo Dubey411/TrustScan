@@ -144,7 +144,7 @@ router.get("/ai-intelligence", async (req, res) => {
             const path = await import('path');
             const { fileURLToPath } = await import('url');
             const __dirname = path.dirname(fileURLToPath(import.meta.url));
-            const tracePath = path.join(__dirname, '../services/learningTrace.json');
+            const tracePath = path.join(__dirname, '../data/learningTrace.json');
             learningTrace = JSON.parse(fs.readFileSync(tracePath, 'utf8'));
         } catch (e) {
             console.error("Trace load error:", e);

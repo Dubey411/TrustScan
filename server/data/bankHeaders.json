@@ -104,5 +104,31 @@
             "hdfc",
             "sbi"
         ]
+    },
+    {
+        "brand": "Bank of India",
+        "officialIds": [
+            "BOIIND",
+            "BOIALR",
+            "BOISMS",
+            "BOIUPP",
+            "BOIMBT"
+        ],
+        "contentKeywords": [
+            "boi",
+            "bank of india",
+            "uts",
+            "upi ref",
+            "debited",
+            "credited",
+            "a/c"
+        ],
+        "mismatchKeywords": [
+            "sbi",
+            "hdfc",
+            "icici",
+            "axis",
+            "kotak"
+        ]
     }
 ]

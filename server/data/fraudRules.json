@@ -210,6 +210,20 @@
         }
     },
     {
+        "id": "PREDATORY_INTERNSHIP_PLATFORM",
+        "riskLevel": "high",
+        "category": "jobScam",
+        "reason": "Known Predatory Platform: This entity is documented for charging students for fake internships or certificates.",
+        "impliedRisk": 95,
+        "logic": {
+            "and": [
+                {
+                    "hasSignal": "knownScamSource"
+                }
+            ]
+        }
+    },
+    {
         "id": "SUSPICIOUS_LINKS",
         "riskLevel": "high",
         "category": "links",

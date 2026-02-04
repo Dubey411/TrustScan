@@ -61,15 +61,26 @@ export async function processDocument(fileBuffer, mimeType, originalName = "", d
         externalSignals.softwareMetadata = 1; // Map to rules engine category
     }
 
+    // --- Fast Path Verdict Mapping ---
+    if (pipelineResult.signals.visual_anomalies.includes('KNOWN_SCAM_DATABASE_HIT')) {
+        externalSignals.contextMismatch = 1; // Trigger jobScam rules
+    }
+    if (pipelineResult.signals.visual_anomalies.includes('GREYLIST_ENTITY_DETECTED')) {
+        externalSignals.urgency = 1; // Trigger verification rules
+    }
+
     // 3. Verdict Logic
     let verdictLabel = "Document Analysis Complete";
     let isUnreadable = false;
-    const minTextLength = 20; // Lowered threshold 
-
+    const minTextLength = 20;
     const looksUnreadable = !text || text.trim().length < minTextLength || text.includes("[Document Analysis Failed]");
     const isLowConfidence = pipelineResult.confidence < 30;
 
-    if (looksUnreadable && isLowConfidence) {
+    if (pipelineResult.signals.visual_anomalies.includes('KNOWN_SCAM_DATABASE_HIT')) {
+        verdictLabel = "⚠️ VERIFIED FRAUD SOURCE";
+    } else if (pipelineResult.signals.visual_anomalies.includes('GREYLIST_ENTITY_DETECTED')) {
+        verdictLabel = "⚠️ EMERGING SUSPICIOUS ENTITY";
+    } else if (looksUnreadable && isLowConfidence) {
          const reason = text.includes("Failed") ? "System Error" : "Scanned / Low Quality / No Text Layer";
          if (!text || text.includes("Failed")) {
             text = `[Document Content Not Readable - ${reason}]\n\nDebug Info: Method=${pipelineResult.extractionMethod.join(', ')}`;

@@ -7,7 +7,7 @@ const __dirname = path.dirname(__filename);
 
 // Load Extended Trusted List
 const TRUSTED_DOMAINS = JSON.parse(
-  fs.readFileSync(path.join(__dirname, 'trustedDomains.json'), 'utf8')
+  fs.readFileSync(path.join(__dirname, '..', '..', 'data', 'trustedDomains.json'), 'utf8')
 );
 
 const SUSPICIOUS_TLDS = [

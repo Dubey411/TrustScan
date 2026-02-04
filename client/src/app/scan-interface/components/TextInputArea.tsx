@@ -8,9 +8,10 @@ interface TextInputAreaProps {
   onChange: (value: string) => void;
   placeholder: string;
   maxLength: number;
+  onScan?: () => void;
 }
 
-export default function TextInputArea({ value, onChange, placeholder, maxLength }: TextInputAreaProps) {
+export default function TextInputArea({ value, onChange, placeholder, maxLength, onScan }: TextInputAreaProps) {
   const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
@@ -29,6 +30,12 @@ export default function TextInputArea({ value, onChange, placeholder, maxLength 
           placeholder={placeholder}
           maxLength={maxLength}
           rows={8}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              if (onScan) onScan();
+            }
+          }}
           className="w-full px-4 py-3 border-2 border-border rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-300 resize-none font-body text-foreground placeholder:text-muted-foreground"
           aria-label="Scan input text area"
         />

@@ -2,7 +2,7 @@ import { exec } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 import cron from 'node-cron';
-import Scan from '../models/Scan.js';
+import Scan from '../../models/Scan.js';
 import { fileURLToPath } from 'url';
 import { optimizeWeightsFromFeedback } from './feedbackOptimizer.js';
 
@@ -16,7 +16,7 @@ import { optimizeWeightsFromFeedback } from './feedbackOptimizer.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const STATUS_FILE = path.join(process.cwd(), 'services', 'mlStatus.json');
+const STATUS_FILE = path.join(process.cwd(), 'data', 'mlStatus.json');
 
 /**
  * Loads the last trained stats from the local JSON file.
@@ -50,7 +50,7 @@ export async function runMLTraining(reason = "manual") {
     return new Promise((resolve, reject) => {
         console.log(`🧠 [ML Manager] Starting Background Retraining (Reason: ${reason})...`);
         
-        const scriptPath = path.join(__dirname, '..', 'scripts', 'train_layer1.py');
+        const scriptPath = path.join(__dirname, '..', '..', 'scripts', 'train_layer1.py');
         const venvPythonPath = process.platform === 'win32' ? 'python' : 'python3';
         
         // Pass reason as argument, usually enclosed in quotes to handle spaces
@@ -152,7 +152,7 @@ export async function initializeMLAutomation() {
         const prodCount = await Scan.countDocuments({ source: { $ne: 'kaggle_import' } });
         if (prodCount === 0) {
             console.log('❄️ [ML Manager] Cold Start Detected (Empty DB). Triggering Bootstrap...');
-            const scriptPath = path.join(__dirname, '..', 'scripts', 'bootstrap_ml.py');
+            const scriptPath = path.join(__dirname, '..', '..', 'scripts', 'bootstrap_ml.py');
             const pythonPath = process.platform === 'win32' ? 'python' : 'python3';
             
             exec(`"${pythonPath}" "${scriptPath}"`, (err, stdout) => {
