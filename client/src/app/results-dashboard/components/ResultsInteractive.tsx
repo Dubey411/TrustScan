@@ -105,6 +105,18 @@ interface Feature {
 
 const ResultsInteractive = ({ scanData, showFeedback = true }: ResultsInteractiveProps) => {
   const [isHydrated, setIsHydrated] = useState(false);
+  
+  // Safety check for empty or failed scan data to prevent crashes
+  if (!scanData || Object.keys(scanData).length === 0) {
+      return (
+          <div className="p-8 text-center border-2 border-dashed border-border rounded-xl">
+              <Icon name="ExclamationTriangleIcon" size={48} className="text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-bold text-foreground">No Result Data Available</h3>
+              <p className="text-muted-foreground">The scan could not be completed or returned empty results.</p>
+          </div>
+      );
+  }
+
   const [actions, setActions] = useState<Action[]>([]);
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
   const [hoverRating, setHoverRating] = useState(0);
