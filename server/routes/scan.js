@@ -146,14 +146,16 @@ router.post("/scan", upload.single('file'), async (req, res) => {
         }
     }
 
-       let content = req.body.content || "";
-    let type = req.body.type || "text";
-    const senderId = req.body.senderId || null;
-    // analysisLayer and ocrDepth are already determined above based on depth and user credits
-    // const analysisLayer = req.body.depth === 'deep' ? 2 : 1; 
-    // const ocrDepth = analysisLayer === 2 ? 'standard' : 'fast'; 
-    // externalSignals and trustSignals are already initialized above
-    let scanMeta = { verdictLabel: "Analysis Complete", producer: "TrustScan Engine" }; // Initialize with defaults
+    // Ensure fallback values if body parameters were missing initially
+    content = content || req.body.content || "";
+    type = type || req.body.type || "text";
+    
+    // Scan Meta Initialization (Must happen before file check)
+    scanMeta = { 
+        verdictLabel: "Analysis Complete", 
+        producer: "TrustScan Engine",
+        confidence: "Medium"
+    }; 
 
     // 1. Text Extraction (OCR for Files)
     if (req.file) {
