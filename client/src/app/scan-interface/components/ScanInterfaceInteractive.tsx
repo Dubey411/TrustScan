@@ -299,6 +299,9 @@ export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfa
                                value={senderId}
                                onChange={(e) => setSenderId(e.target.value)}
                                placeholder="e.g. AD-SBINB, VM-HDFCBK"
+                               onKeyDown={(e) => {
+                                 if (e.key === 'Enter') handleScan();
+                               }}
                                className="w-full md:w-64 p-3 bg-background text-foreground border border-border rounded-lg text-sm font-mono focus:ring-2 focus:ring-primary outline-none transition-all"
                             />
                          </div>

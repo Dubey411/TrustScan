@@ -146,7 +146,16 @@ router.post("/scan", upload.single('file'), async (req, res) => {
         }
     }
 
-    // 1. If a file is uploaded, run the OCR/Visual Pre-processor
+       let content = req.body.content || "";
+    let type = req.body.type || "text";
+    const senderId = req.body.senderId || null;
+    // analysisLayer and ocrDepth are already determined above based on depth and user credits
+    // const analysisLayer = req.body.depth === 'deep' ? 2 : 1; 
+    // const ocrDepth = analysisLayer === 2 ? 'standard' : 'fast'; 
+    // externalSignals and trustSignals are already initialized above
+    let scanMeta = { verdictLabel: "Analysis Complete", producer: "TrustScan Engine" }; // Initialize with defaults
+
+    // 1. Text Extraction (OCR for Files)
     if (req.file) {
       console.log(`📂 [API Scan] Document upload detected: ${req.file.originalname} (Depth: ${ocrDepth})`);
       const processed = await processDocument(req.file.buffer, req.file.mimetype, req.file.originalname, ocrDepth);
@@ -156,6 +165,7 @@ router.post("/scan", upload.single('file'), async (req, res) => {
       trustSignals = processed.trustSignals || {};
       
       scanMeta = {
+          ...scanMeta,
           ...processed.scanMeta,
           preview: processed.text?.substring(0, 300) + (processed.text?.length > 300 ? "..." : "")
       };
