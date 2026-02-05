@@ -5,6 +5,7 @@ import cron from 'node-cron';
 import Scan from '../../models/Scan.js';
 import { fileURLToPath } from 'url';
 import { optimizeWeightsFromFeedback } from './feedbackOptimizer.js';
+import { runEntityLearning } from './entityLearner.js';
 
 /**
  * =========================================================================================
@@ -176,5 +177,11 @@ export async function initializeMLAutomation() {
     cron.schedule('0 */4 * * *', async () => {
         console.log('🔄 [ML Manager] Running Self-Learning Feedback Optimizer...');
         await optimizeWeightsFromFeedback();
+    });
+
+    // 3. Auto-Discovery of New Threats (Every 12 hours)
+    cron.schedule('0 */12 * * *', async () => {
+        console.log('🕵️ [ML Manager] Running Entity Auto-Discovery...');
+        await runEntityLearning();
     });
 }

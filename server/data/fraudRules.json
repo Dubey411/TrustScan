@@ -134,30 +134,50 @@
         }
     },
     {
-        "id": "JOB_OFFER_SCAM",
-        "riskLevel": "high",
-        "category": "jobScam",
-        "reason": "Unsolicited job offer or high salary reward for minimal work",
-        "impliedRisk": 80,
+        "id": "JOB_OFFER_CONTEXT",
+        "riskLevel": "low",
+        "category": "jobContext",
+        "reason": "Document detected as a potential Job Offer or Internship",
+        "impliedRisk": 25,
         "logic": {
             "and": [
                 {
                     "hasKeywordsAny": [
                         "salary",
                         "job offer",
-                        "work from home",
-                        "income",
-                        "part time job",
-                        "earn money online",
                         "internship",
                         "offer letter",
                         "hiring drive",
                         "training program",
                         "recruitment",
-                        "batch schedule",
-                        "lms access",
+                        "joining date",
+                        "appointment letter"
+                    ]
+                }
+            ]
+        }
+    },
+    {
+        "id": "PREDATORY_JOB_OFFER",
+        "riskLevel": "high",
+        "category": "jobScam",
+        "reason": "Predatory/Scam Job Pattern: Unsolicited 'work from home' or 'easy income' scheme detected",
+        "impliedRisk": 85,
+        "logic": {
+            "and": [
+                {
+                    "hasKeywordsAny": [
+                        "work from home",
+                        "part time job",
+                        "earn money online",
+                        "daily income",
+                        "weekly payout",
+                        "minimal work",
+                        "no experience needed",
                         "whatsapp support",
-                        "offer letter"
+                        "daily withdrawal",
+                        "income: rs",
+                        "salary: 5000/day"
                     ]
                 }
             ]
@@ -204,6 +224,35 @@
                         "charge for training",
                         "cost for internship",
                         "fee for training"
+                    ]
+                }
+            ]
+        }
+    },
+    {
+        "id": "HIDDEN_RECRUITMENT_FEES",
+        "riskLevel": "critical",
+        "category": "financial",
+        "reason": "Scam Alert: Request for 'Hidden Fees' (Hosting/Server/Security Deposit) detected. Legitimate companies NEVER ask for this.",
+        "impliedRisk": 95,
+        "logic": {
+            "and": [
+                {
+                    "hasKeywordsAny": [
+                        "security deposit",
+                        "refundable amount",
+                        "hosting fee",
+                        "server maintenance fee",
+                        "server charge",
+                        "lms access fee",
+                        "portal access fee",
+                        "gate pass fee",
+                        "documentation charge",
+                        "verification fee",
+                        "id card fee",
+                        "laptop security",
+                        "stipend processing fee",
+                        "training fee"
                     ]
                 }
             ]
@@ -523,10 +572,9 @@
             "and": [
                 {
                     "hasKeywordsAny": [
-                        "ssn",
                         "social security",
-                        "tax identification",
-                        "tin"
+                        "social security number",
+                        "tax identification number"
                     ]
                 }
             ]

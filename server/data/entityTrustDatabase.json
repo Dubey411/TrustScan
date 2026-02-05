@@ -1,6 +1,84 @@
 {
     "blacklist": [
         {
+            "name": "Amdox Technologies",
+            "type": "Predatory Internship",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Labmentix",
+            "type": "Predatory Internship",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Soft NexisTechnology",
+            "type": "Predatory Internship",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Main Flow",
+            "type": "Predatory Internship",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Marquee Equity",
+            "type": "Predatory Internship",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Capital Advisors",
+            "type": "Predatory Internship",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Caprae Capital",
+            "type": "Predatory Internship",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Finnexus School",
+            "type": "Predatory Internship",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Zethetha Algorithm",
+            "type": "Predatory Internship",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Prasuta Ventures",
+            "type": "Predatory Internship",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Skillfied Mentor",
+            "type": "Predatory Internship",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Wayspire",
+            "type": "Predatory Internship",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Metvy",
+            "type": "Predatory Internship",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
             "name": "Encryptix",
             "type": "Predatory Internship",
             "addedAt": "2024-05-28",
@@ -67,7 +145,7 @@
             "category": "red_flag"
         },
         {
-            "name": "Younity.in",
+            "name": "Younity",
             "type": "Predatory Internship",
             "addedAt": "2024-05-28",
             "category": "red_flag"
@@ -130,6 +208,1362 @@
             "name": "Winning Edge Software Solutions",
             "type": "Documented Scam",
             "addedAt": "2024-05-28",
+            "category": "red_flag"
+        },
+        {
+            "name": "JUNE FAKE COMPANIES LIST",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "outset Technologies",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Access Software Solutions Pvt Ltd",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Adira Technologies",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Adroit Claretdene Infotech",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "ADVENT GLOBAL SOLUTIONS",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Allsoft Corporation Limited",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Anthesis Technologies Pvt Ltd",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Aptra Infotech",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Aventies IT Solutions",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Beacon Software Solutions",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Bizicon Infotech Pvt Ltd,",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Bonafied Digital Services",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Brainware Technologies",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "C Wave Technologies",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "CBK Infotech",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Cecil/Cicil",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Cegon Info Solutions",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Cogent Technologies",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "COVA INFOTECH",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Cusat Systems",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Datavision",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Dextrous Innovators",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Dice Technologies",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Digital Orb Technologies",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "e Matrix Enterprise Solutions",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "e Matrix Software Solutions",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Earthware Technologies",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "elbrus Global",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "elixire software solutions",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "EmpowerMinds",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Flash Infotech",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Focus Associates",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Futuretech Consultancy Services",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Genex",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Globals Infotech",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Icamberwell",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "IGI",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "IMAX Technologies",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Impact Technologies",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Infinity solutions",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Iris Consulting",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "itech Software solutions",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Juniper Solutions",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "JVS Consultants/JVS Info Systems",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Keyoon Solutions",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Lavanya Technologies",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Leciel Technologies",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Lecil",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Lemuria Technologies",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Ehastha Global Services",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Bharathi Business Solutions",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Info Links Technologies Ltd",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Magnus Infotech",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Marc4 Technologies",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Marques Consulting",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Mindrome Technologies Private Limited",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Miracle Software Systems",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "MSD Technologies",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "MYM Technologies Limited",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "NAAT consulting",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Nex- G Exuberant Solutions Pvt. Ltd.",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Nivetho",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Power Views Technologies",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Propus Infotech/Propus Software Solutions Chennai",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Proximo Consultancy",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Sanders Tech",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Seninsis tech",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Sigma Soft",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Silpa Informatics",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Smirk Technologies",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Softage technologies",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Softlink Solutions",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Sorix Solutions Pvt. Ltd.",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Source Horizon",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Sphinx Networks",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "SR Soft Sol",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Starex",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Step Online Pvt Ltd.",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Sunsilica",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Surya Software Solutions",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Suyoga Technologies",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "System Domain",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Team infosol",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Time Technologies.Net Pvt Ltd.",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Triton IT services",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Unit Force Technologies",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Version Technologies",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Vidhata Infotech",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Vimukti Tech(under verification)",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Zombie Software Solutions",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "e-Fort",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Integer Software",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Realsoft Technologies",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Softedge Technologies",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "softpro",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Unique Consultancy Services",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "UTL",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Vedic Info Tech",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Raython Technologies",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Aquity Design",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Ablaze Info Tech",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "eSmart Web Solutions",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "ICS Solution Info Tech",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Millennium Software Solution",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Prophecy Tech India",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Broin Tech IT",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Enigma Software Solution",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Business Info System",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Famous Personality",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Soft Cell System",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "VRI Solution",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "R.M. Infotech",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Hash Infosys",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Gnix Info",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Jiyoun Systems",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Sanmati Solution",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "E-ware Technology",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "IT Brain Shapers",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "The Metricsoft",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "ERP Solutions Asia",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Mosaic Technology",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Valid Page",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Hope for All info",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Soft Tech World",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Radix Info Solution",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "TT Tech",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Alien SoftNet",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Meera / SR Infotech",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "ATS Infotech",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Broadline Computer Systems",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "KALS Information Systems Ltd",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "3W Zone (Software) Private Limited",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "AAI India Pvt. Ltd.",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Aalayance Ecom Services Pvt. Ltd.",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Aashritha InfoSolutions",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Absolute Infotech Private Ltd.",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Accent Technologies",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Access Automation Pvt. Ltd.",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "ACCPAC India Pvt. Ltd.",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Acionyx Technologies Pvt. Ltd.",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Ad Astrum Technologies Pvt. Ltd.",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Adamya Technologies Pvt. Ltd.",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "ADG Technologies (India) Pvt. Ltd.",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Adit Microsys Pvt. Ltd.",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "ADS Solutions Pvt. Ltd.",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "AdSOFT Solutions Pvt. Ltd.",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Adstock Business Networks INt. Pvt. Ltd",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Advanced QSoft",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Affinity Software Ltd.",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Afrocom Technologies Pvt. Ltd.",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Ajaxdotcom Private Limited",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Ajilon",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Akash Software Pvt. Ltd.",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Aliment Software Technologies Pvt. Ltd.",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Allied Media Solutions",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Allied Technological Laboratories Pvt. Ltd.",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Alps Infosys Limited",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Alysis Solutions Pvt. Ltd.",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Ampersand Software Applications Limited",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "AmSoft Information Services (India) Private Limite",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Ansata Computer Systems Pvt. Ltd.",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "AnswerPal Pvt. Ltd.",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Antares Systems Pvt. Ltd.",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Anuroopi Technologies Pvt. Ltd.",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Apar Infotech Ltd.",
+            "type": "Reported Consultancy Scam",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Pune Fraud company List",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "SYGNIUS VENTURES PVT LTD",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "UNIQUE TECHNOMECH PVT LTD",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "WINGFIRES TECHNOLOGIES PVT LTD",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "USABLE BYTES PRIVATE LIMITED",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "OCTRANS TECHNOLOGIES PRIVATE LIMITED",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "INFIRIDE TECHNOLOGIES PRIVATE LIMITED",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Fuhrung Technologies Private Limited",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "LYCEUM GURUKUL PVT LTD",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "LIFE CIRCLES INFOMEDIA PVT. LTD.",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "RIGVEE TECHNOLOGIES PVT LTD",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "TAOM SOLUTIONS PVT LTD",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "VOXWILL TECHNOLOGIES PVT LTD",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "DUAL GLOBE SOLUTIONS PVT LTD",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "ULTIMATE INFOVISION PVT LTD",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "COMPACT INDIA PVT LTD",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "NEUBOTIC  Software",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "MYVA TECHNOLOGIES PVT LTD",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "RELICO VENTURES LLP",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "TECH AURA PVT LTD",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "GRAVITY AUTOMATION PVT LTD",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "INNOVATIVE BUSINESS SOLUTIONS",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "ENIXO CORPORATE SOLUTIONS PRIVATE LIMITED",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "E-MECH SOLUTIONS PVT LTD",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "MICRO TECHNOID PVT LTD",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "FUSION TECHNOSOFT PVT LTD",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "SPACE AGE INFOTECH PVT LTD",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "CREADOR SOLUTIONS PVT LTD",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "RENO PLAS PVT LTD",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "FRONESIS SOLUTIONS PRIVATE LIMITED",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "CROGIES GLOBAL PRIVATE LIMITED",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "RILogix Technologies India pvt ltd",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "AVPB DATA Matics pvt ltd  Mumbai..",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Neptune information solutions limited",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Greenices technology solutions pvt ltd",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "IT Intellect Micro Solutions pvt ltd",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "GSS INFORMATICS PRIVATE LIMITED",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "KALVIN TECHSOL PRIVATE LIMITED",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "ADIQUITY TECHNOLOGIES PRIVATE LIMITED",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "SSGR TECHNOLOGIES PRIVATE LIMITED",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "SIMANDHAR TECHNOLOGIES PRIVATE LIMITED",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "POWERSOFT GLOBAL SOLUTIONS LIMITED",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "APSLOG TECH PRIVATE LIMITED",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "KRANION TECHNOLOGIES PRIVATE  LIMITED",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "VSIGMAA SOFTECH SOLUTIONS PRIVATE LIMITED",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "SARAG SYSTEMS PRIVATE LIMITED",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "MATRIX ASCENTECH PRIVATE LIMITED",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "ADIEL TECHNOLOGIES PRIVATE LIMITED",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "WEBAFFINITY TECHNOLOGIES PRIVATE LIMITED",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "TENJIN TECHNOLOGIES PRIVATE LIMITED",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "ASCEND AVENUE SOLUTIONS PRIVATE LIMITED",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Amulya IT Solutions Private Limited",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "Appstix Technologies Private Limited",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "FIDEL TECHNOLOGY SOLUTIONS PRIVATE LIMITED",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "TECHOLOGIA SOLUTIONS PRIVATE LIMITED",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "XACTO SERVICES PRIVATE LIMITED",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "REALKEY SOFTWARE SOLUTIONS (Bengaluru)",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "COVENANT IT SOLUTIONS PRIVATE LIMITED in",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "XCODE SOFTS PRIVATE LIMITED",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
+            "category": "red_flag"
+        },
+        {
+            "name": "INFOVILLE SOLUTIONS INDIA PRIVATE LIMITED",
+            "type": "NASSCOM Blacklisted / Fake Entity",
+            "addedAt": "2026-02-05",
             "category": "red_flag"
         }
     ],

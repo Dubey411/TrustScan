@@ -123,28 +123,32 @@ export function getRecommendedActions(signals, status) {
     }
 
     // --- 3. Job / Recruitment Scams ---
-    if (signals.jobScam || signals.registrationFee) {
+    if (signals.jobScam || signals.registrationFee || signals.jobContext) {
+        // PREVENTATIVE WARNING (User Report: "They ask for money later during orientation")
         actions.push({
             id: idCounter++,
-            title: 'Verify company on MCA Portal',
-            description: 'Check if the company is legally registered on the Ministry of Corporate Affairs (MCA) website.',
-            priority: 'important',
+            title: '⚠️ Watch for Hidden Fees',
+            description: 'Even if this letter is free, scam companies often ask for "Server/Hosting Fees" or "Security Deposits" during orientation. Never pay to work.',
+            priority: 'critical', // Always critical for students
             completed: false
         });
-        actions.push({
-            id: idCounter++,
-            title: 'Research reviews on Glassdoor',
-            description: 'Check platforms like Glassdoor or AmbitionBox for reviews from other candidates or employees.',
-            priority: 'important',
-            completed: false
-        });
-        actions.push({
-            id: idCounter++,
-            title: 'Never pay for job offers',
-            description: 'Legitimate companies never ask for "security deposits", "laptop fees", or "registration charges".',
-            priority: 'critical',
-            completed: false
-        });
+
+        if (signals.jobScam || signals.registrationFee) {
+            actions.push({
+                id: idCounter++,
+                title: 'Verify company on MCA Portal',
+                description: 'Check if the company is legally registered on the Ministry of Corporate Affairs (MCA) website.',
+                priority: 'important',
+                completed: false
+            });
+            actions.push({
+                id: idCounter++,
+                title: 'Research reviews on Glassdoor',
+                description: 'Check platforms like Glassdoor or AmbitionBox for reviews from other candidates or employees.',
+                priority: 'important',
+                completed: false
+            });
+        }
     }
 
     // --- 4. Identity / Personal Data Risks ---

@@ -70,21 +70,57 @@ export async function optimizeWeightsFromFeedback() {
         }
 
         // --- PART B: WEIGHT ADJUSTMENT LOGIC ---
+        // --- PART B: WEIGHT ADJUSTMENT LOGIC (With Conflict Resolution) ---
         const weights = JSON.parse(fs.readFileSync(WEIGHTS_FILE, 'utf8'));
         const learningRate = 0.05;
+        
+        // 1. Group Feedback to Resolve Conflicts
+        const signalVotes = {}; // { signalName: { up: 0, down: 0 } }
 
         recentFeedback.forEach(scan => {
             const isMissedFraud = scan.userFeedback === 'incorrect_fraud'; 
             const isFalseAlarm = scan.userFeedback === 'incorrect_safe';  
+            
+            // Weighting: We trust 'Missed Fraud' reports slightly more (Safety Bias) to stay conservative
+            // Future Info: Ideally use User Trust Score here (e.g. scan.userTrustScore)
+            const voteWeight = 1.0; 
 
             for (const [signal, value] of Object.entries(scan.signals || {})) {
                 if (value > 0 && weights.signals[signal] !== undefined) {
-                    if (isMissedFraud) weights.signals[signal] += learningRate;
-                    else if (isFalseAlarm) weights.signals[signal] -= learningRate;
+                    if (!signalVotes[signal]) signalVotes[signal] = { increaseRisk: 0, decreaseRisk: 0 };
+                    
+                    if (isMissedFraud) {
+                        signalVotes[signal].increaseRisk += (voteWeight * 1.25); // 25% Bias for Safety
+                    } else if (isFalseAlarm) {
+                        signalVotes[signal].decreaseRisk += voteWeight;
+                    }
                 }
             }
         });
 
+        // 2. Apply "The Winner Takes It All" Logic
+        for (const [signal, votes] of Object.entries(signalVotes)) {
+            const netScore = votes.increaseRisk - votes.decreaseRisk;
+            
+            // CONFLICT RESOLUTION THRESHOLD
+            // If the difference is small (< 1.0), it's a draw. Do nothing (Stability Preserved).
+            if (Math.abs(netScore) < 1.0) {
+                console.log(`⚖️ [Conflict] Signal '${signal}' is disputed (Fraud: ${votes.increaseRisk.toFixed(1)} vs Safe: ${votes.decreaseRisk.toFixed(1)}). Action: NO CHANGE.`);
+                continue;
+            }
+
+            if (netScore > 0) {
+                // Fraud Voters Won
+                weights.signals[signal] += learningRate;
+                console.log(`📈 [Learning] Signal '${signal}' risk INCREASED (Winner: Fraud Voters).`);
+            } else {
+                // Safe Voters Won
+                weights.signals[signal] -= learningRate;
+                console.log(`📉 [Learning] Signal '${signal}' risk DECREASED (Winner: Safe Voters).`);
+            }
+        }
+
+        // 3. Clamp Weights
         for (const [signal, value] of Object.entries(weights.signals)) {
             weights.signals[signal] = Math.max(-3, Math.min(3, value));
         }

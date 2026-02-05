@@ -18,7 +18,7 @@ const VerdictBadge = ({ verdict, score, type, customLabel }: VerdictBadgeProps) 
       borderColor: 'border-success-green',
       icon: 'CheckCircleIcon',
       label: isDocument ? 'Legitimate Document' : 'Safe',
-      description: isDocument ? 'Metadata and content appear authentic' : 'This opportunity appears legitimate',
+      description: isDocument ? 'Verified against databases, content structure, and metadata standards.' : 'This opportunity appears legitimate',
     },
     risky: {
       bgColor: 'bg-warning',

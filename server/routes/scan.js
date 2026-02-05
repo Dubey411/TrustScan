@@ -257,6 +257,32 @@ router.post("/scan", upload.single('file'), async (req, res) => {
         finalRisk = Math.max(finalRisk, 40);
     }
 
+    // 5. Calculate Verdict Actions
+    const actions = getRecommendedActions(result.signals, status);
+
+    // --- VERDICT LABEL OVERRIDE (Fix: "High Quality" vs "High Risk" mismatch) ---
+    // The initial label from OCR only indicates readability. We must update it with the Intelligence Verdict.
+    
+    // Check if Defense Won (White-Box Verification)
+    const defenseWon = result.flags?.debate && 
+                       (result.flags.debate.defensePoints > result.flags.debate.prosecutionPoints);
+
+    if (status === 'fraud' || status === 'scam') {
+        scanMeta.verdictLabel = "🚫 Critical Fraud Risk";
+    } else if (defenseWon && finalRisk < 40) {
+        scanMeta.verdictLabel = "✅ Verified Authentic";
+    } else if (status === 'suspicious' || status === 'action_required') {
+        scanMeta.verdictLabel = "⚠️ Suspicious Content";
+    } else if (status === 'risky') {
+        scanMeta.verdictLabel = "⚠️ Potential Risk Detected";
+    } else if (status === 'safe') {
+        scanMeta.verdictLabel = "✅ Legitimate Document";
+    }
+    // If none of these, keep the OCR label (e.g. Unreadable) only if Risk is low
+    if (finalRisk > 50 && scanMeta.verdictLabel.includes("High Quality")) {
+        scanMeta.verdictLabel = "⚠️ Suspicious Content";
+    }
+
     const confidence =
       finalRisk >= 85
         ? "Very High"

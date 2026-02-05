@@ -74,13 +74,18 @@ export async function processDocument(fileBuffer, mimeType, originalName = "", d
     let isUnreadable = false;
     const minTextLength = 20;
     const looksUnreadable = !text || text.trim().length < minTextLength || text.includes("[Document Analysis Failed]");
-    const isLowConfidence = pipelineResult.confidence < 30;
+    
+    // Check for Adversarial Outcome (Did Defense Win?)
+    const defenseWon = pipelineResult.flags?.debate && 
+                       (pipelineResult.flags.debate.defensePoints > pipelineResult.flags.debate.prosecutionPoints);
 
     if (pipelineResult.signals.visual_anomalies.includes('KNOWN_SCAM_DATABASE_HIT')) {
         verdictLabel = "⚠️ VERIFIED FRAUD SOURCE";
+    } else if (defenseWon && pipelineResult.confidence > 50) {
+        verdictLabel = "✅ Verified Authentic";
     } else if (pipelineResult.signals.visual_anomalies.includes('GREYLIST_ENTITY_DETECTED')) {
         verdictLabel = "⚠️ EMERGING SUSPICIOUS ENTITY";
-    } else if (looksUnreadable && isLowConfidence) {
+    } else if (looksUnreadable && pipelineResult.confidence < 30) {
          const reason = text.includes("Failed") ? "System Error" : "Scanned / Low Quality / No Text Layer";
          if (!text || text.includes("Failed")) {
             text = `[Document Content Not Readable - ${reason}]\n\nDebug Info: Method=${pipelineResult.extractionMethod.join(', ')}`;

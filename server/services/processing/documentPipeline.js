@@ -157,17 +157,30 @@ try {
 
 /**
  * Checks if text contains any items from the Red or Grey list
+ * Updated with stricter matching to avoid False Positives on common words.
  */
 function checkForFastPathFraud(text) {
     if (!text) return null;
     const lowerText = text.toLowerCase();
     
+    // Helper for safe matching
+    const isMatch = (entityName) => {
+        const name = entityName.toLowerCase();
+        if (name.length < 5) {
+            // Strict Word Boundary for short names/acronyms (e.g. "UTL", "IGI", "GSS")
+            // Escape special regex chars just in case
+            const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            return new RegExp(`\\b${escaped}\\b`, 'i').test(lowerText);
+        }
+        return lowerText.includes(name);
+    };
+
     // 1. Check Blacklist (Red Flag)
-    const blacklistedMatch = TRUST_DB.blacklist.find(b => lowerText.includes(b.name.toLowerCase()));
+    const blacklistedMatch = TRUST_DB.blacklist.find(b => isMatch(b.name));
     if (blacklistedMatch) return { type: 'RED', name: blacklistedMatch.name, reason: blacklistedMatch.type };
     
     // 2. Check Greylist (Suspicious)
-    const greylistMatch = TRUST_DB.greylist.find(g => lowerText.includes(g.name.toLowerCase()));
+    const greylistMatch = TRUST_DB.greylist.find(g => isMatch(g.name));
     if (greylistMatch) return { type: 'GREY', name: greylistMatch.name, reason: greylistMatch.type };
     
     return null;
