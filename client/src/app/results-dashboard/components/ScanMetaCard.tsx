@@ -51,7 +51,7 @@ const ScanMetaCard = ({ meta }: ScanMetaProps) => {
         </div>
         <div className="w-full sm:w-auto text-left sm:text-right border-t sm:border-t-0 border-border pt-4 sm:pt-0">
             <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1">Content Processed</p>
-            <p className="font-mono text-foreground font-bold">{meta.textLength.toLocaleString()} chars</p>
+            <p className="font-mono text-foreground font-bold">{(meta.textLength || 0).toLocaleString()} chars</p>
         </div>
       </div>
       

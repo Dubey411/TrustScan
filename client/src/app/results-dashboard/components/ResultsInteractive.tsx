@@ -105,18 +105,6 @@ interface Feature {
 
 const ResultsInteractive = ({ scanData, showFeedback = true }: ResultsInteractiveProps) => {
   const [isHydrated, setIsHydrated] = useState(false);
-  
-  // Safety check for empty or failed scan data to prevent crashes
-  if (!scanData || Object.keys(scanData).length === 0) {
-      return (
-          <div className="p-8 text-center border-2 border-dashed border-border rounded-xl">
-              <Icon name="ExclamationTriangleIcon" size={48} className="text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-bold text-foreground">No Result Data Available</h3>
-              <p className="text-muted-foreground">The scan could not be completed or returned empty results.</p>
-          </div>
-      );
-  }
-
   const [actions, setActions] = useState<Action[]>([]);
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
   const [hoverRating, setHoverRating] = useState(0);
@@ -134,10 +122,8 @@ const ResultsInteractive = ({ scanData, showFeedback = true }: ResultsInteractiv
     }
 
     if (scanData?.recommendation && scanData.recommendation.length > 0) {
-
       setActions(scanData.recommendation);
     } else if (scanData?.reasons && scanData.reasons.length > 0) {
-      // Generate actionable advice based on red flags if no backend recommendations exist
       setActions(generateFallbackActions(scanData.reasons));
     } else {
       setActions([]);
@@ -151,9 +137,7 @@ const ResultsInteractive = ({ scanData, showFeedback = true }: ResultsInteractiv
     ));
   };
 
-
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
-
 
   const submitFeedback = async (rating: number) => {
     console.log('🚀 submitFeedback called with rating:', { scanId: scanData?.id, rating });
@@ -246,7 +230,7 @@ const ResultsInteractive = ({ scanData, showFeedback = true }: ResultsInteractiv
   { name: 'Advanced Analytics', icon: 'ChartBarSquareIcon' },
   { name: 'Real-time Alerts', icon: 'BellAlertIcon' },
   { name: 'Company Verification', icon: 'BuildingOfficeIcon' }];
-
+  
   if (!isHydrated) {
     return (
       <div className="min-h-screen bg-background pt-24 pb-16">
@@ -260,7 +244,17 @@ const ResultsInteractive = ({ scanData, showFeedback = true }: ResultsInteractiv
           </div>
         </div>
       </div>);
+  }
 
+  // Safety check for empty or failed scan data (Moved here to avoid Hook Violation)
+  if (!scanData || Object.keys(scanData).length === 0) {
+      return (
+          <div className="p-8 text-center border-2 border-dashed border-border rounded-xl">
+              <Icon name="ExclamationTriangleIcon" size={48} className="text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-bold text-foreground">No Result Data Available</h3>
+              <p className="text-muted-foreground">The scan could not be completed or returned empty results.</p>
+          </div>
+      );
   }
 
   return (
@@ -378,7 +372,7 @@ const ResultsInteractive = ({ scanData, showFeedback = true }: ResultsInteractiv
                 <ThreatAnalysis categories={mockThreatCategories} />
             </>
           )}
-          {actions.length > 0 && (
+          {!isCompany && actions.length > 0 && (
              <div id="recommended-actions" className="scroll-mt-24">
                 <RecommendedActions actions={actions} onToggleAction={handleToggleAction} />
              </div>

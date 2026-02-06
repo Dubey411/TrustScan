@@ -141,7 +141,7 @@ export async function runRules(content, externalSignals = {}, trustSignals = {},
   const activityAnalysis = await analyzeLinks(content);
   
   // --- MISSION: HARD IDENTIFICATION (CIN, Aadhaar, PAN, GST) ---
-  const entityAnalysis = analyzeEntities(content);
+  const entityAnalysis = await analyzeEntities(content);
   const smsAnalysis = senderId ? analyzeSmsHeader(senderId, content) : null;
   const hasStructuralAnomaly = detectStructuralAnomalies(content);
 

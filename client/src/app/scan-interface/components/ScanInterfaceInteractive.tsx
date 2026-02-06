@@ -187,18 +187,39 @@ export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfa
 
         
         // Pass result to parent
-        if (onScanComplete) {
-            onScanComplete({
-                id: (result as any).id || (result as any)._id,
-                type: selectedScanType,
-                target: targetContent.slice(0, 50) + (targetContent.length > 50 ? '...' : ''),
-                apiResult: result // Pass the full API result
-            });
-        }
+      if (selectedScanType === 'company') {
+         const entity = (result as any).signals?.detectedEntities?.[0] || (result as any).metadata?.detectedEntities?.[0];
+         const enrichment = entity?.enrichment;
+         
+         if (enrichment) {
+            const query = new URLSearchParams({
+              name: enrichment.name,
+              cin: entity.value,
+              address: enrichment.address,
+              status: enrichment.status,
+              type: enrichment.class,
+              valid: String(entity.isValid),
+              regDate: enrichment.incDate || entity.parsed?.year || 'N/A',
+              scanId: (result as any).id || (result as any)._id || ''
+            }).toString();
+            
+            router.push(`/company-report?${query}`);
+            return; 
+         }
+      }
+
+      if (onScanComplete) {
+          onScanComplete({
+              id: (result as any).id || (result as any)._id,
+              type: selectedScanType,
+              target: targetContent.slice(0, 50) + (targetContent.length > 50 ? '...' : ''),
+              apiResult: result // Pass the full API result
+          });
+      }
+      setIsScanning(false);
     } catch (err) {
         console.error("Scan failed", err);
         setError("Scan failed. Please check your connection and try again.");
-    } finally {
         setIsScanning(false);
     }
   };

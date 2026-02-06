@@ -172,6 +172,11 @@ router.post("/scan", upload.single('file'), async (req, res) => {
           preview: processed.text?.substring(0, 300) + (processed.text?.length > 300 ? "..." : "")
       };
       type = "document";
+    } else {
+       // 1b. Meta for Direct Text/Link Scans
+       scanMeta.textLength = content.length;
+       scanMeta.source = "TEXT_INPUT";
+       scanMeta.preview = content.substring(0, 300) + (content.length > 300 ? "..." : "");
     }
 
 

@@ -77,35 +77,80 @@ export const BusinessVerificationCard: React.FC<BusinessVerificationCardProps> =
             entities.map((entity, index) => (
             <div 
                 key={index}
-                className="group flex flex-col sm:flex-row sm:items-center justify-between p-5 bg-slate-900/80 border border-slate-700/50 rounded-2xl hover:border-blue-500/50 transition-all duration-300 gap-6"
+                className="group flex flex-col p-5 bg-slate-900/80 border border-slate-700/50 rounded-2xl hover:border-blue-500/50 transition-all duration-300 gap-6"
             >
-                <div className="flex items-start sm:items-center gap-4">
-                    <div className={`p-3 rounded-xl flex-shrink-0 ${entity.isValid ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
-                        <Icon name={entity.isValid ? 'ShieldCheckIcon' : 'ExclamationTriangleIcon'} size={24} variant="solid" />
-                    </div>
-                    <div className="min-w-0">
-                        <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">{entity.label}</div>
-                        <div className="text-xl font-mono font-bold text-white tracking-wider truncate mb-2">{entity.value}</div>
-                        <div className="flex flex-wrap items-center gap-2">
-                            <span className={`text-[10px] px-2.5 py-1 rounded-lg font-bold uppercase tracking-wider ${
-                                entity.isValid ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
-                            }`}>
-                                {entity.isValid ? 'Valid ID' : 'Corrupted / Fake ID'}
-                            </span>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+                    <div className="flex items-start sm:items-center gap-4">
+                        <div className={`p-3 rounded-xl flex-shrink-0 ${entity.isValid ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
+                            <Icon name={entity.isValid ? 'ShieldCheckIcon' : 'ExclamationTriangleIcon'} size={24} variant="solid" />
+                        </div>
+                        <div className="min-w-0">
+                            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">{entity.label}</div>
+                            <div className="text-xl font-mono font-bold text-white tracking-wider truncate mb-2">{entity.value}</div>
+                            <div className="flex flex-wrap items-center gap-2">
+                                <span className={`text-[10px] px-2.5 py-1 rounded-lg font-bold uppercase tracking-wider ${
+                                    entity.isValid ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                                }`}>
+                                    {entity.isValid ? 'Valid ID' : 'Corrupted / Fake ID'}
+                                </span>
+                            </div>
                         </div>
                     </div>
+
+                    {entity.isValid && (
+                        <a 
+                            href={entity.portalUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-blue-500/20 active:scale-95"
+                        >
+                            <Icon name="ArrowTopRightOnSquareIcon" size={18} />
+                            <span>Open Govt. Portal</span>
+                        </a>
+                    )}
                 </div>
 
-                {entity.isValid && (
-                    <a 
-                        href={entity.portalUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-blue-500/20 active:scale-95"
-                    >
-                        <Icon name="ArrowTopRightOnSquareIcon" size={18} />
-                        <span>Open Govt. Portal</span>
-                    </a>
+                {/* ENRICHED MCA DATA DISPLAY */}
+                {(entity as any).enrichment && (
+                    <div className="w-full mt-2 p-4 bg-gradient-to-r from-slate-800/80 to-slate-900/50 rounded-xl border border-slate-700/50">
+                        <div className="flex items-center gap-2 mb-4 border-b border-slate-700/50 pb-2">
+                             <Icon name="BuildingOfficeIcon" size={16} className="text-emerald-400" />
+                             <h5 className="text-xs font-bold text-slate-300 uppercase tracking-widest">Official MCA Record Found</h5>
+                             <span className="text-[9px] bg-slate-800 text-slate-500 px-1.5 py-0.5 rounded border border-slate-700 ml-auto">Simulated Fetch</span>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8">
+                             <div>
+                                 <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Company Name</p>
+                                 <p className="text-sm font-bold text-white leading-tight">{(entity as any).enrichment.name}</p>
+                             </div>
+                             <div>
+                                 <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Registration Status</p>
+                                 <div className="flex items-center gap-2">
+                                    <span className={`w-2 h-2 rounded-full ${(entity as any).enrichment.status === 'Active' ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`}></span>
+                                    <p className="text-sm font-medium text-slate-300">{(entity as any).enrichment.status}</p>
+                                 </div>
+                             </div>
+                             <div>
+                                 <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Class / Category</p>
+                                 <p className="text-sm font-medium text-slate-300">{(entity as any).enrichment.class || 'N/A'}</p>
+                             </div>
+                             <div>
+                                 <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Registered Address</p>
+                                 <p className="text-xs font-medium text-slate-400 leading-relaxed">{(entity as any).enrichment.address}</p>
+                             </div>
+                        </div>
+
+                        <div className="mt-5 pt-4 border-t border-slate-700/50 flex justify-end">
+                            <a 
+                                href={`/company-report?name=${encodeURIComponent((entity as any).enrichment.name)}&cin=${entity.value}&address=${encodeURIComponent((entity as any).enrichment.address)}&status=${(entity as any).enrichment.status}&type=${(entity as any).enrichment.class}&valid=${entity.isValid}&regDate=${(entity as any).enrichment.incDate || (entity as any).parsed?.year || 'N/A'}`}
+                                className="flex items-center gap-2 text-xs font-bold text-blue-400 hover:text-blue-300 transition-colors"
+                            >
+                                <span>View Full Verification Report</span>
+                                <Icon name="ArrowRightIcon" size={14} />
+                            </a>
+                        </div>
+                    </div>
                 )}
             </div>
             ))

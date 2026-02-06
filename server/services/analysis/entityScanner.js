@@ -22,6 +22,139 @@ const INDUSTRY_GROUPS = {
     "85": "Health/Social Work"
 };
 
+// Helper for robust API calls
+async function fetchWithRetry(url, options, retries = 1) {
+    try {
+        return await fetch(url, options);
+    } catch (err) {
+        const isNetworkError = err.cause?.code === 'ECONNRESET' || err.message.includes('fetch failed');
+        if (retries > 0 && isNetworkError) {
+             console.log("⚠️ [MCA API] Connection instability detected, retrying request...");
+             await new Promise(r => setTimeout(r, 800)); // Short backoff
+             return fetchWithRetry(url, options, retries - 1);
+        }
+        throw err;
+    }
+}
+
+// --- Mock MCA Database (For Demo/Simulation) ---
+const MOCK_COMPANY_DB = {
+    "L28920MH1945PLC004520": { name: "TATA MOTORS LIMITED", status: "Active", address: "Bombay House, 24 Homi Mody Street, Mumbai, MH", class: "Public", incDate: "01 Sep 1945" },
+    "L17110MH1973PLC019786": { name: "RELIANCE INDUSTRIES LIMITED", status: "Active", address: "Maker Chambers IV, 3rd Floor, 222 Nariman Point, Mumbai, MH", class: "Public", incDate: "08 May 1973" },
+    "L85110KA1981PLC013115": { name: "INFOSYS LIMITED", status: "Active", address: "Electronics City, Hosur Road, Bangalore, KA", class: "Public", incDate: "02 Jul 1981" },
+    "U72200MH2024PTC123456": { name: "TRUSTSCAN TECHNOLOGIES PRIVATE LIMITED", status: "Active", address: "Tech Park, Andheri East, Mumbai, MH", class: "Private", incDate: "15 Jan 2024" }
+};
+
+/**
+ * Search Company by Name (Exact or Partial) via MCA API
+ */
+async function searchCompanyByName(name) {
+    const apiKey = process.env.MCA_API_KEY;
+    if (!apiKey || apiKey === 'YOUR_KEY_HERE') return null;
+
+    // MCA Database stores names in UPPERCASE (e.g. "RELIANCE INDUSTRIES LIMITED")
+    const searchTerm = name.trim().toUpperCase();
+
+    try {
+        console.log(`🌐 [MCA API] Searching for Company Name: ${searchTerm}...`);
+        
+        // 1. Try Company Master Data
+        const apiUrl = `https://api.data.gov.in/resource/4dbe5667-7b6b-41d7-82af-211562424d9a?api-key=${apiKey}&format=json&filters[CompanyName]=${encodeURIComponent(searchTerm)}`;
+        
+        const response = await fetchWithRetry(apiUrl, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'application/json',
+                'Connection': 'close'
+            }
+        });
+
+        const data = await response.json();
+        if (data.records && data.records.length > 0) {
+            const record = data.records[0];
+            return {
+                name: record.CompanyName,
+                cin: record.CIN, 
+                status: record.CompanyStatus,
+                address: record.Registered_Office_Address,
+                class: record.CompanyClass,
+                incDate: record.CompanyRegistrationdate_date,
+                source: "GOVT_API_NAME_SEARCH"
+            };
+        }
+    } catch (error) {
+        console.error("⚠️ [MCA API] Name Search failed:", error.code || error.message);
+    }
+    return null;
+}
+
+/**
+ * Fetches Real Company Data from MCA via Data.gov.in API
+ * Falls back to Mock DB or Simulation if API fails.
+ */
+async function enrichCompanyData(cin, parsedCin) {
+    if (!parsedCin) return null;
+    
+    // 1. Try Real Government API (If Key Exists)
+    const apiKey = process.env.MCA_API_KEY;
+    if (apiKey && apiKey !== 'YOUR_KEY_HERE') {
+        try {
+            console.log(`🌐 [MCA API] Fetching data for CIN: ${cin}...`);
+            const apiUrl = `https://api.data.gov.in/resource/4dbe5667-7b6b-41d7-82af-211562424d9a?api-key=${apiKey}&format=json&filters[CIN]=${cin}`;
+            const response = await fetchWithRetry(apiUrl, {
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Accept': 'application/json',
+                    'Connection': 'close'
+                }
+            });
+            
+            console.log(`🔹 [MCA API] Status: ${response.status} ${response.statusText}`);
+            
+            const data = await response.json();
+            
+            if (data.records && data.records.length > 0) {
+                const record = data.records[0];
+                console.log(`✅ [MCA API] Found record: ${record.CompanyName}`);
+                
+                return {
+                    name: record.CompanyName,
+                    status: record.CompanyStatus,
+                    address: record.Registered_Office_Address,
+                    class: record.CompanyClass,
+                    incDate: record.CompanyRegistrationdate_date,
+                    source: "GOVT_API_REALTIME"
+                };
+            } else {
+                console.log(`❌ [MCA API] No records found or API error. Raw Data:`, JSON.stringify(data));
+            }
+        } catch (error) {
+            console.error("⚠️ [MCA API] Fetch failed, reverting to simulation:", error);
+        }
+    }
+
+    // 2. Check Mock DB (Fallback)
+    if (MOCK_COMPANY_DB[cin]) {
+        return {
+            ...MOCK_COMPANY_DB[cin],
+            source: "MCA_MOCK"
+        };
+    }
+
+    // 3. Simulation Fallback: Project details from CIN structure
+    const stateName = STATE_CODES.find(s => s === parsedCin.state) || parsedCin.state;
+    const type = parsedCin.listing === 'Listed' ? 'Public Limited' : 'Private Limited';
+    
+    return {
+        name: `UNK_ENTITY (Reg: ${parsedCin.year})`, 
+        status: "Unverified (Not in Mock DB)",
+        address: `Registered Office in ${stateName}`,
+        class: type,
+        incDate: `01 Jan ${parsedCin.year}`, // Fallback date
+        source: "CIN_DECODE"
+    };
+}
+
 /**
  * Validates GSTIN Checksum
  */
@@ -106,7 +239,7 @@ function detectPartialMatchDiscrepancies(parsedCin, text) {
 /**
  * Analyzes text for business entities with Intel Layer
  */
-export function analyzeEntities(text) {
+export async function analyzeEntities(text) {
   if (!text) return { signals: {}, metadata: {} };
 
   const rawGsts = text.match(GST_REGEX) || [];
@@ -117,43 +250,77 @@ export function analyzeEntities(text) {
   let partialMatchAnomalyCount = 0;
   const entityDiscrepancies = [];
 
-  // Process GSTs
+  // Async processing for CINs to support External API
+  for (const cin of rawCins) {
+      const parsed = parseCIN(cin);
+      // Valid if parsed successfully (regex already checks format, but parsing double checks validity of state/dates)
+      // Additional structural check on years/state
+      const isStructurallyValid = parsed && STATE_CODES.includes(parsed.state) && parseInt(parsed.year) > 1900 && parseInt(parsed.year) <= new Date().getFullYear();
+      
+      let discrepancies = [];
+      if (isStructurallyValid) {
+          discrepancies = detectPartialMatchDiscrepancies(parsed, text);
+      }
+
+      if (!isStructurallyValid) {
+          invalidBusinessIdCount++;
+      }
+
+      if (discrepancies.length > 0) {
+          partialMatchAnomalyCount++;
+          entityDiscrepancies.push(...discrepancies);
+      }
+      
+      // Wait for enrichment (API or Mock)
+      const enrichment = await enrichCompanyData(cin, parsed);
+
+      detectedEntities.push({
+          type: 'CIN',
+          value: cin,
+          isValid: isStructurallyValid && discrepancies.length === 0,
+          portalUrl: `https://www.mca.gov.in/mcafoportal/viewCompanyMasterData.do`,
+          parsed,
+          enrichment, 
+          discrepancies,
+          label: discrepancies.length > 0 ? 'CIN Partial Match Discrepancy' : (isStructurallyValid ? 'Valid CIN Structure' : 'Invalid CIN Structure')
+      });
+  }
+
+  // Fallback: If no IDs found, try treating text as Company Name
+  if (detectedEntities.length === 0 && text.length < 100 && text.length > 3) {
+       const cleanName = text.trim();
+       // Only search if it looks like a name (no newlines implies single line input)
+       if (!cleanName.includes('\n')) {
+           const nameResult = await searchCompanyByName(cleanName);
+           if (nameResult) {
+               detectedEntities.push({
+                   type: 'CIN',
+                   value: nameResult.cin || "N/A",
+                   isValid: true,
+                   portalUrl: `https://www.mca.gov.in/mcafoportal/viewCompanyMasterData.do`,
+                   parsed: parseCIN(nameResult.cin),
+                   enrichment: nameResult, 
+                   discrepancies: [],
+                   label: 'Company Found via Name Search'
+               });
+               // Update signal counts virtually
+               if (nameResult.cin) rawCins.push(nameResult.cin);
+           }
+       }
+  }
+
+  // GST Logic (Sync)
   rawGsts.forEach(gst => {
-    const isValid = validateGSTChecksum(gst);
-    if (!isValid) invalidBusinessIdCount++;
-    
-    detectedEntities.push({
-        type: 'GSTIN',
-        value: gst,
-        isValid: isValid,
-        label: isValid ? 'Valid GSTIN' : 'Invalid GSTIN (Checksum Failed)'
-    });
-  });
-
-  // Process CINs with Partial Match Intelligence
-  rawCins.forEach(cin => {
-    const parsed = parseCIN(cin);
-    const discrepancies = parsed ? detectPartialMatchDiscrepancies(parsed, text) : [];
-    
-    const isStructurallyValid = parsed && STATE_CODES.includes(parsed.state) && parseInt(parsed.year) > 1850 && parseInt(parsed.year) <= new Date().getFullYear();
-    
-    if (!isStructurallyValid) {
-        invalidBusinessIdCount++;
-    }
-
-    if (discrepancies.length > 0) {
-        partialMatchAnomalyCount++;
-        entityDiscrepancies.push(...discrepancies);
-    }
-
-    detectedEntities.push({
-        type: 'CIN',
-        value: cin,
-        isValid: isStructurallyValid && discrepancies.length === 0,
-        parsed,
-        discrepancies,
-        label: discrepancies.length > 0 ? 'CIN Partial Match Discrepancy' : (isStructurallyValid ? 'Valid CIN Structure' : 'Invalid CIN Structure')
-    });
+      const isValid = validateGSTChecksum(gst);
+      if (!isValid) invalidBusinessIdCount++;
+      
+      detectedEntities.push({
+          type: 'GSTIN',
+          value: gst,
+          isValid,
+          portalUrl: `https://services.gst.gov.in/services/searchtp`,
+          label: isValid ? 'Valid GST Structure' : 'Invalid GST Format/Checksum'
+      });
   });
 
   const signals = {

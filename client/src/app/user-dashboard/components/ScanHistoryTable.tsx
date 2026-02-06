@@ -17,6 +17,14 @@ interface ScanHistoryTableProps {
 }
 
 const ScanHistoryTable = ({ scans, onSelectScan }: ScanHistoryTableProps) => {
+  const sortedScans = React.useMemo(() => {
+    return [...scans].sort((a, b) => {
+      const dateA = new Date(`${a.date} ${a.time}`).getTime();
+      const dateB = new Date(`${b.date} ${b.time}`).getTime();
+      return isNaN(dateA) || isNaN(dateB) ? 0 : dateB - dateA;
+    });
+  }, [scans]);
+
   const getResultBadge = (result: string, confidence: number) => {
     const badges = {
       safe: { bg: 'bg-success-green/10', text: 'text-success-green', icon: 'CheckCircleIcon' },
@@ -61,29 +69,29 @@ const ScanHistoryTable = ({ scans, onSelectScan }: ScanHistoryTableProps) => {
         </div>
       </div>
       
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead className="bg-muted">
+      <div className="overflow-x-auto max-h-[600px] overflow-y-auto scrollbar-thin scrollbar-thumb-border scrollbar-track-muted/20">
+        <table className="w-full relative">
+          <thead className="bg-muted sticky top-0 z-10 shadow-sm">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider bg-muted">
                 Scan Type
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider bg-muted">
                 Target
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider bg-muted">
                 Result
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider bg-muted">
                 Date & Time
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider bg-muted">
                 Actions
               </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {scans.map((scan) => (
+            {sortedScans.map((scan) => (
               <tr 
                 key={scan.id} 
                 className={`hover:bg-muted/50 transition-colors duration-200 ${onSelectScan ? 'cursor-pointer' : ''}`}

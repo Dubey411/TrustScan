@@ -29,6 +29,8 @@ const Sidebar = ({
   activeScanId,
   onGoHome,
 }: SidebarProps) => {
+  const [visibleCount, setVisibleCount] = React.useState(10);
+
   return (
     <>
       {/* Mobile Overlay */}
@@ -81,12 +83,12 @@ const Sidebar = ({
           </div>
 
           {/* History List */}
-          <div className="flex-1 overflow-y-auto p-4">
+          <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
             <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-4 px-2">
               Recent Scans
             </h3>
             <div className="space-y-2">
-              {scans.map((scan) => (
+              {scans.slice(0, visibleCount).map((scan) => (
                 <button
                   key={scan.id}
                   onClick={() => {
@@ -113,6 +115,16 @@ const Sidebar = ({
                   )}
                 </button>
               ))}
+              
+              {visibleCount < scans.length && (
+                <button 
+                  onClick={() => setVisibleCount(prev => prev + 10)}
+                  className="w-full py-2 text-xs text-primary font-medium hover:bg-primary/5 rounded-lg transition-colors mt-2 flex items-center justify-center gap-1"
+                >
+                  <Icon name="ArrowDownCircleIcon" size={14} />
+                  Load Older History ({scans.length - visibleCount} more)
+                </button>
+              )}
             </div>
           </div>
 
