@@ -10,6 +10,16 @@ const TRUSTED_DOMAINS = JSON.parse(
   fs.readFileSync(path.join(__dirname, '..', '..', 'data', 'trustedDomains.json'), 'utf8')
 );
 
+// Load Known Scam Database (Blacklist)
+let SCAM_LINKS = [];
+try {
+    SCAM_LINKS = JSON.parse(
+        fs.readFileSync(path.join(__dirname, '..', '..', 'data', 'scamLinks.json'), 'utf8')
+    );
+} catch (e) {
+    console.warn("⚠️ Scam Links Database missing or empty.");
+}
+
 const SUSPICIOUS_TLDS = [
   '.top', '.xyz', '.gl', '.icu', '.club', '.work', 
   '.biz', '.info', '.best', '.online', '.site', 
@@ -128,7 +138,9 @@ export async function analyzeLinks(text) {
     punycodeHomograph: 0,
     subdomainAbuse: 0,
     pathObfuscation: 0,
-    contentMismatch: 0 // New Signal
+    pathObfuscation: 0,
+    contentMismatch: 0, // New Signal
+    knownScamLink: 0    // New Signal (Blacklist)
   };
 
   const detectedLinks = [];
@@ -163,8 +175,14 @@ export async function analyzeLinks(text) {
       };
 
       // 1. Trusted Domain Check
-      if (TRUSTED_DOMAINS.some(td => host === td || host.endsWith('.' + td))) {
+      if (TRUSTED_DOMAINS.some(td => host === td.domain || host.endsWith('.' + td.domain))) {
           signals.trustedDomain = 1;
+      }
+
+      // 1b. Known Scam Database Check (Blacklist)
+      if (SCAM_LINKS.includes(host) || SCAM_LINKS.some(sl => host.endsWith('.' + sl))) {
+          signals.knownScamLink = 1;
+          linkAnalysis.flags.push('KNOWN_SCAM_DATABASE');
       }
 
       // 2. LIVE METADATA SCAN (Catch Mismatched Content)

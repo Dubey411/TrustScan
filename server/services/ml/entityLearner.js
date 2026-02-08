@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import Scan from '../../models/Scan.js';
+import TrustEntity from '../../models/TrustEntity.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -106,10 +107,6 @@ export async function runEntityLearning() {
 
 
         // 3. Process Candidates against Thresholds
-        const existingDB = JSON.parse(fs.readFileSync(DB_PATH, 'utf8'));
-        const existingBlacklist = new Set(existingDB.blacklist.map(i => i.name.toLowerCase()));
-        const existingGreylist = new Set(existingDB.greylist.map(i => i.name.toLowerCase()));
-        
         const updates = { blacklisted: [], greylisted: [], promoted: [] };
         let dbChanged = false;
 
@@ -122,39 +119,49 @@ export async function runEntityLearning() {
             
             // A. Check for Blacklist Promotion (High Confidence)
             if (totalScore >= BLACKLIST_THRESHOLD) {
-                if (!existingBlacklist.has(lowerName)) {
-                    if (existingGreylist.has(lowerName)) {
-                        existingDB.greylist = existingDB.greylist.filter(g => g.name.toLowerCase() !== lowerName);
+                const existing = await TrustEntity.findOne({ nameLower: lowerName });
+                
+                if (!existing || existing.category !== 'red_flag') {
+                    await TrustEntity.findOneAndUpdate(
+                        { nameLower: lowerName },
+                        { 
+                            $set: {
+                                name: name,
+                                type: "Auto-Detected (Financial Fraud Pattern)",
+                                category: "red_flag",
+                                autoLearned: true,
+                                trustScore: totalScore,
+                                lastOccurrence: new Date()
+                            }
+                        },
+                        { upsert: true }
+                    );
+                    
+                    if (existing && existing.category === 'grey_list') {
                         updates.promoted.push(name);
                     } else {
                         updates.blacklisted.push(name);
                     }
                     
-                    existingDB.blacklist.push({
-                        name: name,
-                        type: "Auto-Detected (Financial Fraud Pattern)",
-                        addedAt: new Date().toISOString().split('T')[0],
-                        category: "red_flag",
-                        autoLearned: true,
-                        trustScore: totalScore
-                    });
-                    existingBlacklist.add(lowerName);
                     dbChanged = true;
                     console.log(`🚨 [EntityLearner] CONFIRMED THREAT: "${name}" (Score: ${totalScore}). Action: Blacklist.`);
                 }
             } 
             // B. Check for Greylist (Emerging)
             else if (totalScore >= GREYLIST_THRESHOLD) {
-                if (!existingBlacklist.has(lowerName) && !existingGreylist.has(lowerName)) {
-                    existingDB.greylist.push({
+                const existing = await TrustEntity.findOne({ nameLower: lowerName });
+                
+                if (!existing) {
+                    await TrustEntity.create({
                         name: name,
+                        nameLower: lowerName,
                         type: "Emerging Suspicious Entity",
-                        addedAt: new Date().toISOString().split('T')[0],
                         category: "grey_list",
                         autoLearned: true,
-                        trustScore: totalScore
+                        trustScore: totalScore,
+                        lastOccurrence: new Date()
                     });
-                    existingGreylist.add(lowerName);
+                    
                     updates.greylisted.push(name);
                     dbChanged = true;
                     console.log(`⚠️ [EntityLearner] SUSPICIOUS ACTIVITY: "${name}" (Score: ${totalScore}). Action: Greylist.`);
@@ -162,9 +169,8 @@ export async function runEntityLearning() {
             }
         }
 
-        // 4. Update Database
+        // 4. Update Database Log
         if (dbChanged) {
-            fs.writeFileSync(DB_PATH, JSON.stringify(existingDB, null, 4));
             console.log(`✅ [EntityLearner] Sync Complete. Blacklisted: ${updates.blacklisted.length}, Promoted: ${updates.promoted.length}, Greylisted: ${updates.greylisted.length}`);
             return updates;
         } else {

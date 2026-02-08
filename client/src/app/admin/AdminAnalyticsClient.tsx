@@ -48,14 +48,33 @@ interface AIIntelligence {
   recommendations: DatasetRecommendation[];
 }
 
+interface TrustEntity {
+  _id: string;
+  name: string;
+  category: 'red_flag' | 'grey_list';
+  type: string;
+  autoLearned: boolean;
+  trustScore: number;
+  addedAt: string;
+}
+
 const AdminAnalyticsClient = () => {
   const { user, loading } = useAuth();
   const router = useRouter();
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [chartData, setChartData] = useState<ChartDay[]>([]);
   const [aiIntelligence, setAiIntelligence] = useState<AIIntelligence | null>(null);
+  const [entities, setEntities] = useState<TrustEntity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'ai'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'ai' | 'entities'>('overview');
+  
+  // Entity Form State
+  const [newEntityName, setNewEntityName] = useState('');
+  const [newEntityCategory, setNewEntityCategory] = useState<'red_flag' | 'grey_list'>('red_flag');
+  const [newEntityType, setNewEntityType] = useState('Manually Flagged');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
 
   useEffect(() => {
     if (loading) return;
@@ -76,10 +95,15 @@ const AdminAnalyticsClient = () => {
         const statsData = await statsRes.json();
         const chartData = await chartRes.json();
         const aiData = await aiRes.json();
+        
+        // Fetch entities separately or together
+        const entitiesRes = await fetch(`${API_BASE_URL}/admin/entities`);
+        const entitiesData = await entitiesRes.json();
 
         setStats(statsData);
         setChartData(chartData);
         setAiIntelligence(aiData);
+        setEntities(entitiesData);
       } catch (err) {
         console.error("Admin fetch error:", err);
       } finally {
@@ -88,6 +112,51 @@ const AdminAnalyticsClient = () => {
     };
     fetchData();
   }, [user, loading, router]);
+
+  const handleAddEntity = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newEntityName.trim()) return;
+
+    setIsSubmitting(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/admin/entities`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newEntityName,
+          category: newEntityCategory,
+          type: newEntityType
+        })
+      });
+
+      if (res.ok) {
+        const added = await res.json();
+        setEntities([added, ...entities]);
+        setNewEntityName('');
+        alert('Entity blacklisted successfully!');
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Failed to add entity');
+      }
+    } catch (err) {
+      alert('Network error adding entity');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteEntity = async (id: string) => {
+    if (!confirm('Are you sure you want to remove this entity from the blacklist?')) return;
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/admin/entities/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setEntities(entities.filter(e => e._id !== id));
+      }
+    } catch (err) {
+      alert('Failed to delete');
+    }
+  };
 
   if (isLoading) {
     return (
@@ -164,33 +233,40 @@ const AdminAnalyticsClient = () => {
           <div className="flex flex-wrap gap-4">
              <div className="bg-card border border-border px-6 py-3 rounded-2xl shadow-sm min-w-[120px]">
                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Gross Scans</p>
-                <p className="text-2xl font-black text-foreground">{stats?.totalScans.toLocaleString()}</p>
+                <p className="text-2xl font-black text-foreground">{stats?.totalScans.toLocaleString() || 0}</p>
              </div>
              <div className="bg-primary/5 border border-primary/20 px-6 py-3 rounded-2xl shadow-sm min-w-[120px]">
                 <p className="text-[10px] font-bold text-primary uppercase tracking-wider">Verified Users</p>
-                <p className="text-2xl font-black text-primary">{stats?.registeredUsers.toLocaleString()}</p>
+                <p className="text-2xl font-black text-primary">{stats?.registeredUsers.toLocaleString() || 0}</p>
              </div>
              <div className="bg-slate-50 border border-slate-200 px-6 py-3 rounded-2xl shadow-sm min-w-[120px]">
                 <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Guest Activities</p>
-                <p className="text-2xl font-black text-slate-700">{stats?.guestScans.toLocaleString()}</p>
+                <p className="text-2xl font-black text-slate-700">{stats?.guestScans.toLocaleString() || 0}</p>
              </div>
           </div>
         </div>
 
         {/* Tab Switcher */}
-        <div className="flex gap-4 mb-8 border-b border-border pb-4">
+        <div className="flex gap-4 mb-8 border-b border-border pb-4 overflow-x-auto">
            <button 
              onClick={() => setActiveTab('overview')}
-             className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${activeTab === 'overview' ? 'bg-primary text-white shadow-lg shadow-primary/30' : 'bg-muted/50 text-muted-foreground hover:bg-muted'}`}
+             className={`px-6 py-2 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'overview' ? 'bg-primary text-white shadow-lg shadow-primary/30' : 'bg-muted/50 text-muted-foreground hover:bg-muted'}`}
            >
              System Overview
            </button>
            <button 
              onClick={() => setActiveTab('ai')}
-             className={`px-6 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'ai' ? 'bg-primary text-white shadow-lg shadow-primary/30' : 'bg-muted/50 text-muted-foreground hover:bg-muted'}`}
+             className={`px-6 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === 'ai' ? 'bg-primary text-white shadow-lg shadow-primary/30' : 'bg-muted/50 text-muted-foreground hover:bg-muted'}`}
            >
              <Icon name="CpuChipIcon" size={16} />
-             AI Performance & Learning
+             AI Performance
+           </button>
+           <button 
+             onClick={() => setActiveTab('entities')}
+             className={`px-6 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === 'entities' ? 'bg-primary text-white shadow-lg shadow-primary/30' : 'bg-muted/50 text-muted-foreground hover:bg-muted'}`}
+           >
+             <Icon name="ShieldExclamationIcon" size={16} />
+             Blacklist Management
            </button>
         </div>
 
@@ -276,10 +352,10 @@ const AdminAnalyticsClient = () => {
                </div>
             </div>
           </div>
-        ) : (
+        ) : activeTab === 'ai' ? (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="bg-card border border-border rounded-3xl p-8">
+                <div className="bg-card border border-border rounded-3xl p-8 shadow-sm">
                    <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
                       <Icon name="CheckBadgeIcon" size={20} className="text-emerald-500" />
                       Category Prediction Accuracy
@@ -302,7 +378,7 @@ const AdminAnalyticsClient = () => {
                    </div>
                 </div>
 
-                <div className="bg-card border border-border rounded-3xl p-8">
+                <div className="bg-card border border-border rounded-3xl p-8 shadow-sm">
                    <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
                       <Icon name="LightBulbIcon" size={20} className="text-amber-500" />
                       Dataset Recommendations
@@ -311,8 +387,8 @@ const AdminAnalyticsClient = () => {
                       {aiIntelligence?.recommendations.map((rec, i) => (
                         <div key={i} className="p-4 bg-amber-500/5 border border-amber-500/10 rounded-2xl">
                            <div className="flex items-center justify-between mb-1">
-                              <span className="text-xs font-black text-amber-600 uppercase">{rec.type} Source</span>
-                              <Icon name="ArrowTopRightOnSquareIcon" size={14} className="text-amber-400" />
+                               <span className="text-xs font-black text-amber-600 uppercase">{rec.type} Source</span>
+                               <Icon name="ArrowTopRightOnSquareIcon" size={14} className="text-amber-400" />
                            </div>
                            <h4 className="font-bold text-foreground">{rec.source}</h4>
                            <p className="text-xs text-muted-foreground mt-1">{rec.utility}</p>
@@ -322,7 +398,7 @@ const AdminAnalyticsClient = () => {
                 </div>
              </div>
 
-             <div className="bg-card border border-border rounded-3xl p-8">
+             <div className="bg-card border border-border rounded-3xl p-8 shadow-sm">
                 <h3 className="text-lg font-bold mb-8">System Learning Timeline (Indian Fraud Vector)</h3>
                 <div className="space-y-12 relative before:absolute before:left-[17px] before:top-2 before:bottom-2 before:w-[2px] before:bg-border">
                    {aiIntelligence?.learningTrace.map((log, i) => (
@@ -355,6 +431,153 @@ const AdminAnalyticsClient = () => {
                         </div>
                      </div>
                    ))}
+                </div>
+             </div>
+          </div>
+        ) : (
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+             {/* Add New Entity Form */}
+             <div className="bg-card border border-border rounded-3xl p-8 shadow-sm">
+                <div className="flex flex-col lg:flex-row justify-between gap-8">
+                   <div className="flex-grow">
+                      <h3 className="text-lg font-bold mb-6">Manually Flag Scammer / Company</h3>
+                      <form onSubmit={handleAddEntity} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                         <div className="md:col-span-2">
+                            <label className="block text-xs font-bold uppercase text-muted-foreground mb-2">Company / Entity Name</label>
+                            <input 
+                              type="text" 
+                              value={newEntityName}
+                              onChange={(e) => setNewEntityName(e.target.value)}
+                              placeholder="e.g. Amdox Technologies, Fake SBI Support"
+                              className="w-full p-3 bg-muted/50 border border-border rounded-xl focus:ring-2 focus:ring-primary outline-none"
+                              required
+                            />
+                         </div>
+                         <div>
+                            <label className="block text-xs font-bold uppercase text-muted-foreground mb-2">Risk Level</label>
+                            <select 
+                              value={newEntityCategory}
+                              onChange={(e) => setNewEntityCategory(e.target.value as any)}
+                              className="w-full p-3 bg-muted/50 border border-border rounded-xl focus:ring-2 focus:ring-primary outline-none"
+                            >
+                               <option value="red_flag">🔴 Blacklist (Immediate Block)</option>
+                               <option value="grey_list">🟡 Greylist (Suspicious)</option>
+                            </select>
+                         </div>
+                         <button 
+                           type="submit"
+                           disabled={isSubmitting}
+                           className="bg-primary text-white font-bold h-[50px] rounded-xl hover:bg-trust-blue transition-all disabled:opacity-50"
+                         >
+                            {isSubmitting ? 'Securing...' : 'Add to Blacklist'}
+                         </button>
+                      </form>
+                   </div>
+                   
+                   <div className="lg:w-80 border-l border-border pl-8 space-y-4">
+                      <div className="text-[10px] font-black uppercase text-muted-foreground tracking-widest flex items-center gap-2">
+                         <Icon name="InformationCircleIcon" size={14} />
+                         Classification Guide
+                      </div>
+                      <div className="space-y-4">
+                         <div className="p-3 bg-amber-500/5 border border-amber-500/20 rounded-xl">
+                            <h4 className="text-xs font-bold text-amber-700 flex items-center gap-1.5 mb-1">
+                               <div className="w-1.5 h-1.5 rounded-full bg-amber-500" /> Greylist (Yellow)
+                            </h4>
+                            <p className="text-[10px] text-amber-800 leading-relaxed">
+                               Flags companies charging "Training Fees" or asking money from students for completing internships.
+                            </p>
+                         </div>
+                         <div className="p-3 bg-red-500/5 border border-red-500/20 rounded-xl">
+                            <h4 className="text-xs font-bold text-red-700 flex items-center gap-1.5 mb-1">
+                               <div className="w-1.5 h-1.5 rounded-full bg-red-500" /> Red Flag (Blacklist)
+                            </h4>
+                            <p className="text-[10px] text-red-800 leading-relaxed">
+                               Malicious scams. Certificates issued by these entities are <b>not credible</b> and have no future value.
+                            </p>
+                         </div>
+                      </div>
+                      <div className="p-3 bg-primary/5 border border-primary/20 rounded-xl">
+                         <h4 className="text-xs font-bold text-primary flex items-center gap-1.5 mb-1">
+                            <Icon name="ShieldCheckIcon" size={14} /> CIN Verification
+                         </h4>
+                         <p className="text-[10px] text-primary/80 leading-relaxed">
+                            Use <b>Company Verifier</b> to check CIN. If no CIN is found on MCA servers, the entity is a total fraud.
+                         </p>
+                      </div>
+                   </div>
+                </div>
+             </div>
+
+             {/* Entities Table */}
+             <div className="bg-card border border-border rounded-3xl overflow-hidden shadow-sm">
+                <div className="p-8 border-b border-border bg-muted/30 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                   <div>
+                      <h3 className="text-lg font-bold">Manage Active Blacklist ({entities.filter(e => e.name.toLowerCase().includes(searchQuery.toLowerCase()) || e.type.toLowerCase().includes(searchQuery.toLowerCase())).length})</h3>
+                      <p className="text-sm text-muted-foreground">These entities will be automatically flagged during all link and document scans.</p>
+                   </div>
+                   <div className="relative min-w-[300px]">
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                         <Icon name="MagnifyingGlassIcon" size={18} />
+                      </div>
+                      <input 
+                        type="text" 
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Search companies or types..."
+                        className="w-full pl-10 pr-4 py-2.5 bg-background border border-border rounded-xl focus:ring-2 focus:ring-primary outline-none text-sm font-medium transition-all"
+                      />
+                   </div>
+                </div>
+                <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+                   <table className="w-full text-left">
+                      <thead className="bg-muted/30 text-[10px] font-black uppercase text-muted-foreground">
+                         <tr>
+                            <th className="px-8 py-4">Entity Identity</th>
+                            <th className="px-4 py-4">Status</th>
+                            <th className="px-4 py-4">Method</th>
+                            <th className="px-4 py-4">Date Added</th>
+                            <th className="px-8 py-4 text-right">Actions</th>
+                         </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border">
+                         {entities
+                           .filter(e => 
+                             e.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                             e.type.toLowerCase().includes(searchQuery.toLowerCase())
+                           )
+                           .map((entity) => (
+
+                           <tr key={entity._id} className="hover:bg-muted/10 transition-colors">
+                              <td className="px-8 py-4">
+                                 <div className="font-bold text-foreground">{entity.name}</div>
+                                 <div className="text-[10px] text-muted-foreground font-medium uppercase">{entity.type}</div>
+                              </td>
+                              <td className="px-4 py-4">
+                                 <span className={`px-2 py-1 rounded-full text-[9px] font-black uppercase ${entity.category === 'red_flag' ? 'bg-red-500/10 text-red-500' : 'bg-amber-500/10 text-amber-500'}`}>
+                                    {entity.category === 'red_flag' ? 'Blacklisted' : 'Greylisted'}
+                                 </span>
+                              </td>
+                              <td className="px-4 py-4">
+                                 <span className="text-[10px] font-bold text-muted-foreground">
+                                    {entity.autoLearned ? '🧠 AI Discovery' : '👤 Manual Flag'}
+                                 </span>
+                              </td>
+                              <td className="px-4 py-4 text-[11px] text-muted-foreground">
+                                 {new Date(entity.addedAt).toLocaleDateString()}
+                              </td>
+                              <td className="px-8 py-4 text-right">
+                                 <button 
+                                   onClick={() => handleDeleteEntity(entity._id)}
+                                   className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                                 >
+                                    <Icon name="TrashIcon" size={18} />
+                                 </button>
+                              </td>
+                           </tr>
+                         ))}
+                      </tbody>
+                   </table>
                 </div>
              </div>
           </div>

@@ -6,6 +6,7 @@ import { analyzeLinks } from '../analysis/linkScanner.js';
 import { analyzeEntities } from '../analysis/entityScanner.js';
 import { analyzeSmsHeader } from '../analysis/smsHeaderScanner.js';
 import { analyzeScamScript } from '../analysis/scriptScanner.js';
+import TrustEntity from '../../models/TrustEntity.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -158,42 +159,44 @@ export async function runRules(content, externalSignals = {}, trustSignals = {},
   };
 
   // --- MISSION: ENTITY RECOGNITION (RED/GREY LISTS) ---
-  const trustDbPath = path.join(__dirname, '..', '..', 'data', 'entityTrustDatabase.json');
   try {
-      if (fs.existsSync(trustDbPath)) {
-          const trustDb = JSON.parse(fs.readFileSync(trustDbPath, 'utf8'));
-          const lowerContent = content.toLowerCase();
-          
-          // Red List (Confirmed Fraud)
-          const redHit = trustDb.blacklist.find(b => {
-              const entityName = b.name.toLowerCase();
-              if (entityName.length < 4) {
-                  // Strict Word Boundary for short Acronyms (e.g. "UTL", "IGI")
-                  return new RegExp(`\\b${entityName}\\b`, 'i').test(lowerContent);
-              }
-              // For longer names, check inclusion but we can be safer
-              return lowerContent.includes(entityName);
-          });
-
-          if (redHit) {
-              signals.knownScamSource = 1;
-              reasons.push(`DATABASE MATCH: Associated with known entity "${redHit.name}"`);
+      const lowerContent = content.toLowerCase();
+      
+      // Fetch potential matches from DB (using a broad search or pre-filtered names)
+      // Since we can't do a perfect "contains" check for 1000s of items in one query efficiently, 
+      // we'll optimize: Fetch all trust entities once into memory or cache if small.
+      // Small scale (<2000 items) we can keep in a local cache refreshed every 10 mins.
+      
+      const allEntities = await TrustEntity.find({}).lean();
+      
+      const redHit = allEntities.find(b => {
+          if (b.category !== 'red_flag') return false;
+          const entityName = b.nameLower;
+          if (entityName.length < 4) {
+              return new RegExp(`\\b${entityName}\\b`, 'i').test(lowerContent);
           }
+          return lowerContent.includes(entityName);
+      });
 
-          // Grey List & Emerging Risk
-          const greyHit = trustDb.greylist.find(g => {
-              const entityName = g.name.toLowerCase();
-              if (entityName.length < 4) {
-                   return new RegExp(`\\b${entityName}\\b`, 'i').test(lowerContent);
-              }
-              return lowerContent.includes(entityName);
-          });
-
-          if (greyHit) {
-              signals.emergingRiskSource = 1;
-              reasons.push(`NETWORK ALERT: "${greyHit.name}" is on our active verification list`);
-          }
+      if (redHit) {
+          signals.knownScamSource = 1;
+          reasons.push(`DATABASE MATCH: Associated with known entity "${redHit.name}"`);
       }
+
+      const greyHit = allEntities.find(g => {
+          if (g.category !== 'grey_list') return false;
+          const entityName = g.nameLower;
+          if (entityName.length < 4) {
+              return new RegExp(`\\b${entityName}\\b`, 'i').test(lowerContent);
+          }
+          return lowerContent.includes(entityName);
+      });
+
+      if (greyHit) {
+          signals.emergingRiskSource = 1;
+          reasons.push(`NETWORK ALERT: "${greyHit.name}" is on our active verification list`);
+      }
+
   } catch (e) {
       console.error("RulesEngine: Trust DB Check failed", e);
   }
@@ -320,7 +323,7 @@ export async function runRules(content, externalSignals = {}, trustSignals = {},
   if (scriptAnalysis.riskScore > 50) prosecutionScore += 15;
   
   // Specific Heavy Hitters
-  if (signals.knownScamSource) prosecutionScore = 1500; // Overwhelming Guilt
+  if (signals.knownScamSource || signals.knownScamLink) prosecutionScore = 1500; // Overwhelming Guilt
   if (signals.structuralAnomalies) prosecutionScore += 50;
   
   // B. Defense Case (Legitimacy Evidence - White Box)

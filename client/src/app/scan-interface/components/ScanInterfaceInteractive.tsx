@@ -49,6 +49,7 @@ export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfa
   const [userCredits, setUserCredits] = useState<number>(0);
   const [isFetchingCredits, setIsFetchingCredits] = useState(false);
   const [senderId, setSenderId] = useState('');
+  const [isLinkValid, setIsLinkValid] = useState(true);
 
 
   useEffect(() => {
@@ -130,7 +131,7 @@ export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfa
       case 'text':
         return textInput.trim().length > 10;
       case 'link':
-        return linkInput.trim().length > 0;
+        return linkInput.trim().length > 0 && isLinkValid;
       case 'file':
         return selectedFile !== null;
       default:
@@ -344,6 +345,7 @@ export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfa
                     onChange={setLinkInput} 
                     placeholder={currentScanType.placeholder}
                     onScan={handleScan}
+                    onValidChange={setIsLinkValid}
                   />
                 )}
                 

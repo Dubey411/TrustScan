@@ -10,6 +10,7 @@ import mongoose from "mongoose";
 import fs from "fs";
 import { analyzeSmsHeader } from "../services/analysis/smsHeaderScanner.js";
 import { analyzeScamScript } from "../services/analysis/scriptScanner.js";
+import { generateTrustScanReport } from "../services/processing/reportGenerator.js";
 
 import path from "path";
 import { fileURLToPath } from 'url';
@@ -244,6 +245,14 @@ router.post("/scan", upload.single('file'), async (req, res) => {
 
     // --- Special Logic: Link & Email Fallbacks (Professional Behavior) ---
     if (type === 'link') {
+        const urlPattern = /(https?:\/\/)?([\w\-]+\.)+[\w\-]+(\/[\w\-\.\/?%&=]*)?/i;
+        if (!urlPattern.test(content)) {
+            return res.status(400).json({ 
+                success: false, 
+                error: "Invalid Link: Please provide a valid web URL for Deep Diver analysis." 
+            });
+        }
+        
         const linkCount = result.metadata?.linkCount || 0;
         if (linkCount === 0) {
              finalRisk = Math.max(finalRisk, 50); 
@@ -285,15 +294,15 @@ router.post("/scan", upload.single('file'), async (req, res) => {
                        (result.flags.debate.defensePoints > result.flags.debate.prosecutionPoints);
 
     if (status === 'fraud' || status === 'scam') {
-        scanMeta.verdictLabel = "🚫 Critical Fraud Risk";
+        scanMeta.verdictLabel = (type === 'link') ? "🚫 DO NOT OPEN" : "🚫 Critical Fraud Risk";
     } else if (defenseWon && finalRisk < 40) {
-        scanMeta.verdictLabel = "✅ Verified Authentic";
+        scanMeta.verdictLabel = (type === 'link') ? "✅ SAFE TO OPEN" : "✅ Verified Authentic";
     } else if (status === 'suspicious' || status === 'action_required') {
-        scanMeta.verdictLabel = "⚠️ Suspicious Content";
+        scanMeta.verdictLabel = (type === 'link') ? "⚠️ OPEN WITH CAUTION" : "⚠️ Suspicious Content";
     } else if (status === 'risky') {
-        scanMeta.verdictLabel = "⚠️ Potential Risk Detected";
+        scanMeta.verdictLabel = (type === 'link') ? "⚠️ OPEN WITH CAUTION" : "⚠️ Potential Risk Detected";
     } else if (status === 'safe') {
-        scanMeta.verdictLabel = "✅ Legitimate Document";
+        scanMeta.verdictLabel = (type === 'link') ? "✅ SAFE TO OPEN" : "✅ Legitimate Document";
     }
     // If none of these, keep the OCR label (e.g. Unreadable) only if Risk is low
     if (finalRisk > 50 && scanMeta.verdictLabel.includes("High Quality")) {
@@ -410,6 +419,7 @@ router.post("/scan", upload.single('file'), async (req, res) => {
         signals: result.signals,
         metadata: result.metadata,
         scanMeta: scanMeta,
+        trustScanReport: generateTrustScanReport(finalRisk, result.signals, result.metadata),
         recommendation: getRecommendedActions(result.signals, status)
       });
     } catch (saveError) {
@@ -425,6 +435,7 @@ router.post("/scan", upload.single('file'), async (req, res) => {
         signals: result.signals,
         metadata: result.metadata,
         scanMeta: scanMeta,
+        trustScanReport: generateTrustScanReport(finalRisk, result.signals, result.metadata),
         recommendation: getRecommendedActions(result.signals, status)
       });
     }

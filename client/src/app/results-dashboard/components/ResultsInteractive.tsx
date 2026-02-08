@@ -12,6 +12,7 @@ import ShareResults from './ShareResults';
 import DownloadReport from './DownloadReport';
 import LinkAnalysisCard from './LinkAnalysisCard';
 import { BusinessVerificationCard } from './BusinessVerificationCard';
+import TrustScanReportCard from './TrustScanReportCard';
 import { API_BASE_URL } from '@/api/scan';
 import Icon from '@/components/ui/AppIcon';
 
@@ -96,6 +97,13 @@ interface Feature {
     };
     recommendation?: Action[];
     riskScore?: number;
+    trustScanReport?: {
+      recommendation: string;
+      color: 'red' | 'yellow' | 'green';
+      why: string[];
+      intent: string;
+      advice: string;
+    };
     userRating?: number;
     userFeedback?: string | null;
   };
@@ -272,9 +280,12 @@ const ResultsInteractive = ({ scanData, showFeedback = true }: ResultsInteractiv
       <VerdictBadge 
         verdict={scanData?.result || "scam"} 
         score={scanData?.riskScore !== undefined ? scanData.riskScore : Number(scanData?.confidence) || 87} 
-        type={(scanData as any)?.scanType === 'document' || scanData?.scanMeta ? 'document' : 'text'}
+        type={scanData?.scanType === 'link' ? 'link' : ((scanData as any)?.scanType === 'document' || scanData?.scanMeta ? 'document' : 'text')}
         customLabel={scanData?.scanMeta?.verdictLabel}
       />
+
+      {/* Human Readable Report (Simple Guide) */}
+      <TrustScanReportCard report={scanData?.trustScanReport} />
 
       {/* Red Flag Warning Banner */}
       {!isSafe && displayFlags.length > 0 && (

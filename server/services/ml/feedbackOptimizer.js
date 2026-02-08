@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import Scan from '../../models/Scan.js';
+import TrustEntity from '../../models/TrustEntity.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -27,41 +28,35 @@ export async function optimizeWeightsFromFeedback() {
         });
 
         // --- PART A: ENTITY TRUST OPTIMIZATION ---
-        if (fs.existsSync(TRUST_DB_FILE)) {
-            const trustDb = JSON.parse(fs.readFileSync(TRUST_DB_FILE, 'utf8'));
-            let modified = false;
+        const allEntities = await TrustEntity.find({ category: 'grey_list' });
+        let modified = false;
 
-            recentFeedback.forEach(scan => {
-                // If it's a false negative (we said safe, user said fraud)
-                if (scan.userFeedback === 'incorrect_fraud') {
-                    const content = scan.content?.toLowerCase() || "";
-                    
-                    // Check if any greylist entity is in the content
-                    trustDb.greylist.forEach(entity => {
-                        if (content.includes(entity.name.toLowerCase())) {
-                            entity.userReports = (entity.userReports || 0) + 1;
-                            entity.hitCount = (entity.hitCount || 0) + 1;
-                            modified = true;
-                            
-                            // PROMOTION LOGIC: If a greylist entity gets 5 reports, move to blacklist
-                            if (entity.userReports >= 5) {
-                                console.log(`🚀 [Trust DB] Promoting ${entity.name} from Greylist to Blacklist due to community reports.`);
-                                trustDb.blacklist.push({
-                                    name: entity.name,
-                                    type: `Auto-Blacklisted (${entity.type})`,
-                                    addedAt: new Date().toISOString().split('T')[0],
-                                    category: 'red_flag'
-                                });
-                                trustDb.greylist = trustDb.greylist.filter(g => g.name !== entity.name);
-                            }
+        for (const scan of recentFeedback) {
+            // If it's a false negative (we said safe, user said fraud)
+            if (scan.userFeedback === 'incorrect_fraud') {
+                const content = scan.content?.toLowerCase() || "";
+                
+                for (const entity of allEntities) {
+                    if (content.includes(entity.nameLower)) {
+                        entity.trustScore = (entity.trustScore || 0) + 1; // Reuse trustScore as rep counter
+                        entity.lastOccurrence = new Date();
+                        
+                        // PROMOTION LOGIC: If a greylist entity gets enough reports, move to blacklist
+                        if (entity.trustScore >= 5) {
+                            console.log(`🚀 [Trust DB] Promoting ${entity.name} from Greylist to Blacklist due to community reports.`);
+                            entity.category = 'red_flag';
+                            entity.type = `Auto-Blacklisted (Community Feedback)`;
                         }
-                    });
+                        
+                        await entity.save();
+                        modified = true;
+                    }
                 }
-            });
-
-            if (modified) {
-                fs.writeFileSync(TRUST_DB_FILE, JSON.stringify(trustDb, null, 4));
             }
+        }
+
+        if (modified) {
+             console.log("✅ [Self-Learning] Trust Entities updated via feedback.");
         }
 
         if (recentFeedback.length < 3) { // Lowered threshold for local development

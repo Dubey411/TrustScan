@@ -33,5 +33,20 @@
         "name": "TrustedDomain",
         "domain": "linkedin.com",
         "category": "trusted_tech"
+    },
+    {
+        "name": "TrustedDomain",
+        "domain": "github.com",
+        "category": "trusted_tech"
+    },
+    {
+        "name": "TrustedDomain",
+        "domain": "gitlab.com",
+        "category": "trusted_tech"
+    },
+    {
+        "name": "TrustedDomain",
+        "domain": "bitbucket.org",
+        "category": "trusted_tech"
     }
 ]

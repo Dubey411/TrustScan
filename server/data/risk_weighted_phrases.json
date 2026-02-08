@@ -9,7 +9,10 @@
         "court summons": 25,
         "disconnection": 20,
         "electricity disconnected": 25,
-        "parcel": 15
+        "parcel": 15,
+        "accidentally reported": 30,
+        "banned": 25,
+        "account deletion": 25
     },
     "authority_impersonation": {
         "mumbai customs": 20,
@@ -19,7 +22,10 @@
         "police station": 20,
         "supreme court": 20,
         "traffic police": 15,
-        "cyber cell": 25
+        "cyber cell": 25,
+        "steam admin": 35,
+        "valve employee": 35,
+        "discord staff": 35
     },
     "urgency_escalation": {
         "immediately": 15,
@@ -28,7 +34,10 @@
         "emergency": 15,
         "final notice": 20,
         "last warning": 20,
-        "avoid blackout": 15
+        "avoid blackout": 15,
+        "hurry up": 20,
+        "before the promotion ends": 20,
+        "limited time": 15
     },
     "action_requests": {
         "press 1": 25,
@@ -37,6 +46,19 @@
         "gpay at": 25,
         "phonepe": 25,
         "settlement": 20,
-        "call now": 10
+        "call now": 10,
+        "click to get": 20,
+        "claim gift": 20
+    },
+    "gaming_crypto_scams": {
+        "free nitro": 30,
+        "discord nitro": 20,
+        "airdrop": 25,
+        "csgo skin": 20,
+        "steam gift": 25,
+        "free skins": 25,
+        "trade offer": 15,
+        "cryptocurrency giveaway": 30,
+        "btc doubler": 35
     }
 }

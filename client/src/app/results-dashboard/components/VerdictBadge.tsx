@@ -10,6 +10,7 @@ interface VerdictBadgeProps {
 
 const VerdictBadge = ({ verdict, score, type, customLabel }: VerdictBadgeProps) => {
   const isDocument = type === 'document';
+  const isLink = type === 'link';
 
   const verdictConfig = {
     safe: {
@@ -17,7 +18,7 @@ const VerdictBadge = ({ verdict, score, type, customLabel }: VerdictBadgeProps) 
       textColor: 'text-success-green-foreground',
       borderColor: 'border-success-green',
       icon: 'CheckCircleIcon',
-      label: isDocument ? 'Legitimate Document' : 'Safe',
+      label: isDocument ? 'Legitimate Document' : (isLink ? 'SAFE TO OPEN' : 'Safe'),
       description: isDocument ? 'Verified against databases, content structure, and metadata standards.' : 'This opportunity appears legitimate',
     },
     risky: {
@@ -25,7 +26,7 @@ const VerdictBadge = ({ verdict, score, type, customLabel }: VerdictBadgeProps) 
       textColor: 'text-warning-foreground',
       borderColor: 'border-warning',
       icon: 'ExclamationTriangleIcon',
-      label: isDocument ? 'Authentic / Risky Content' : 'Risky',
+      label: isDocument ? 'Authentic / Risky Content' : (isLink ? 'OPEN WITH CAUTION' : 'Risky'),
       description: isDocument ? 'Structure appears valid but content triggered fraud alerts' : 'Proceed with caution - some red flags detected',
     },
     suspicious: {
@@ -33,7 +34,7 @@ const VerdictBadge = ({ verdict, score, type, customLabel }: VerdictBadgeProps) 
       textColor: 'text-warning-foreground',
       borderColor: 'border-warning',
       icon: 'ExclamationTriangleIcon',
-      label: isDocument ? 'Suspicious Content' : 'Suspicious',
+      label: isDocument ? 'Suspicious Content' : (isLink ? 'OPEN WITH CAUTION' : 'Suspicious'),
       description: isDocument ? 'Potential threat detected within the document text' : 'Proceed with caution - potential threats detected',
     },
     action_required: {
@@ -49,7 +50,7 @@ const VerdictBadge = ({ verdict, score, type, customLabel }: VerdictBadgeProps) 
       textColor: 'text-error-foreground',
       borderColor: 'border-error',
       icon: 'XCircleIcon',
-      label: isDocument ? 'Synthetic Content' : 'Scam Detected',
+      label: isDocument ? 'Synthetic Content' : (isLink ? 'DO NOT OPEN' : 'Scam Detected'),
       description: isDocument ? 'High probability of AI generation or forgery' : 'High probability of fraudulent activity',
     },
     fraud: {
@@ -57,7 +58,7 @@ const VerdictBadge = ({ verdict, score, type, customLabel }: VerdictBadgeProps) 
       textColor: 'text-error-foreground',
       borderColor: 'border-error',
       icon: 'XCircleIcon',
-      label: isDocument ? 'Synthetic / Manipulated' : 'Fraud Detected',
+      label: isDocument ? 'Synthetic / Manipulated' : (isLink ? 'DO NOT OPEN' : 'Fraud Detected'),
       description: isDocument ? 'High probability of AI generation or forgery' : 'High probability of fraudulent activity',
     },
   };

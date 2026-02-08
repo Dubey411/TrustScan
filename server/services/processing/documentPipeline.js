@@ -9,6 +9,8 @@ import { spawn } from 'child_process';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+import TrustEntity from '../../models/TrustEntity.js';
+
 let getDocument;
 let Jimp;
 
@@ -146,29 +148,21 @@ function extractStructures(text) {
     };
 }
 
-const predatoryPath = path.join(__dirname, '..', '..', 'data', 'entityTrustDatabase.json');
-let TRUST_DB = { blacklist: [], greylist: [] };
-
-try {
-    TRUST_DB = JSON.parse(fs.readFileSync(predatoryPath, 'utf8'));
-} catch (e) {
-    console.error("Failed to load Trust Database");
-}
-
 /**
  * Checks if text contains any items from the Red or Grey list
- * Updated with stricter matching to avoid False Positives on common words.
+ * Updated with MongoDB support and stricter matching.
  */
-function checkForFastPathFraud(text) {
+async function checkForFastPathFraud(text) {
     if (!text) return null;
     const lowerText = text.toLowerCase();
+    
+    // Fetch potential matches from DB
+    const allEntities = await TrustEntity.find({}).lean();
     
     // Helper for safe matching
     const isMatch = (entityName) => {
         const name = entityName.toLowerCase();
         if (name.length < 5) {
-            // Strict Word Boundary for short names/acronyms (e.g. "UTL", "IGI", "GSS")
-            // Escape special regex chars just in case
             const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             return new RegExp(`\\b${escaped}\\b`, 'i').test(lowerText);
         }
@@ -176,11 +170,11 @@ function checkForFastPathFraud(text) {
     };
 
     // 1. Check Blacklist (Red Flag)
-    const blacklistedMatch = TRUST_DB.blacklist.find(b => isMatch(b.name));
+    const blacklistedMatch = allEntities.find(b => b.category === 'red_flag' && isMatch(b.name));
     if (blacklistedMatch) return { type: 'RED', name: blacklistedMatch.name, reason: blacklistedMatch.type };
     
     // 2. Check Greylist (Suspicious)
-    const greylistMatch = TRUST_DB.greylist.find(g => isMatch(g.name));
+    const greylistMatch = allEntities.find(g => g.category === 'grey_list' && isMatch(g.name));
     if (greylistMatch) return { type: 'GREY', name: greylistMatch.name, reason: greylistMatch.type };
     
     return null;
@@ -246,7 +240,7 @@ export async function runDocumentPipeline(fileBuffer, mimeType, depth = 'basic')
                     let fraudMatchReason = null;
 
                     // Identification Check (Don't stop, just flag)
-                    const fastFraud = checkForFastPathFraud(pageText);
+                    const fastFraud = await checkForFastPathFraud(pageText);
                     if (fastFraud) {
                         isFraudMatch = true;
                         fraudMatchReason = fastFraud;
@@ -268,7 +262,7 @@ export async function runDocumentPipeline(fileBuffer, mimeType, depth = 'basic')
                             method = "FAST_OCR";
 
                             // Identification Check on OCR text
-                            const ocrFraud = checkForFastPathFraud(pageText);
+                            const ocrFraud = await checkForFastPathFraud(pageText);
                             if (ocrFraud) {
                                 isFraudMatch = true;
                                 fraudMatchReason = ocrFraud;
@@ -345,9 +339,9 @@ export async function runDocumentPipeline(fileBuffer, mimeType, depth = 'basic')
             const ocr = await runMultiPassOCR(processedBuffer, worker);
             
             // Flag Known Fraud but don't skip the data
-            const imgFraud = checkForFastPathFraud(ocr.text);
+            const imgFraud = await checkForFastPathFraud(ocr.text);
             if (imgFraud) {
-                console.log(`🎯 [Database Hit] Identified ${imgFraud}. Harvesting data for ML...`);
+                console.log(`🎯 [Database Hit] Identified ${imgFraud.name}. Harvesting data for ML...`);
                 pipelineResult.signals.visual_anomalies.push('KNOWN_SCAM_DATABASE_HIT');
             }
 

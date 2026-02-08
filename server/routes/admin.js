@@ -1,6 +1,7 @@
 import express from "express";
 import Scan from "../models/Scan.js";
 import User from "../models/User.js";
+import TrustEntity from "../models/TrustEntity.js";
 
 const router = express.Router();
 
@@ -165,6 +166,59 @@ router.get("/ai-intelligence", async (req, res) => {
         });
     } catch (err) {
         res.status(500).json({ error: "Deep intelligence fetch failed" });
+    }
+});
+
+/**
+ * ENTITY MANAGEMENT (Blacklist/Greylist Management)
+ */
+
+router.get("/entities", async (req, res) => {
+    try {
+        const entities = await TrustEntity.find().sort({ createdAt: -1 });
+        res.json(entities);
+    } catch (err) {
+        res.status(500).json({ error: "Failed to fetch trust entities" });
+    }
+});
+
+router.post("/entities", async (req, res) => {
+    try {
+        const { name, category, type, evidence } = req.body;
+        
+        if (!name || !category) {
+            return res.status(400).json({ error: "Name and Category are required." });
+        }
+
+        const nameLower = name.trim().toLowerCase();
+        
+        // Prevent duplicates
+        const existing = await TrustEntity.findOne({ nameLower });
+        if (existing) {
+            return res.status(400).json({ error: "Entity already exists in the database." });
+        }
+
+        const newEntity = await TrustEntity.create({
+            name: name.trim(),
+            nameLower,
+            category,
+            type: type || 'Manually Flagged',
+            evidence: evidence ? [evidence] : [],
+            autoLearned: false
+        });
+
+        res.status(201).json(newEntity);
+    } catch (err) {
+        res.status(500).json({ error: "Failed to create trust entity" });
+    }
+});
+
+router.delete("/entities/:id", async (req, res) => {
+    try {
+        await TrustEntity.findByIdAndDelete(req.params.id);
+        res.json({ success: true, message: "Entity removed from database." });
+    } catch (err) {
+        res.status(500).json({ error: "Failed to delete entity" });
     }
 });
 

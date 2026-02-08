@@ -8,23 +8,25 @@ interface LinkInputAreaProps {
   onChange: (value: string) => void;
   placeholder?: string;
   onScan?: () => void;
+  onValidChange?: (isValid: boolean) => void;
 }
 
-export default function LinkInputArea({ value, onChange, placeholder, onScan }: LinkInputAreaProps) {
+export default function LinkInputArea({ value, onChange, placeholder, onScan, onValidChange }: LinkInputAreaProps) {
   const [isValidUrl, setIsValidUrl] = useState(true);
 
   const validateUrl = (url: string) => {
     if (!url) {
       setIsValidUrl(true);
+      if (onValidChange) onValidChange(true);
       return;
     }
-    const normalized = url.includes('://') ? url : `http://${url}`;
-    try {
-      new URL(normalized);
-      setIsValidUrl(true);
-    } catch {
-      setIsValidUrl(false);
-    }
+    
+    // Stricter Regex for URLs (requires at least one dot and some characters)
+    const urlPattern = /^(https?:\/\/)?([\w\-]+\.)+[\w\-]+(\/[\w\-\.\/?%&=]*)?$/i;
+    const isValid = urlPattern.test(url.trim());
+    
+    setIsValidUrl(isValid);
+    if (onValidChange) onValidChange(isValid);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
