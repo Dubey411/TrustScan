@@ -86,10 +86,13 @@ const AdminAnalyticsClient = () => {
 
     const fetchData = async () => {
       try {
+        const token = await user.getIdToken();
+        const headers = { 'Authorization': `Bearer ${token}` };
+
         const [statsRes, chartRes, aiRes] = await Promise.all([
-          fetch(`${API_BASE_URL}/admin/stats`),
-          fetch(`${API_BASE_URL}/admin/chart-data`),
-          fetch(`${API_BASE_URL}/admin/ai-intelligence`)
+          fetch(`${API_BASE_URL}/admin/stats`, { headers }),
+          fetch(`${API_BASE_URL}/admin/chart-data`, { headers }),
+          fetch(`${API_BASE_URL}/admin/ai-intelligence`, { headers })
         ]);
 
         const statsData = await statsRes.json();
@@ -97,7 +100,7 @@ const AdminAnalyticsClient = () => {
         const aiData = await aiRes.json();
         
         // Fetch entities separately or together
-        const entitiesRes = await fetch(`${API_BASE_URL}/admin/entities`);
+        const entitiesRes = await fetch(`${API_BASE_URL}/admin/entities`, { headers });
         const entitiesData = await entitiesRes.json();
 
         setStats(statsData);
@@ -119,9 +122,13 @@ const AdminAnalyticsClient = () => {
 
     setIsSubmitting(true);
     try {
+      const token = await (user as any).getIdToken();
       const res = await fetch(`${API_BASE_URL}/admin/entities`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({
           name: newEntityName,
           category: newEntityCategory,
@@ -149,7 +156,11 @@ const AdminAnalyticsClient = () => {
     if (!confirm('Are you sure you want to remove this entity from the blacklist?')) return;
 
     try {
-      const res = await fetch(`${API_BASE_URL}/admin/entities/${id}`, { method: 'DELETE' });
+      const token = await (user as any).getIdToken();
+      const res = await fetch(`${API_BASE_URL}/admin/entities/${id}`, { 
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+      });
       if (res.ok) {
         setEntities(entities.filter(e => e._id !== id));
       }

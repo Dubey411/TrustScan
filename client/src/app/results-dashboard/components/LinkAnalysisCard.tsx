@@ -74,6 +74,12 @@ const FLAG_MAP: Record<string, { label: string; description: string; color: stri
     description: 'The page content claims to be a trusted brand (e.g., "Facebook"), but the domain name does not match. This is a common phishing signal.',
     color: 'red',
     icon: 'UserIcon'
+  },
+  KNOWN_SCAM_DATABASE: {
+    label: 'Blacklisted',
+    description: 'This link has been reported as a confirmed scam by the security community.',
+    color: 'red',
+    icon: 'NoSymbolIcon'
   }
 };
 
@@ -159,21 +165,59 @@ const LinkAnalysisCard = ({ detectedLinks }: LinkAnalysisCardProps) => {
               </div>
 
               {link.liveMetadata && (
-                <div className="bg-background/50 p-3 rounded-lg border border-border/50">
-                   <div className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mb-2 flex items-center gap-1">
-                     <Icon name="GlobeAltIcon" size={12} />
+                <div className="bg-background/50 p-4 rounded-lg border border-border/50 space-y-3">
+                   <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1 border-b border-border/50 pb-2">
+                     <Icon name="GlobeAltIcon" size={14} className="text-primary" />
                      Live Site Intelligence
                    </div>
+                   
                    <div className="space-y-1">
                       <p className="text-xs font-bold text-foreground">
                         {link.liveMetadata.title || "No Title Found"}
                       </p>
                       {link.liveMetadata.description && (
-                         <p className="text-[10px] text-muted-foreground line-clamp-2 italic">
+                         <p className="text-[10px] text-muted-foreground line-clamp-2 italic leading-relaxed">
                             "{link.liveMetadata.description}"
                          </p>
                       )}
                    </div>
+
+                   {/* Curiosity Tags & Technical Footprints */}
+                   {(link.liveMetadata as any).curiosityTags && (
+                      <div className="pt-2 flex flex-wrap gap-2">
+                        {/* Platform Badge */}
+                        <div className="flex items-center gap-1.5 px-2 py-1 bg-muted/50 rounded-md border border-border/50">
+                           <Icon name="WrenchScrewdriverIcon" size={12} className="text-muted-foreground" />
+                           <span className="text-[9px] font-bold text-foreground uppercase tracking-tight">
+                              Built with: {(link.liveMetadata as any).curiosityTags.platform}
+                           </span>
+                        </div>
+
+                        {/* Security Feature Badge */}
+                        {(link.liveMetadata as any).curiosityTags.hasLoginForm && (
+                           <div className="flex items-center gap-1.5 px-2 py-1 bg-amber-500/5 rounded-md border border-amber-500/10">
+                              <Icon name="LockClosedIcon" size={12} className="text-amber-600" />
+                              <span className="text-[9px] font-bold text-amber-700 uppercase tracking-tight">
+                                 Contains Login Form
+                              </span>
+                           </div>
+                        )}
+
+                        {/* Contact Footprints */}
+                        {(link.liveMetadata as any).curiosityTags.contactFootprint?.length > 0 && (
+                           <div className="w-full flex flex-wrap gap-2 mt-1">
+                              {(link.liveMetadata as any).curiosityTags.contactFootprint.map((info: string, iIndex: number) => (
+                                 <div key={iIndex} className="flex items-center gap-1.5 px-2 py-1 bg-primary/5 rounded-md border border-primary/10">
+                                    <Icon name="IdentificationIcon" size={12} className="text-primary" />
+                                    <span className="text-[9px] font-medium text-primary-foreground/70">
+                                       Found: {info}
+                                    </span>
+                                 </div>
+                              ))}
+                           </div>
+                        )}
+                      </div>
+                   )}
                 </div>
               )}
 

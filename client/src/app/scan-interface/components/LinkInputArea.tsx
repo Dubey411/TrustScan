@@ -20,10 +20,31 @@ export default function LinkInputArea({ value, onChange, placeholder, onScan, on
       if (onValidChange) onValidChange(true);
       return;
     }
+
+    // 1. Anti-Gibberish (Keyboard Mashing) Detection
+    const vowelCount = (url.match(/[aeiouy]/gi) || []).length;
+    const consonantCount = (url.match(/[bcdfghjklmnpqrstvwxz]/gi) || []).length;
+    const vowelRatio = vowelCount / (vowelCount + consonantCount || 1);
+    const isMash = url.length > 15 && vowelRatio < 0.1 && !url.includes(' ');
+
+    if (isMash) {
+      setIsValidUrl(false);
+      if (onValidChange) onValidChange(false);
+      return;
+    }
+
+    // 2. Stricter URL structure check
+    // Includes local ccTLDs and modern deployment TLDs (vercel, github.io, etc)
+    const hasProtocol = /^(https?:\/\/|www\.)/i.test(url);
+    const commonTlds = /\.(com|net|org|in|co|io|ly|ai|me|info|biz|site|online|top|xyz|gov|ac|edu|ru|ua|tw|cn|uk|pk|jp|de|fr|br|ca|au|us|app|dev|page|link)$/i;
+    const genericUrlPattern = /^(https?:\/\/)?([\w\-]+\.)+[a-z]{2,12}(\/.*)?$/i;
     
-    // Stricter Regex for URLs (requires at least one dot and some characters)
-    const urlPattern = /^(https?:\/\/)?([\w\-]+\.)+[\w\-]+(\/[\w\-\.\/?%&=]*)?$/i;
-    const isValid = urlPattern.test(url.trim());
+    // Support for common subdomains like .vercel.app, .github.io, .netlify.app
+    const isModernDeploy = /\.(vercel\.app|github\.io|netlify\.app|pages\.dev|web\.app|firebaseapp\.com)$/i.test(url);
+    
+    const isValid = hasProtocol 
+      ? genericUrlPattern.test(url.trim()) 
+      : (genericUrlPattern.test(url.trim()) && (commonTlds.test(url.trim()) || isModernDeploy));
     
     setIsValidUrl(isValid);
     if (onValidChange) onValidChange(isValid);

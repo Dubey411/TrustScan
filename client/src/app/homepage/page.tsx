@@ -2,8 +2,12 @@ import type { Metadata } from 'next';
 import HomepageInteractive from './components/HomepageInteractive';
 
 export const metadata: Metadata = {
-  title: 'TrustScan AI - Best Fraud Detection Tool in India',
-  description: 'AI-powered security for India. Verify SMS Headers (RBI VSPE), check business CIN/GST (MCA21), and detect scam scripts instantly. Protecting students, freshers, and businesses from online fraud.',
+  title: 'TrustScan AI | India\'s #1 Job Scam & Link Fraud Detector',
+  description: 'Instantly verify job offers, check suspicious links, and detect fake SMS headers. Trusted by Indian students for safe job searching. Try our Free AI Scanner now.',
+  alternates: {
+    canonical: '/homepage',
+  },
+  keywords: ['fake job checker India', 'link verifier', 'scam detector tool', 'SMS header search', 'verify company CIN', 'TrustScan'],
 };
 
 export default function Homepage() {

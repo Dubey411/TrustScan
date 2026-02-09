@@ -191,6 +191,7 @@ const ResultsInteractive = ({ scanData, showFeedback = true }: ResultsInteractiv
 
   const isSafe = scanData?.result === 'safe';
   const isDocument = (scanData as any)?.scanType === 'document' || !!scanData?.scanMeta;
+  const isLink = (scanData as any)?.scanType === 'link' || (!!scanData?.metadata?.detectedLinks && scanData.metadata.detectedLinks.length > 0);
   const isCompany = scanData?.scanType === 'company';
   
   const getSignalScore = (key: string, mockDefault: number) => {
@@ -349,7 +350,13 @@ const ResultsInteractive = ({ scanData, showFeedback = true }: ResultsInteractiv
             </div>
           )}
 
-          {!isDocument && (
+          {isLink && scanData?.metadata?.detectedLinks && scanData.metadata.detectedLinks.length > 0 && (
+             <div className="border-t-4 border-sky-500 rounded-2xl overflow-hidden shadow-brand-lg transition-all hover:shadow-sky-500/10">
+                <LinkAnalysisCard detectedLinks={scanData.metadata.detectedLinks} />
+             </div>
+          )}
+
+          {!isDocument && !isLink && (
             <div className="bg-card rounded-2xl border border-border p-6 shadow-sm">
                  <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-4 flex items-center gap-2">
                     <Icon name="ChatBubbleLeftRightIcon" size={18} />
@@ -376,10 +383,6 @@ const ResultsInteractive = ({ scanData, showFeedback = true }: ResultsInteractiv
                 <GreenFlagsList flags={scanData?.flags?.green || []} />
                 <RedFlagsList flags={displayFlags} />
                 
-                {scanData?.metadata?.detectedLinks && scanData.metadata.detectedLinks.length > 0 && (
-                    <LinkAnalysisCard detectedLinks={scanData.metadata.detectedLinks} />
-                )}
-
                 <ThreatAnalysis categories={mockThreatCategories} />
             </>
           )}

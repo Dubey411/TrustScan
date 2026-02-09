@@ -216,6 +216,15 @@ export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfa
               target: targetContent.slice(0, 50) + (targetContent.length > 50 ? '...' : ''),
               apiResult: result // Pass the full API result
           });
+      } else {
+          // If no callback, and we have a result, store it and move to results page
+          localStorage.setItem('latestScan', JSON.stringify({
+             id: (result as any).id || (result as any)._id,
+             type: selectedScanType,
+             target: targetContent,
+             apiResult: result
+          }));
+          router.push('/results-dashboard');
       }
       setIsScanning(false);
     } catch (err) {

@@ -45,8 +45,9 @@ function extractFeatures(text) {
   const capsCount = (rawText.match(/[A-Z]/g) || []).length;
   const capsRatio = length > 0 ? capsCount / length : 0;
   
-  // Pattern extraction
-  const urls = rawText.match(/https?:\/\/[^\s]+|www\.[^\s]+|[a-zA-Z0-9-]+\.(com|net|org|io|ly|co|gl|top|xyz|icu|biz|info|site|online|zip|mov)\b/gi) || [];
+  // Pattern extraction 
+  // Refined: Must (have protocol/www) OR (use known TLD) OR (be a modern deployment subdomain)
+  const urls = rawText.match(/(?:https?:\/\/|www\.)[\w\-]+\.[a-z]{2,12}(\/.*)?|[\w\-]+\.(com|net|org|in|co|io|ly|ai|me|info|biz|site|online|top|xyz|gov|ac|edu|ru|ua|tw|cn|uk|pk|jp|de|fr|br|ca|au|us|app|dev|page|link)\b|\b[\w\-]+\.(vercel\.app|github\.io|netlify\.app|pages\.dev|web\.app|firebaseapp\.com)\b/gi) || [];
   const phones = rawText.match(/(\+?\d{1,3}[- ]?)?\d{10}/g) || [];
   const emails = rawText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g) || [];
 
@@ -125,14 +126,18 @@ export async function runRules(content, externalSignals = {}, trustSignals = {},
   const cleanContent = content.trim();
   if (cleanContent.length > 0) {
       const hasSpaces = cleanContent.includes(' ');
-      const hasVowels = /[aeiouy]/i.test(cleanContent);
+      const vowelCount = (cleanContent.match(/[aeiouy]/gi) || []).length;
+      const consonantCount = (cleanContent.match(/[bcdfghjklmnpqrstvwxz]/gi) || []).length;
+      const vowelRatio = vowelCount / (vowelCount + consonantCount || 1);
       
-      // FIX: Don't flag URLs as "long single words". 
-      // A string is a long single word if it has no spaces AND is not a URL.
-      const isExtremelyLongSingleWord = cleanContent.length > 25 && !hasSpaces && !metadata.hasUrl;
-      const isGibberish = cleanContent.length > 5 && !hasVowels && /^[a-z]+$/i.test(cleanContent);
+      // Keyboard Mashing Detection (Long strings with very few vowels or repeating chars)
+      const isKeyboardMash = (cleanContent.length > 15 && vowelRatio < 0.1) || 
+                             /(.)\1{4,}/.test(cleanContent); // 5+ repeating chars
       
-      if (isExtremelyLongSingleWord || isGibberish) {
+      // A string is "not text" if it has no spaces, and is just consonant noise
+      const looksLikeNoise = cleanContent.length > 20 && !hasSpaces && vowelRatio < 0.15;
+      
+      if (isKeyboardMash || looksLikeNoise) {
           signals.lowInfoContent = 1;
       }
   }
@@ -233,6 +238,19 @@ export async function runRules(content, externalSignals = {}, trustSignals = {},
   if (entityAnalysis.metadata?.entityDiscrepancies?.length > 0) {
       indiaConfidenceRisk = Math.max(indiaConfidenceRisk, 85);
       reasons.push(...entityAnalysis.metadata.entityDiscrepancies);
+  }
+
+  // 4. Evidence: Site Technical Footprints (Curiosity Data)
+  const linksWithMeta = activityAnalysis.metadata?.detectedLinks?.filter(l => l.liveMetadata && l.liveMetadata.curiosityTags);
+  if (linksWithMeta && linksWithMeta.length > 0) {
+      const mainLink = linksWithMeta[0].liveMetadata.curiosityTags;
+      const platform = mainLink.platform || 'Unknown';
+      const finds = [];
+      if (mainLink.hasLoginForm) finds.push("Contains Login/Form");
+      if (mainLink.contactFootprint?.length > 0) finds.push(`${mainLink.contactFootprint.length} Contact Details`);
+      
+      const desc = finds.length > 0 ? ` (${finds.join(', ')})` : "";
+      reasons.unshift(`Live Site Analysis: Hosted on ${platform}${desc}.`);
   }
 
   const normalizedText = metadata.normalizedText;
@@ -377,29 +395,43 @@ export async function runRules(content, externalSignals = {}, trustSignals = {},
   let mlScore = probability * 100;
   
   // Apply The Defense's Reductions
-  let finalRiskCalculation = Math.max(mlScore, maxImpliedRisk);
+  // CRITICAL: prosecutionScore must be factored in, otherwise Red Flags don't affect the score!
+  let finalRiskCalculation = Math.max(mlScore, maxImpliedRisk, prosecutionScore);
   
   // If Defense is STRONG (Verified Domain), it can acquit almost anything except Known Scams
-  if (defenseScore > 80 && !signals.knownScamSource) {
+  if (defenseScore > 80 && !signals.knownScamSource && !signals.knownScamLink) {
       finalRiskCalculation = Math.min(finalRiskCalculation, 10); // Acquitted
       defenseEvidence.push("Defense Overruled Prosecution due to Verified Identity");
   } else {
-      // Standard mitigation
-      const protectionFactor = Math.min(defenseScore, 40); // Cap mitigation at 40 points
+      // Standard mitigation - defense can reduce score but not below floor if red flags exist
+      const protectionFactor = Math.min(defenseScore, 40);
       finalRiskCalculation -= protectionFactor;
+      
+      // If we have critical red flags, the floor should be at least 85%
+      if ((signals.knownScamSource || signals.knownScamLink) && finalRiskCalculation < 85) {
+          finalRiskCalculation = 95;
+      }
   }
   
   // Formatting the Debate Output
   const flags = {
     red: [...new Set(prosecutionEvidence)],
-    green: defenseEvidence, // New Green Flags from Defense
+    green: defenseEvidence || [], 
     debate: {
         prosecutionPoints: prosecutionScore,
         defensePoints: defenseScore,
         prosecutionArgument: prosecutionEvidence.length > 0 ? "Evidence of Fraud found." : "No strong evidence of fraud.",
-        defenseArgument: defenseEvidence.length > 0 ? defenseEvidence.join('. ') : "No strong authentication signals found."
+        defenseArgument: (defenseEvidence && defenseEvidence.length > 0) ? defenseEvidence.join('. ') : "No strong authentication signals found."
     }
   };
+
+  // Add curiosity green flags if safe
+  if (finalRiskCalculation < 30) {
+      const proLink = activityAnalysis.metadata?.detectedLinks?.find(l => l.liveMetadata?.curiosityTags?.platform === 'Custom/Other');
+      if (proLink) {
+         flags.green.push("Site Authentication: Professional Custom Architecture Detected");
+      }
+  }
 
   return {
     riskScore: Math.round(Math.max(0, Math.min(100, finalRiskCalculation))),

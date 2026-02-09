@@ -245,12 +245,24 @@ router.post("/scan", upload.single('file'), async (req, res) => {
 
     // --- Special Logic: Link & Email Fallbacks (Professional Behavior) ---
     if (type === 'link') {
-        const urlPattern = /(https?:\/\/)?([\w\-]+\.)+[\w\-]+(\/[\w\-\.\/?%&=]*)?/i;
-        if (!urlPattern.test(content)) {
-            return res.status(400).json({ 
+        const hasProtocol = /^(https?:\/\/|www\.)/i.test(content);
+        const commonTlds = /\.(com|net|org|in|co|io|ly|ai|me|info|biz|site|online|top|xyz|gov|ac|edu|ru|ua|tw|cn|uk|pk|jp|de|fr|br|ca|au|us|app|dev|page|link)$/i;
+        const modernDeploys = /\.(vercel\.app|github\.io|netlify\.app|pages\.dev|web\.app|firebaseapp\.com)$/i;
+        const genericUrlPattern = /^(https?:\/\/)?([\w\-]+\.)+[a-z]{2,12}(\/.*)?$/i;
+        
+        const isValid = hasProtocol 
+          ? genericUrlPattern.test(content.trim()) 
+          : (genericUrlPattern.test(content.trim()) && (commonTlds.test(content.trim()) || modernDeploys.test(content.trim())));
+
+        if (!isValid || result.signals.lowInfoContent) {
+           const errorMessage = result.signals.lowInfoContent 
+             ? "Noise Detected: The input provided looks like keyboard mashing. Please enter real text."
+             : "Invalid Link: Please provide a valid web URL with a common domain (e.g., example.com).";
+           
+           return res.status(400).json({ 
                 success: false, 
-                error: "Invalid Link: Please provide a valid web URL for Deep Diver analysis." 
-            });
+                error: errorMessage 
+           });
         }
         
         const linkCount = result.metadata?.linkCount || 0;
@@ -405,7 +417,6 @@ router.post("/scan", upload.single('file'), async (req, res) => {
       }
 
       console.log(`✅ [Database] Permanent Save Successful! ID: ${savedDoc._id}`);
-
       
       // 7. Response to client
       res.json({
@@ -518,7 +529,7 @@ router.post("/feedback", async (req, res) => {
 });
 
 // 📜 Get single scan result (for sharing)
-router.get("/scan/:id", async (req, res) => {
+router.get("/results/:id", async (req, res) => {
   try {
     const { id } = req.params;
     

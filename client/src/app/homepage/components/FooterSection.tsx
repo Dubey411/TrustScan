@@ -101,12 +101,26 @@ const FooterSection = () => {
         </div>
 
         {/* Bottom */}
-        <div className="pt-8 border-t border-border flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-sm text-muted-foreground">
-            {isHydrated ? `© ${currentYear}` : '© 2026'} TrustScan. All rights reserved.
-          </p>
-          <div className="text-xs text-muted-foreground italic">
-            Protecting Indian Students • Beta v1.0
+        <div className="pt-8 border-t border-border flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="flex flex-col gap-1">
+            <p className="text-sm text-foreground font-bold">
+              {isHydrated ? `© ${currentYear}` : '© 2026'} TrustScan AI. All rights reserved.
+            </p>
+            <p className="text-xs text-muted-foreground max-w-md">
+              A private digital guardian initiative dedicated to protecting Indian citizens from financial fraud and identity theft. Results are provided for informational purposes only.
+            </p>
+          </div>
+          
+          <div className="flex flex-col items-center md:items-end gap-2">
+            <div className="flex items-center gap-2 px-3 py-1 bg-muted rounded-full border border-border">
+                <div className="w-2 h-2 rounded-full bg-orange-500" />
+                <div className="w-2 h-2 rounded-full bg-white border border-border" />
+                <div className="w-2 h-2 rounded-full bg-green-500" />
+                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Made with 🇮🇳 in India</span>
+            </div>
+            <div className="text-[10px] text-muted-foreground uppercase tracking-tighter opacity-50">
+                Beta v1.0.4 • Security Cloud Powered by DeepMind Logic
+            </div>
           </div>
         </div>
       </div>

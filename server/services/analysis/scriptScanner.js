@@ -58,6 +58,17 @@ export function analyzeScamScript(text) {
             flowStages.action = true;
         }
     });
+    
+    if (PHRASES.recruitment_scams) {
+        Object.entries(PHRASES.recruitment_scams).forEach(([phrase, weight]) => {
+            if (normalized.includes(phrase)) {
+                score += weight;
+                matches.push({ phase: 'Recruitment Hook', match: phrase });
+                // Recruitment hooks often count as an action (payment request)
+                flowStages.action = true;
+            }
+        });
+    }
 
     // 2. Behavioral Combo Scoring (The "Script Logic" boost)
     let comboMultiplier = 1;

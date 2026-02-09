@@ -33,25 +33,42 @@ const SUSPICIOUS_TLDS = [
 async function fetchMetadata(url) {
     try {
         const controller = new AbortController();
-        const id = setTimeout(() => controller.abort(), 5000); 
+        const id = setTimeout(() => controller.abort(), 6000); 
 
         const response = await fetch(url, {
             signal: controller.signal,
-            headers: { 'User-Agent': 'TrustScan-LiveBot/1.1' }
+            headers: { 
+                'User-Agent': 'TrustScan-SecurityBot/1.2',
+                'Accept': 'text/html'
+            }
         });
         clearTimeout(id);
 
         const html = await response.text();
         const titleMatch = html.match(/<title>(.*?)<\/title>/i);
         const descMatch = html.match(/<meta name="description" content="(.*?)"/i);
+        
+        // --- Curiosity-Driven Data Points ---
+        const hasLoginForm = /type=["']password["']|name=["']password["']/i.test(html);
+        const isWorldPress = html.includes('wp-content') || html.includes('wp-includes');
+        const isWix = html.includes('wix.com') || html.includes('static.wixstatic');
+        
+        // Extract a few visible emails or phones as "Contact Footprints"
+        const emails = (html.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g) || []).slice(0, 2);
+        const phones = (html.match(/(\+?\d{1,3}[- ]?)?\d{10}/g) || []).slice(0, 2);
 
         return {
-            title: titleMatch ? titleMatch[1] : "",
-            description: descMatch ? descMatch[1] : "",
-            status: response.status
+            title: titleMatch ? titleMatch[1].trim() : "",
+            description: descMatch ? descMatch[1].trim() : "",
+            status: response.status,
+            curiosityTags: {
+                hasLoginForm,
+                platform: isWorldPress ? 'WordPress' : (isWix ? 'Wix' : 'Custom/Other'),
+                contactFootprint: [...new Set([...emails, ...phones])]
+            }
         };
     } catch (err) {
-        return null; // Silent fail if site unreachable
+        return null; 
     }
 }
 
@@ -126,7 +143,11 @@ async function resolveRedirects(url) {
 export async function analyzeLinks(text) {
   if (!text) return { signals: {}, metadata: {} };
 
-  const urlRegex = /https?:\/\/[^\s]+|www\.[^\s]+|[a-zA-Z0-9-]+\.(com|net|org|in|edu|gov|io|ly|co|gl|top|xyz|icu|biz|info|site|online|zip|mov)\b/gi;
+  // Refined extraction: 
+  // 1. Must (have protocol/www) OR 
+  // 2. Must (use known TLD) OR
+  // 3. Must (be a modern deployment subdomain)
+  const urlRegex = /(?:https?:\/\/|www\.)[\w\-]+\.[a-z]{2,12}(\/.*)?|[\w\-]+\.(com|net|org|in|co|io|ly|ai|me|info|biz|site|online|top|xyz|gov|ac|edu|ru|ua|tw|cn|uk|pk|jp|de|fr|br|ca|au|us|app|dev|page|link)\b|\b[\w\-]+\.(vercel\.app|github\.io|netlify\.app|pages\.dev|web\.app|firebaseapp\.com)\b/gi;
   const rawUrls = text.match(urlRegex) || [];
   
   const signals = {
@@ -152,6 +173,7 @@ export async function analyzeLinks(text) {
       
       const urlObj = new URL(normalizedUrl);
       const host = urlObj.hostname;
+      
       const getBrandName = (h) => {
           const p = h.split('.');
           if (p.length >= 2) {
@@ -190,7 +212,6 @@ export async function analyzeLinks(text) {
       if (meta) {
           linkAnalysis.liveMetadata = meta;
           // Check if Title contains a major brand that is NOT the current host
-          // Example: Host is "secure-login.xyz" but Title is "Login to Facebook"
           const suspiciousBrand = ["facebook", "amazon", "apple", "netflix", "google", "bank", "sbi", "paytm"].find(b => 
             meta.title.toLowerCase().includes(b) && !host.includes(b)
           );
@@ -233,7 +254,7 @@ export async function analyzeLinks(text) {
 
       // 8. Typosquatting (Against Expanded List)
       TRUSTED_DOMAINS.forEach(trusted => {
-        const trustedBrand = getBrandName(trusted);
+        const trustedBrand = getBrandName(trusted.domain);
         const distance = levenshteinDistance(currentBrand, trustedBrand);
         if (distance > 0 && distance <= 2 && currentBrand.length > 3) {
            signals.typosquatting = 1;
@@ -261,7 +282,7 @@ export async function analyzeLinks(text) {
 
       detectedLinks.push(linkAnalysis);
     } catch (e) {
-      // Skip invalid
+      // Skip invalid quietly
     }
   }));
 

@@ -60,5 +60,15 @@
         "trade offer": 15,
         "cryptocurrency giveaway": 30,
         "btc doubler": 35
+    },
+    "recruitment_scams": {
+        "training fee": 40,
+        "registration fee": 35,
+        "security deposit": 30,
+        "documentation charges": 25,
+        "laptop processing": 25,
+        "internship certificate fee": 35,
+        "refundable deposit": 25,
+        "hr round booking": 20
     }
 }

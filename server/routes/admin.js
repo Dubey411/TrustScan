@@ -2,8 +2,12 @@ import express from "express";
 import Scan from "../models/Scan.js";
 import User from "../models/User.js";
 import TrustEntity from "../models/TrustEntity.js";
+import { verifyAdmin } from "../middlewares/auth.js";
 
 const router = express.Router();
+
+// Apply admin verification to ALL routes in this file
+router.use(verifyAdmin);
 
 /**
  * Get overall platform statistics

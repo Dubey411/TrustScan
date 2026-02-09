@@ -1,5 +1,19 @@
 [
     {
+        "id": "EMERGING_THREAT_DETECTION",
+        "riskLevel": "medium",
+        "category": "emergingRiskSource",
+        "reason": "Network Alert: This entity is on our active verification list for suspicious behavioral patterns.",
+        "impliedRisk": 65,
+        "logic": {
+            "and": [
+                {
+                    "hasSignal": "emergingRiskSource"
+                }
+            ]
+        }
+    },
+    {
         "id": "BUSINESS_CONTEXT_MISMATCH",
         "riskLevel": "high",
         "category": "businessContextMismatch",
