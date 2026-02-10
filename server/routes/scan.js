@@ -123,28 +123,43 @@ router.post("/scan", upload.single('file'), async (req, res) => {
     }
 
 
-    // --- PRE-ENTRY: Check Deep Scan Permissions ---
+    // --- PRE-ENTRY: Tier & Permission Logic ---
     let ocrDepth = 'basic';
+
     if (depth === 'deep') {
         if (userId) {
             const user = await User.findOne({ firebaseUid: userId });
-            // New logic: 3 free scans per month mentioned by user
-            // For now we check if credits > 0. If user is new, we might need a way to grant initial 3 credits.
             if (user && user.credits > 0) {
-                console.log(`💎 [Premium] Deep Scan active. Indexing 10+ pages.`);
+                console.log(`💎 [Premium] Deep Scan active. Full Intelligence Enabled.`);
                 user.credits -= 1;
                 await user.save();
-                analysisLayer = 2;
+                analysisLayer = 3;
                 creditsConsumed = 1;
                 ocrDepth = 'deep';
             } else {
-                console.log(`🔒 [Basic] No credits for Deep Scan. Scaling down.`);
-                depth = 'basic'; // Fallback
+                console.log(`🔒 [Limit] No credits for Deep Scan. Scaling to Standard.`);
+                depth = 'standard'; 
             }
         } else {
-            console.log(`👤 [Basic] Guest cannot use Deep Scan. Scaling down.`);
-            depth = 'basic'; // Fallback
+            console.log(`👤 [Guest] Guest cannot use Deep Scan. Scaling to Basic.`);
+            depth = 'basic';
         }
+    }
+
+    if (depth === 'standard') {
+        if (userId) {
+            console.log(`🛠️ [Standard] Logged-in User. Level 2 Intelligence Enabled.`);
+            analysisLayer = 2;
+            ocrDepth = 'standard';
+        } else {
+            console.log(`👤 [Guest] Guest cannot use Standard. Scaling to Basic.`);
+            depth = 'basic';
+        }
+    }
+
+    if (depth === 'basic') {
+        analysisLayer = 1;
+        ocrDepth = 'basic';
     }
 
     // Ensure fallback values if body parameters were missing initially
@@ -181,14 +196,16 @@ router.post("/scan", upload.single('file'), async (req, res) => {
     }
 
 
-    // 2. Run Unified India Fraud Confidence Engine (Combined Logic)
-    const result = await runRules(content, externalSignals, trustSignals, senderId);
+    // 2. Run Unified India Fraud Confidence Engine (Intelligence Layering)
+    const result = await runRules(content, externalSignals, trustSignals, senderId, analysisLayer);
 
     let finalRisk = result.riskScore || 0;
     
-    // Deep Scan accuracy multiplier
-    if (analysisLayer === 2) {
-        finalRisk = Math.min(100, finalRisk * 1.15); // L2 is 15% more sensitive
+    // Depth sensitivity adjustments
+    if (analysisLayer === 3) {
+        finalRisk = Math.min(100, finalRisk * 1.15); // Deep is 15% more sensitive
+    } else if (analysisLayer === 2) {
+        finalRisk = Math.min(100, finalRisk * 1.05); // Standard is 5% more sensitive
     }
 
 
@@ -236,9 +253,16 @@ router.post("/scan", upload.single('file'), async (req, res) => {
             if (hasInvalidId || hasMismatch) {
                 finalRisk = Math.max(finalRisk, 85); // High Risk for Fake ID or Spoof
             } else {
-                // All good
-                finalRisk = Math.min(finalRisk, 10);
-                result.flags.green.push("Verified Business Entity - Registered with MCA/GST");
+                // Verified Registration - but only mark SAFE if no Blacklist hit
+                const isKnownScam = result.signals?.knownScamSource || result.signals?.knownScamLink;
+                
+                if (!isKnownScam && finalRisk < 50) {
+                    finalRisk = Math.min(finalRisk, 10);
+                    result.flags.green.push("Verified Business Entity - Registered with MCA/GST");
+                } else if (isKnownScam) {
+                    finalRisk = Math.max(finalRisk, 95); // Blacklist OVERRIDES registration
+                    result.reasons.unshift("ALERT: This registered business is currently ON OUR BLACKLIST.");
+                }
             }
         }
     }

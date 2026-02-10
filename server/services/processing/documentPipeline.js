@@ -155,6 +155,7 @@ function extractStructures(text) {
 async function checkForFastPathFraud(text) {
     if (!text) return null;
     const lowerText = text.toLowerCase();
+    const fuzzyText = lowerText.replace(/[^a-z0-9]/g, '');
     
     // Fetch potential matches from DB
     const allEntities = await TrustEntity.find({}).lean();
@@ -166,7 +167,9 @@ async function checkForFastPathFraud(text) {
             const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             return new RegExp(`\\b${escaped}\\b`, 'i').test(lowerText);
         }
-        return lowerText.includes(name);
+        
+        const fuzzyName = name.replace(/[^a-z0-9]/g, '');
+        return fuzzyText.includes(fuzzyName);
     };
 
     // 1. Check Blacklist (Red Flag)
@@ -203,14 +206,16 @@ export async function runDocumentPipeline(fileBuffer, mimeType, depth = 'basic')
             pipelineResult.docType = pdfData.docType;
             pipelineResult.totalPages = pdfData.pages.length;
 
-            // ADAPTIVE DEPTH: Toggle between Basic and Premium (Deep) limits
-            const isDeep = depth === 'deep';
-            let MAX_PAGES = 3; // Default basic scanned
+            // ADAPTIVE DEPTH: Toggle between Basic, Standard and Deep limits
+            let MAX_PAGES = 3; 
             
-            if (pdfData.docType === 'SCANNED') {
-                MAX_PAGES = isDeep ? 15 : 3;
+            if (depth === 'deep') {
+                MAX_PAGES = pdfData.docType === 'SCANNED' ? 15 : 25;
+            } else if (depth === 'standard') {
+                MAX_PAGES = pdfData.docType === 'SCANNED' ? 5 : 10;
             } else {
-                MAX_PAGES = isDeep ? 25 : 8;
+                // Basic
+                MAX_PAGES = pdfData.docType === 'SCANNED' ? 3 : 5;
             }
 
             const targetPages = pdfData.pages.slice(0, MAX_PAGES);

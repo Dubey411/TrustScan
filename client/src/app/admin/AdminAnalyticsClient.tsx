@@ -89,24 +89,26 @@ const AdminAnalyticsClient = () => {
         const token = await user.getIdToken();
         const headers = { 'Authorization': `Bearer ${token}` };
 
-        const [statsRes, chartRes, aiRes] = await Promise.all([
+        const [statsRes, chartRes, aiRes, entitiesRes] = await Promise.all([
           fetch(`${API_BASE_URL}/admin/stats`, { headers }),
           fetch(`${API_BASE_URL}/admin/chart-data`, { headers }),
-          fetch(`${API_BASE_URL}/admin/ai-intelligence`, { headers })
+          fetch(`${API_BASE_URL}/admin/ai-intelligence`, { headers }),
+          fetch(`${API_BASE_URL}/admin/entities`, { headers })
         ]);
+
+        if (statsRes.status === 401 || chartRes.status === 401) {
+          console.error("Admin Access Denied: 401 Unauthorized");
+        }
 
         const statsData = await statsRes.json();
         const chartData = await chartRes.json();
         const aiData = await aiRes.json();
-        
-        // Fetch entities separately or together
-        const entitiesRes = await fetch(`${API_BASE_URL}/admin/entities`, { headers });
         const entitiesData = await entitiesRes.json();
 
         setStats(statsData);
-        setChartData(chartData);
-        setAiIntelligence(aiData);
-        setEntities(entitiesData);
+        if (Array.isArray(chartData)) setChartData(chartData);
+        if (aiData) setAiIntelligence(aiData);
+        if (Array.isArray(entitiesData)) setEntities(entitiesData);
       } catch (err) {
         console.error("Admin fetch error:", err);
       } finally {
@@ -178,7 +180,7 @@ const AdminAnalyticsClient = () => {
   }
 
   const renderGrowthChart = (data: ChartDay[]) => {
-    if (data.length < 2) return <div className="h-40 flex items-center justify-center text-muted-foreground">Waiting for more data...</div>;
+    if (!Array.isArray(data) || data.length < 2) return <div className="h-40 flex items-center justify-center text-muted-foreground">Waiting for more data...</div>;
 
     const maxVal = Math.max(...data.map(d => d.count), 1);
     const height = 150;
@@ -244,15 +246,15 @@ const AdminAnalyticsClient = () => {
           <div className="flex flex-wrap gap-4">
              <div className="bg-card border border-border px-6 py-3 rounded-2xl shadow-sm min-w-[120px]">
                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Gross Scans</p>
-                <p className="text-2xl font-black text-foreground">{stats?.totalScans.toLocaleString() || 0}</p>
+                <p className="text-2xl font-black text-foreground">{stats?.totalScans?.toLocaleString() || 0}</p>
              </div>
              <div className="bg-primary/5 border border-primary/20 px-6 py-3 rounded-2xl shadow-sm min-w-[120px]">
                 <p className="text-[10px] font-bold text-primary uppercase tracking-wider">Verified Users</p>
-                <p className="text-2xl font-black text-primary">{stats?.registeredUsers.toLocaleString() || 0}</p>
+                <p className="text-2xl font-black text-primary">{stats?.registeredUsers?.toLocaleString() || 0}</p>
              </div>
              <div className="bg-slate-50 border border-slate-200 px-6 py-3 rounded-2xl shadow-sm min-w-[120px]">
                 <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Guest Activities</p>
-                <p className="text-2xl font-black text-slate-700">{stats?.guestScans.toLocaleString() || 0}</p>
+                <p className="text-2xl font-black text-slate-700">{stats?.guestScans?.toLocaleString() || 0}</p>
              </div>
           </div>
         </div>
@@ -297,7 +299,7 @@ const AdminAnalyticsClient = () => {
                 </div>
                 {renderGrowthChart(chartData)}
                 <div className="flex justify-between mt-4 text-[10px] font-bold text-muted-foreground uppercase">
-                  {chartData.map((d, i) => (
+                  {Array.isArray(chartData) && chartData.map((d, i) => (
                     <span key={i}>{i === 0 || i === chartData.length-1 ? d._id : i % 3 === 0 ? d._id.split('-')[2] : ''}</span>
                   ))}
                 </div>
@@ -314,7 +316,7 @@ const AdminAnalyticsClient = () => {
                       Beyond our <span className="text-primary font-bold">{stats?.registeredUsers || 0} verified users</span>, we've enabled <span className="text-slate-700 font-bold">{stats?.guestScans || 0} guest scans</span>, expanding our safety footprint across the global ecosystem.
                     </p>
                     <p>
-                      Security analysis shows that <span className="text-red-600 font-bold">{stats?.statusStats['fraud'] || 0} fraudulent attempts</span> have been neutralized. 
+                      Security analysis shows that <span className="text-red-600 font-bold">{stats?.statusStats?.['fraud'] || 0} fraudulent attempts</span> have been neutralized. 
                       Currently, {Math.round(((stats?.guestScans || 0) / (stats?.totalScans || 1)) * 100)}% of our database intelligence is powered by anonymous public verifications.
                     </p>
                   </div>
@@ -350,14 +352,14 @@ const AdminAnalyticsClient = () => {
                            <div className="p-2 bg-red-500/20 rounded-lg"><Icon name="NoSymbolIcon" size={18} className="text-red-500" /></div>
                            <span className="text-sm font-bold">Fraud/Scam</span>
                         </div>
-                        <span className="text-xl font-black text-red-500">{stats?.statusStats['fraud'] || 0}</span>
+                        <span className="text-xl font-black text-red-500">{stats?.statusStats?.['fraud'] || 0}</span>
                      </div>
                      <div className="flex items-center justify-between p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl">
                         <div className="flex items-center gap-3">
                            <div className="p-2 bg-amber-500/20 rounded-lg"><Icon name="ExclamationTriangleIcon" size={18} className="text-amber-500" /></div>
                            <span className="text-sm font-bold">Risky/Suspicious</span>
                         </div>
-                        <span className="text-xl font-black text-amber-500">{stats?.statusStats['suspicious'] || 0}</span>
+                        <span className="text-xl font-black text-amber-500">{stats?.statusStats?.['suspicious'] || 0}</span>
                      </div>
                   </div>
                </div>

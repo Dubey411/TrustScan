@@ -140,7 +140,7 @@ async function resolveRedirects(url) {
 /**
  * Extracts URLs and performs heuristic analysis
  */
-export async function analyzeLinks(text) {
+export async function analyzeLinks(text, layer = 1) {
   if (!text) return { signals: {}, metadata: {} };
 
   // Refined extraction: 
@@ -196,63 +196,59 @@ export async function analyzeLinks(text) {
           liveMetadata: null
       };
 
-      // 1. Trusted Domain Check
+      // --- TIERED ANALYSIS LOGIC ---
+      
+      // L1: Basic (Regex-based only, skip live requests)
+      // L2: Standard (Resolve redirects)
+      // L3: Deep (Scrape metadata + redirects)
+
+      // 1. Trusted/Scam Checks (L1+)
       if (TRUSTED_DOMAINS.some(td => host === td.domain || host.endsWith('.' + td.domain))) {
           signals.trustedDomain = 1;
       }
 
-      // 1b. Known Scam Database Check (Blacklist)
       if (SCAM_LINKS.includes(host) || SCAM_LINKS.some(sl => host.endsWith('.' + sl))) {
           signals.knownScamLink = 1;
           linkAnalysis.flags.push('KNOWN_SCAM_DATABASE');
       }
 
-      // 2. LIVE METADATA SCAN (Catch Mismatched Content)
-      const meta = await fetchMetadata(normalizedUrl);
-      if (meta) {
-          linkAnalysis.liveMetadata = meta;
-          // Check if Title contains a major brand that is NOT the current host
-          const suspiciousBrand = ["facebook", "amazon", "apple", "netflix", "google", "bank", "sbi", "paytm"].find(b => 
-            meta.title.toLowerCase().includes(b) && !host.includes(b)
-          );
-          if (suspiciousBrand) {
-             signals.contentMismatch = 1;
-             linkAnalysis.flags.push('BRAND_CONTENT_MISMATCH');
+      // 2. LIVE METADATA SCAN (L3 ONLY - Deep)
+      if (layer >= 3) {
+          const meta = await fetchMetadata(normalizedUrl);
+          if (meta) {
+              linkAnalysis.liveMetadata = meta;
+              const suspiciousBrand = ["facebook", "amazon", "apple", "netflix", "google", "bank", "sbi", "paytm"].find(b => 
+                meta.title.toLowerCase().includes(b) && !host.includes(b)
+              );
+              if (suspiciousBrand) {
+                 signals.contentMismatch = 1;
+                 linkAnalysis.flags.push('BRAND_CONTENT_MISMATCH');
+              }
           }
       }
 
-      // 3. Punycode / Homograph Attack Detection
+      // 3. Structural Flags (L1+)
       if (host.includes('xn--')) {
           signals.punycodeHomograph = 1;
           linkAnalysis.flags.push('HOMOGRAPH_ATTACK');
       }
-
-      // 4. Subdomain Depth Abuse
-      const parts = host.split('.');
       if (parts.length > 4) {
           signals.subdomainAbuse = 1;
           linkAnalysis.flags.push('EXCESSIVE_SUBDOMAINS');
       }
-
-      // 5. IP Host Check
       if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host)) {
         signals.ipHost = 1;
         linkAnalysis.flags.push('IP_HOST');
       }
-
-      // 6. Path Obfuscation (@ trick, etc.)
       if (url.includes('@') && !url.startsWith('mailto:')) {
           signals.pathObfuscation = 1;
           linkAnalysis.flags.push('CREDENTIAL_OR_PATH_OBFUSCATION');
       }
-
-      // 7. Suspicious TLDs
       if (SUSPICIOUS_TLDS.some(tld => host.endsWith(tld))) {
         signals.suspiciousTld = 1;
         linkAnalysis.flags.push('SUSPICIOUS_TLD');
       }
 
-      // 8. Typosquatting (Against Expanded List)
       TRUSTED_DOMAINS.forEach(trusted => {
         const trustedBrand = getBrandName(trusted.domain);
         const distance = levenshteinDistance(currentBrand, trustedBrand);
@@ -262,8 +258,8 @@ export async function analyzeLinks(text) {
         }
       });
 
-      // 9. Shortener Resolution
-      if (isShortener(host)) {
+      // 4. Redirect Resolution (L2+)
+      if (isShortener(host) && layer >= 2) {
         signals.shortenerObfuscation = 1;
         linkAnalysis.flags.push('SHORTENER');
         
@@ -278,6 +274,10 @@ export async function analyzeLinks(text) {
                  linkAnalysis.flags.push('DANGEROUS_REDIRECT_TARGET');
             }
         }
+      } else if (isShortener(host)) {
+          // L1 just flags it as a shortener without resolving
+          signals.shortenerObfuscation = 1;
+          linkAnalysis.flags.push('SHORTENER_UNRESOLVED');
       }
 
       detectedLinks.push(linkAnalysis);

@@ -5,12 +5,12 @@ const HowItWorksSection = () => {
     {
       icon: 'DocumentTextIcon',
       title: 'Submit Details',
-      description: 'Paste job offer, internship details, suspicious links, or WhatsApp/Email messages into our secure scanning interface.',
+      description: 'Paste details for a fake job offer check, check if this link is safe, or analyze UPI fraud messages in our secure scanning interface.',
     },
     {
       icon: 'CpuChipIcon',
       title: 'AI Analysis',
-      description: 'Our advanced AI algorithms analyze patterns, verify company details, and cross-reference against known scam databases.',
+      description: 'Our advanced AI algorithms analyze patterns, perform CIN verification online, and cross-reference against known scam databases.',
     },
     {
       icon: 'ShieldCheckIcon',

@@ -1,5 +1,9 @@
 import admin from "firebase-admin";
 import dotenv from "dotenv";
+import fs from "fs";
+import path from "path";
+import os from "os";
+import { fileURLToPath } from 'url';
 
 dotenv.config();
 
@@ -13,7 +17,44 @@ if (!admin.apps.length) {
             });
             console.log("🛡️ [Auth] Firebase Admin initialized using cert file.");
         } 
-        // Option 2: Fallback for local development or encoded strings
+        // Option 2: Using encoded JSON string (Render/Deployment friendly)
+        else if (process.env.GOOGLE_CREDENTIAL_JSON || process.env.GOOGLE_CREDENTIALS_JSON) {
+            try {
+                const jsonStr = process.env.GOOGLE_CREDENTIAL_JSON || process.env.GOOGLE_CREDENTIALS_JSON;
+                const serviceAccount = JSON.parse(jsonStr);
+                
+                // Extremely robust private key normalization
+                let pk = serviceAccount.private_key || '';
+                pk = pk.replace(/\\n/g, '\n'); 
+                
+                // Extract base64 part and re-wrap to ensure clean headers
+                const pemMatch = pk.match(/-----BEGIN PRIVATE KEY-----([\s\S]*)-----END PRIVATE KEY-----/);
+                if (pemMatch) {
+                    const base64Content = pemMatch[1].replace(/\s/g, '');
+                    serviceAccount.private_key = `-----BEGIN PRIVATE KEY-----\n${base64Content}\n-----END PRIVATE KEY-----\n`;
+                } else {
+                    serviceAccount.private_key = pk.replace(/\\n/g, '\n');
+                }
+
+                // Temporary file strategy for better compatibility with internal Google Auth
+                const tempSaPath = path.join(os.tmpdir(), "trustscan-admin-sa.json");
+                fs.writeFileSync(tempSaPath, JSON.stringify(serviceAccount));
+                
+                // Use GOOGLE_APPLICATION_CREDENTIALS strategy
+                process.env.GOOGLE_APPLICATION_CREDENTIALS = tempSaPath;
+                
+                admin.initializeApp({
+                    credential: admin.credential.applicationDefault(),
+                    projectId: serviceAccount.project_id
+                });
+                
+                console.log("🛡️ [Auth] Firebase Admin initialized using GOOGLE_APPLICATION_CREDENTIALS.");
+            } catch (pErr) {
+                console.error("❌ [Auth] Failed to initialize with GOOGLE_CREDENTIALS_JSON:", pErr.message);
+                throw pErr;
+            }
+        }
+        // Option 3: Fallback for local development
         else {
             admin.initializeApp({
                 credential: admin.credential.applicationDefault()

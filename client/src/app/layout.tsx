@@ -4,6 +4,7 @@ import '../styles/index.css';
 import { ThemeProvider } from '@/components/providers/ThemeProvider';
 import { AuthProvider } from '@/context/AuthContext';
 import CookieConsent from '@/components/common/CookieConsent';
+import GoogleAdSense from '@/components/common/GoogleAdSense';
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -16,8 +17,8 @@ export const metadata: Metadata = {
     default: 'TrustScan AI | India\'s Leading Fraud Detection Engine',
     template: '%s | TrustScan AI'
   },
-  description: 'Instant verification for Indian SMS, CIN, GST, and Documents. Protect yourself from digital scams using advanced behavioral intelligence and RBI/MCA data signals.',
-  keywords: ['fraud detection', 'SMS header search', 'CIN verification India', 'GST verification', 'online scam protection', 'TrustScan AI', 'RBI VSPE search', 'job scam detector', 'India security tool'],
+  description: 'Instant verification for Indian SMS, CIN, GST, and Documents. Check fake job offers, is this link safe, and detect UPI fraud messages using advanced behavioral intelligence.',
+  keywords: ['fraud detection', 'SMS header search', 'CIN verification online', 'GST verification', 'is this link safe', 'fake job offer check', 'UPI fraud message', 'online scam protection', 'TrustScan AI'],
   authors: [{ name: 'TrustScan Team' }],
   creator: 'TrustScan AI',
   publisher: 'TrustScan AI India',
@@ -86,7 +87,7 @@ export default function RootLayout({
               "name": "TrustScan AI",
               "operatingSystem": "All",
               "applicationCategory": "SecurityApplication",
-              "description": "India's most advanced AI fraud detection engine for SMS Headers, Business CIN/GST verification, and Scam Script analysis.",
+              "description": "India's most advanced AI fraud detection engine. Perform a fake job offer check, verify if this link is safe, and detect UPI fraud messages instantly.",
               "offers": {
                 "@type": "Offer",
                 "price": "0",
@@ -111,6 +112,7 @@ export default function RootLayout({
           <AuthProvider>
             {children}
             <CookieConsent />
+            <GoogleAdSense />
           </AuthProvider>
         </ThemeProvider>
       </body>

@@ -75,6 +75,12 @@ export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfa
     }
   }, [isHydrated, user]);
 
+  useEffect(() => {
+    if (selectedScanType === 'link' || selectedScanType === 'company') {
+      setAnalysisDepth(user ? 'standard' : 'basic');
+    }
+  }, [selectedScanType, user]);
+
 
   useEffect(() => {
     setIsHydrated(true);
@@ -85,9 +91,9 @@ export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfa
       id: 'email',
       icon: 'EnvelopeIcon',
       title: 'Email/Message Scan',
-      description: 'Analyze suspicious emails, WhatsApp messages, or SMS content',
+      description: 'Analyze suspicious emails, UPI fraud messages, or SMS content',
       inputType: 'text',
-      placeholder: 'Paste the email or message content here...',
+      placeholder: 'Paste the email, UPI fraud message, or job offer here...',
       maxLength: 5000,
       buttonText: 'Analyze Message'
     },
@@ -95,20 +101,20 @@ export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfa
       id: 'company',
       icon: 'BuildingOffice2Icon',
       title: 'Company Verifier',
-      description: 'Validate business legitimacy via GSTIN, CIN, or Company Name',
+      description: 'Validate business legitimacy via GSTIN or CIN Verification Online',
       inputType: 'text',
-      placeholder: 'Enter Company Name, GSTIN (e.g. 29ABCDE1234F1Z5), or CIN...',
+      placeholder: 'Enter Company Name, GSTIN, or CIN for verification online...',
       maxLength: 500,
-      buttonText: 'Verify Business'
+      buttonText: 'Verify Entity'
     },
     {
       id: 'link',
       icon: 'LinkIcon',
       title: 'Link/URL Scan',
-      description: 'Check suspicious links for phishing attempts',
+      description: 'Check if this link is safe and detect phishing attempts',
       inputType: 'link',
-      placeholder: 'Enter URL (e.g. www.secure-banking.com)',
-      buttonText: 'Run Phishing analysis'
+      placeholder: 'Enter URL to check "is this link safe"...',
+      buttonText: 'Check Link Safety'
     },
     {
       id: 'document',
@@ -252,7 +258,7 @@ export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfa
                   India's Smartest AI <span className="text-primary italic">Fraud Detection</span> Engine
                 </h1>
                 <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-                  Verify Job Offers, SMS Headers, Business IDs (CIN/GST), and suspicious links instantly with 98.7% accuracy.
+                  Perform a <strong>fake job offer check</strong>, scan for <strong>UPI fraud messages</strong>, do <strong>CIN verification online</strong>, and check <strong>is this link safe</strong> instantly with 98.7% accuracy.
                 </p>
                 {error && (
                   <div className="mt-4 p-3 bg-red-100 border border-red-200 text-red-700 rounded-lg max-w-md mx-auto">
@@ -367,6 +373,7 @@ export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfa
                 )}
               </div>
 
+              {selectedScanType !== 'link' && selectedScanType !== 'company' && (
               <div className="hidden md:block mb-8 space-y-6">
                 <div>
                   <div className="flex items-center justify-between mb-3">
@@ -394,18 +401,39 @@ export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfa
                     </button>
 
                     <button
-                      className={`relative p-4 rounded-xl border-2 transition-all duration-300 text-left ${
+                      onClick={() => {
+                        if (user) {
+                          setAnalysisDepth('standard');
+                        } else {
+                          router.push('/login');
+                        }
+                      }}
+                      className={`relative p-4 rounded-xl border-2 transition-all duration-300 text-left group ${
                         analysisDepth === 'standard'
                           ? 'border-primary bg-primary/5 shadow-brand'
-                          : 'border-border bg-card hover:border-primary/50'
+                          : user
+                            ? 'border-border bg-card hover:border-primary/50'
+                            : 'border-muted bg-muted/20 opacity-70 cursor-not-allowed'
                       }`}
-                      onClick={() => setAnalysisDepth('standard')}
                     >
+                      <div className="absolute -top-3 -right-3 z-10 flex gap-1">
+                        {!user && (
+                          <span className="bg-muted-foreground text-white text-[10px] uppercase font-bold px-2 py-0.5 rounded-full shadow-sm tracking-wider">
+                            LOCKED
+                          </span>
+                        )}
+                      </div>
                       <div className="flex items-center gap-2 mb-1">
-                        <Icon name="EyeIcon" size={20} variant="solid" className="text-primary" />
-                        <span className="font-semibold text-foreground">Standard</span>
+                        <Icon name="EyeIcon" size={20} variant="solid" className={user ? "text-primary" : "text-muted-foreground"} />
+                        <span className={`font-semibold ${user ? "text-foreground" : "text-muted-foreground"}`}>Standard</span>
                       </div>
                       <p className="text-xs text-muted-foreground">Thorough analysis</p>
+                      
+                      {!user && (
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 rounded-xl">
+                          <span className="text-[10px] font-bold text-primary uppercase">Login to Unlock</span>
+                        </div>
+                      )}
                     </button>
 
                     <button
@@ -495,6 +523,7 @@ export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfa
                   </p>
                 </div>
               </div>
+              )}
 
               <div className="flex flex-col sm:flex-row gap-3">
                 <button
@@ -516,6 +545,7 @@ export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfa
                 </button>
 
                 {/* Mobile Specific Deep Verify Button */}
+                {selectedScanType !== 'link' && selectedScanType !== 'company' && (
                 <button 
                   onClick={() => router.push('/pricing-page')}
                   className="md:hidden flex-1 flex items-center justify-center space-x-2 px-6 py-4 bg-amber-500 text-white rounded-lg font-headline font-semibold hover:shadow-lg transition-all active:scale-[0.98]"
@@ -523,6 +553,7 @@ export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfa
                   <Icon name="BeakerIcon" size={20} variant="solid" />
                   <span>Deep Verify</span>
                 </button>
+                )}
 
                 <button
                   onClick={handleClear}

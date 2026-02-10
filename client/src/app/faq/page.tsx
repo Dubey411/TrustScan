@@ -4,23 +4,24 @@ import FooterSection from '../homepage/components/FooterSection';
 import Icon from '@/components/ui/AppIcon';
 
 export const metadata: Metadata = {
-  title: 'Frequently Asked Questions - TrustScan',
-  description: 'Common questions about how TrustScan works and how to protect yourself.',
+  title: 'FAQ - Fake Job Offer Check, Link Safety & CIN Verification',
+  description: 'Common questions about how to check fake job offers, verify if a link is safe, and detect UPI fraud messages using TrustScan AI.',
+  keywords: ['fake job offer check', 'is this link safe', 'UPI fraud message', 'CIN verification online', 'TrustScan FAQ'],
 };
 
 export default function FAQPage() {
   const faqs = [
     {
-      question: 'How does the scan work?',
-      answer: "We use a combination of OCR (Optical Character Recognition) to read document text and a multi-layered Rules Engine + Machine Learning model to detect patterns common in scams. It checks for financial demands, identity theft risks, and structural anomalies in official IDs.",
+      question: 'How does the fake job offer check work?',
+      answer: "We use a combination of OCR (Optical Character Recognition) to read document text and a multi-layered Rules Engine to detect fake job offers. It checks for financial demands, identity theft risks, and structural anomalies in official IDs.",
     },
     {
       question: 'Is my data safe?',
       answer: "Yes. We do not store your private documents permanently. Files are processed in memory and scanned for threats. We only keep anonymized 'signals' to improve our security model unless you explicitly report a fraud case.",
     },
     {
-      question: 'What is a "Confidence Score"?',
-      answer: "It reflects how certain our AI is about its verdict. A 100% score means we found undeniable proof of fraud (like a fake GST number). A lower score means multiple suspicious signals were found but manual verification is recommended.",
+      question: 'How do I know if this link is safe?',
+      answer: "Our 'Link/URL Scan' tool analyzes the URL for phishing patterns and malicious redirects. The 'Confidence Score' reflects how certain we are. A 100% score means we found undeniable proof of fraud (like a fake GST number).",
     },
     {
       question: 'Can you detect deepfake documents?',

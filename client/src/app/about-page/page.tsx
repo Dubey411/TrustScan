@@ -2,6 +2,14 @@ import Header from '@/components/common/Header';
 import FooterSection from '../homepage/components/FooterSection';
 import Icon from '@/components/ui/AppIcon';
 
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'About TrustScan | Fake Job Offer Check & UPI Fraud Detection',
+  description: 'Learn how TrustScan AI helps you with fake job offer checks, determining is this link safe, and CIN verification online.',
+  keywords: ['about trustscan', 'fake job offer check', 'UPI fraud message', 'is this link safe'],
+};
+
 export default function AboutPage() {
   const stats = [
     { label: 'Rules Processed', value: '100+', icon: 'ShieldExclamationIcon' },
@@ -20,7 +28,7 @@ export default function AboutPage() {
                 Combatting Digital Fraud with <span className="text-primary">Human-Centric AI</span>
             </h1>
             <p className="text-xl text-muted-foreground text-center mb-12 leading-relaxed">
-                In an era where digital job offers arrive via WhatsApp and PDF documents can be forged in seconds, TrustScan stands as the ultimate line of defense for the Indian youth.
+                In an era where digital job offers arrive via WhatsApp and <strong>UPI fraud messages</strong> can appear in seconds, TrustScan stands as the ultimate line of defense for the Indian youth.
             </p>
 
             <div className="grid md:grid-cols-3 gap-6 mb-20">

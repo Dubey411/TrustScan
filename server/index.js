@@ -16,16 +16,13 @@ const __dirname = path.dirname(__filename);
 
 dotenv.config();
 
-const tracePath = path.join(__dirname, 'trace.log');
 process.on('uncaughtException', (err) => {
-  fs.appendFileSync(tracePath, `[${new Date().toISOString()}] CRASH (Uncaught): ${err.message}\n${err.stack}\n`);
-  console.error('CRASH:', err.message);
+  console.error('CRASH (Uncaught Exception):', err.message, err.stack);
   process.exit(1);
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  fs.appendFileSync(tracePath, `[${new Date().toISOString()}] CRASH (Rejection): ${reason}\n`);
-  console.error('REJECTION:', reason);
+  console.error('CRASH (Unhandled Rejection):', reason);
 });
 
 const app = express();
@@ -49,13 +46,12 @@ app.use(cors({
 app.use(express.json());
 
 
-app.use("/api", scanRoute);
 app.use("/api/admin", adminRoute);
+app.use("/api", scanRoute);
 
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
-  fs.appendFileSync(tracePath, `[${new Date().toISOString()}] SERVER RESTART: Listening on port ${PORT}, PID=${process.pid}\n`);
   console.log(`🚀 Server running on port ${PORT} [ID: ${Date.now()}]`);
 });
       

@@ -70,8 +70,9 @@ function extractFeatures(text) {
  * @param {object} externalSignals - Signals from OCR/Vision layers
  * @param {object} trustSignals - Whitelist/Internal trust signals
  * @param {string} senderId - Optional SMS Header ID (Indian standard)
+ * @param {number} analysisLayer - 1 (Basic), 2 (Standard), 3 (Deep)
  */
-export async function runRules(content, externalSignals = {}, trustSignals = {}, senderId = null) {
+export async function runRules(content, externalSignals = {}, trustSignals = {}, senderId = null, analysisLayer = 1) {
   const reasons = [];
   const rulesFired = [];
 
@@ -144,10 +145,10 @@ export async function runRules(content, externalSignals = {}, trustSignals = {},
 
   // --- MISSION: NATURE OF LANGUAGE & BEHAVIORAL SIGNALS ---
   const scriptAnalysis = analyzeScamScript(content);
-  const activityAnalysis = await analyzeLinks(content);
+  const activityAnalysis = await analyzeLinks(content, analysisLayer);
   
   // --- MISSION: HARD IDENTIFICATION (CIN, Aadhaar, PAN, GST) ---
-  const entityAnalysis = await analyzeEntities(content);
+  const entityAnalysis = await analyzeEntities(content, analysisLayer);
   const smsAnalysis = senderId ? analyzeSmsHeader(senderId, content) : null;
   const hasStructuralAnomaly = detectStructuralAnomalies(content);
 
@@ -166,21 +167,22 @@ export async function runRules(content, externalSignals = {}, trustSignals = {},
   // --- MISSION: ENTITY RECOGNITION (RED/GREY LISTS) ---
   try {
       const lowerContent = content.toLowerCase();
-      
-      // Fetch potential matches from DB (using a broad search or pre-filtered names)
-      // Since we can't do a perfect "contains" check for 1000s of items in one query efficiently, 
-      // we'll optimize: Fetch all trust entities once into memory or cache if small.
-      // Small scale (<2000 items) we can keep in a local cache refreshed every 10 mins.
+      const fuzzyContent = lowerContent.replace(/[^a-z0-9]/g, '');
       
       const allEntities = await TrustEntity.find({}).lean();
       
       const redHit = allEntities.find(b => {
           if (b.category !== 'red_flag') return false;
           const entityName = b.nameLower;
+          
+          // Try exact word match for short names
           if (entityName.length < 4) {
               return new RegExp(`\\b${entityName}\\b`, 'i').test(lowerContent);
           }
-          return lowerContent.includes(entityName);
+          
+          // Try fuzzy match for longer names (ignoring punctuation/spaces)
+          const fuzzyEntity = entityName.replace(/[^a-z0-9]/g, '');
+          return fuzzyContent.includes(fuzzyEntity);
       });
 
       if (redHit) {
@@ -191,10 +193,13 @@ export async function runRules(content, externalSignals = {}, trustSignals = {},
       const greyHit = allEntities.find(g => {
           if (g.category !== 'grey_list') return false;
           const entityName = g.nameLower;
+          
           if (entityName.length < 4) {
               return new RegExp(`\\b${entityName}\\b`, 'i').test(lowerContent);
           }
-          return lowerContent.includes(entityName);
+          
+          const fuzzyEntity = entityName.replace(/[^a-z0-9]/g, '');
+          return fuzzyContent.includes(fuzzyEntity);
       });
 
       if (greyHit) {
@@ -250,8 +255,12 @@ export async function runRules(content, externalSignals = {}, trustSignals = {},
       if (mainLink.contactFootprint?.length > 0) finds.push(`${mainLink.contactFootprint.length} Contact Details`);
       
       const desc = finds.length > 0 ? ` (${finds.join(', ')})` : "";
-      reasons.unshift(`Live Site Analysis: Hosted on ${platform}${desc}.`);
+      reasons.unshift(`Intelligence Layer: Hosted on ${platform}${desc}.`);
   }
+
+  // --- ANALYSIS PERFORMANCE METRIC ---
+  const layerNames = { 1: "Basic", 2: "Standard", 3: "Deep" };
+  console.log(`🚀 [Inference] Depth: ${layerNames[analysisLayer] || 'Unknown'} (L${analysisLayer})`);
 
   const normalizedText = metadata.normalizedText;
 

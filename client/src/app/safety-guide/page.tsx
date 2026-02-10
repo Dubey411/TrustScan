@@ -4,14 +4,15 @@ import FooterSection from '../homepage/components/FooterSection';
 import Icon from '@/components/ui/AppIcon';
 
 export const metadata: Metadata = {
-  title: 'Safety Guide - TrustScan',
-  description: 'Learn how to identify and protect yourself from job scams and fraudulent documents.',
+  title: 'Safety Guide | Fake Job Offer Check & CIN Verification Online',
+  description: 'Learn how to perform a fake job offer check, ensure is this link safe, and do CIN verification online to protect yourself.',
+  keywords: ['safety guide', 'fake job offer check', 'CIN verification online', 'is this link safe'],
 };
 
 export default function SafetyGuidePage() {
   const safetyTips = [
     {
-      title: 'Never Pay for a Job',
+      title: 'Fake Job Offer Check: Never Pay',
       description: 'Legitimate employers will never ask you to pay for "training", "laptop security deposit", or "processing fees". If they ask for money, it is a scam.',
       icon: 'CurrencyRupeeIcon',
     },
@@ -26,8 +27,8 @@ export default function SafetyGuidePage() {
       icon: 'IdentificationIcon',
     },
     {
-      title: 'Verify via Official Portals',
-      description: 'Check the Corporate Identity Number (CIN) or GST on the Ministry of Corporate Affairs (MCA) portal before signing any offer letter.',
+      title: 'CIN Verification Online & Official Portals',
+      description: 'Check the Corporate Identity Number (CIN) or GST on the Ministry of Corporate Affairs (MCA) portal. Always perform CIN verification online before signing.',
       icon: 'BuildingOfficeIcon',
     },
   ];
@@ -87,8 +88,8 @@ export default function SafetyGuidePage() {
 
             {/* CTA */}
             <div className="text-center bg-primary rounded-3xl p-12 text-primary-foreground">
-              <h2 className="text-3xl font-headline font-bold mb-4">Got a suspicious offer?</h2>
-              <p className="mb-8 opacity-90 text-lg">Use our scanner to verify documents and links instantly.</p>
+              <h2 className="text-3xl font-headline font-bold mb-4">Need a Fake Job Offer Check?</h2>
+              <p className="mb-8 opacity-90 text-lg">Use our scanner to verify documents and check <strong>is this link safe</strong> instantly.</p>
               <a href="/scan-interface" className="inline-block bg-white text-primary px-8 py-4 rounded-full font-bold hover:shadow-lg transition-transform active:scale-95">
                 Scan Document Now
               </a>

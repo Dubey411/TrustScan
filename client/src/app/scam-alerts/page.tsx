@@ -4,8 +4,9 @@ import FooterSection from '../homepage/components/FooterSection';
 import Icon from '@/components/ui/AppIcon';
 
 export const metadata: Metadata = {
-  title: 'Live Scam Alerts - TrustScan',
-  description: 'Stay updated on the latest fraudulent schemes targeting students and job seekers.',
+  title: 'Live Scam Alerts | UPI Fraud Messages & Fake Job Offers',
+  description: 'Stay updated on the latest fraudulent schemes. Check fake job offers and UPI fraud messages targeting students.',
+  keywords: ['live scam alerts', 'UPI fraud message', 'fake job offer check', 'online fraud India'],
 };
 
 export default function ScamAlertsPage() {
@@ -81,7 +82,7 @@ export default function ScamAlertsPage() {
             </div>
 
             <div className="mt-12 bg-primary/5 border border-primary/20 rounded-2xl p-8 text-center">
-                <p className="text-foreground font-semibold mb-4 text-lg">Did you get a suspicious message today?</p>
+                <p className="text-foreground font-semibold mb-4 text-lg">Did you get a <strong>UPI fraud message</strong> or need a <strong>fake job offer check</strong>?</p>
                 <a href="/scan-interface" className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-full font-bold hover:shadow-brand transition-all">
                     Analyze it Now
                     <Icon name="MagnifyingGlassIcon" size={18} />

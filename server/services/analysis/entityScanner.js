@@ -239,7 +239,7 @@ function detectPartialMatchDiscrepancies(parsedCin, text) {
 /**
  * Analyzes text for business entities with Intel Layer
  */
-export async function analyzeEntities(text) {
+export async function analyzeEntities(text, layer = 1) {
   if (!text) return { signals: {}, metadata: {} };
 
   const rawGsts = text.match(GST_REGEX) || [];
@@ -250,11 +250,13 @@ export async function analyzeEntities(text) {
   let partialMatchAnomalyCount = 0;
   const entityDiscrepancies = [];
 
-  // Async processing for CINs to support External API
   for (const cin of rawCins) {
       const parsed = parseCIN(cin);
-      // Valid if parsed successfully (regex already checks format, but parsing double checks validity of state/dates)
-      // Additional structural check on years/state
+      // --- TIERED ANALYSIS LOGIC ---
+      // L1: Structural Check Only
+      // L2: Structural + Mock DB Check
+      // L3: Structural + Mock DB + Govt API Search
+
       const isStructurallyValid = parsed && STATE_CODES.includes(parsed.state) && parseInt(parsed.year) > 1900 && parseInt(parsed.year) <= new Date().getFullYear();
       
       let discrepancies = [];
@@ -271,8 +273,26 @@ export async function analyzeEntities(text) {
           entityDiscrepancies.push(...discrepancies);
       }
       
-      // Wait for enrichment (API or Mock)
-      const enrichment = await enrichCompanyData(cin, parsed);
+      // Lookups based on Layer
+      let enrichment = null;
+      if (layer >= 3) {
+          // L3: Try Real API
+          enrichment = await enrichCompanyData(cin, parsed);
+      } else if (layer >= 2) {
+          // L2: Try Mock DB Only (Bypass real API to save costs/time)
+          if (MOCK_COMPANY_DB[cin]) {
+              enrichment = { ...MOCK_COMPANY_DB[cin], source: "MCA_MOCK" };
+          } else {
+              // Simulated Fallback for L2 Standard
+              const stateName = STATE_CODES.find(s => s === parsed.state) || parsed.state;
+              enrichment = {
+                  name: `ENTITY_${cin.substring(15)}`, 
+                  status: "Unverified (L2 Standard)",
+                  address: `Registered in ${stateName}`,
+                  source: "CIN_DECODE"
+              };
+          }
+      }
 
       detectedEntities.push({
           type: 'CIN',
@@ -286,12 +306,22 @@ export async function analyzeEntities(text) {
       });
   }
 
-  // Fallback: If no IDs found, try treating text as Company Name
-  if (detectedEntities.length === 0 && text.length < 100 && text.length > 3) {
+  // Fallback: Name Search (L2+ Standard/Deep Only)
+  if (detectedEntities.length === 0 && text.length < 100 && text.length > 3 && layer >= 2) {
        const cleanName = text.trim();
-       // Only search if it looks like a name (no newlines implies single line input)
        if (!cleanName.includes('\n')) {
-           const nameResult = await searchCompanyByName(cleanName);
+           // Search only in Mock for L2, Search Real for L3
+           let nameResult = null;
+           if (layer >= 3) {
+               nameResult = await searchCompanyByName(cleanName);
+           } else {
+               // Mock Search for L2
+               const mockEntry = Object.entries(MOCK_COMPANY_DB).find(([cin, data]) => data.name.includes(cleanName.toUpperCase()));
+               if (mockEntry) {
+                   nameResult = { ...mockEntry[1], cin: mockEntry[0] };
+               }
+           }
+
            if (nameResult) {
                detectedEntities.push({
                    type: 'CIN',
@@ -303,13 +333,11 @@ export async function analyzeEntities(text) {
                    discrepancies: [],
                    label: 'Company Found via Name Search'
                });
-               // Update signal counts virtually
-               if (nameResult.cin) rawCins.push(nameResult.cin);
            }
        }
   }
 
-  // GST Logic (Sync)
+  // GST Logic (Sync - L1+)
   rawGsts.forEach(gst => {
       const isValid = validateGSTChecksum(gst);
       if (!isValid) invalidBusinessIdCount++;
