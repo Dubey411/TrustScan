@@ -35,6 +35,10 @@ const trustEntitySchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  associatedIdentifiers: {
+    type: [String], // Store phone numbers, upi_ids, or domains
+    index: true
+  },
   evidence: [String],
   lastOccurrence: {
     type: Date,

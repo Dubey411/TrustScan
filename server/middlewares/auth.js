@@ -10,59 +10,51 @@ dotenv.config();
 // Initialize Firebase Admin only once
 if (!admin.apps.length) {
     try {
-        // Option 1: Using private key file (Preferred for Production)
+        let serviceAccountValue = process.env.GOOGLE_CREDENTIALS_JSON || process.env.GOOGLE_CREDENTIAL_JSON;
+        
+        // Option 1: Using private key file
         if (process.env.FIREBASE_SERVICE_ACCOUNT_PATH) {
             admin.initializeApp({
                 credential: admin.credential.cert(process.env.FIREBASE_SERVICE_ACCOUNT_PATH)
             });
             console.log("🛡️ [Auth] Firebase Admin initialized using cert file.");
         } 
-        // Option 2: Using encoded JSON string (Render/Deployment friendly)
-        else if (process.env.GOOGLE_CREDENTIAL_JSON || process.env.GOOGLE_CREDENTIALS_JSON) {
+        // Option 2: Using JSON string (Render friendly)
+        else if (serviceAccountValue) {
             try {
-                const jsonStr = process.env.GOOGLE_CREDENTIAL_JSON || process.env.GOOGLE_CREDENTIALS_JSON;
-                const serviceAccount = JSON.parse(jsonStr);
-                
-                // Extremely robust private key normalization
-                let pk = serviceAccount.private_key || '';
-                pk = pk.replace(/\\n/g, '\n'); 
-                
-                // Extract base64 part and re-wrap to ensure clean headers
-                const pemMatch = pk.match(/-----BEGIN PRIVATE KEY-----([\s\S]*)-----END PRIVATE KEY-----/);
-                if (pemMatch) {
-                    const base64Content = pemMatch[1].replace(/\s/g, '');
-                    serviceAccount.private_key = `-----BEGIN PRIVATE KEY-----\n${base64Content}\n-----END PRIVATE KEY-----\n`;
-                } else {
-                    serviceAccount.private_key = pk.replace(/\\n/g, '\n');
+                // CLEANUP: Remove potential surrounding quotes from Render env vars
+                let cleanJson = serviceAccountValue.trim();
+                if (cleanJson.startsWith("'") && cleanJson.endsWith("'")) {
+                    cleanJson = cleanJson.slice(1, -1);
+                } else if (cleanJson.startsWith('"') && cleanJson.endsWith('"')) {
+                    cleanJson = cleanJson.slice(1, -1);
                 }
 
-                // Temporary file strategy for better compatibility with internal Google Auth
-                const tempSaPath = path.join(os.tmpdir(), "trustscan-admin-sa.json");
-                fs.writeFileSync(tempSaPath, JSON.stringify(serviceAccount));
+                const serviceAccount = JSON.parse(cleanJson);
                 
-                // Use GOOGLE_APPLICATION_CREDENTIALS strategy
-                process.env.GOOGLE_APPLICATION_CREDENTIALS = tempSaPath;
-                
+                // Extremely robust private key normalization
+                if (serviceAccount.private_key) {
+                    serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+                }
+
                 admin.initializeApp({
-                    credential: admin.credential.applicationDefault(),
+                    credential: admin.credential.cert(serviceAccount),
                     projectId: serviceAccount.project_id
                 });
                 
-                console.log("🛡️ [Auth] Firebase Admin initialized using GOOGLE_APPLICATION_CREDENTIALS.");
+                console.log(`🛡️ [Auth] Firebase Admin initialized for project: ${serviceAccount.project_id}`);
             } catch (pErr) {
-                console.error("❌ [Auth] Failed to initialize with GOOGLE_CREDENTIALS_JSON:", pErr.message);
-                throw pErr;
+                console.error("❌ [Auth] JSON Parse Failure on GOOGLE_CREDENTIALS_JSON:", pErr.message);
+                // Fallback to applicationDefault
+                admin.initializeApp({ credential: admin.credential.applicationDefault() });
             }
         }
-        // Option 3: Fallback for local development
         else {
-            admin.initializeApp({
-                credential: admin.credential.applicationDefault()
-            });
-            console.log("🛡️ [Auth] Firebase Admin initialized using applicationDefault.");
+            admin.initializeApp({ credential: admin.credential.applicationDefault() });
+            console.log("🛡️ [Auth] Firebase Admin initialized with applicationDefault.");
         }
     } catch (error) {
-        console.error("❌ [Auth] Firebase Admin initialization failed:", error.message);
+        console.error("❌ [Auth] Critical Firebase Admin Init Error:", error.message);
     }
 }
 

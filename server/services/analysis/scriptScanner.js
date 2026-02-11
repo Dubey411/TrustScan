@@ -84,18 +84,45 @@ export function analyzeScamScript(text) {
         score += 20; 
     }
 
-    const finalScore = Math.min(100, score * comboMultiplier);
+    // 3. Urgency Velocity Calculation (Sentiment Slope)
+    // Measures if the pressure increases specifically at the end of the document.
+    let urgencyVelocity = 0;
+    const words = normalized.split(/\s+/);
+    if (words.length > 50) {
+        const lastThirdIndex = Math.floor(words.length * 0.7);
+        const firstTwoThirds = words.slice(0, lastThirdIndex).join(' ');
+        const lastThird = words.slice(lastThirdIndex).join(' ');
+
+        // Check density of urgency phrases in intro vs outro
+        const urgencyPhrases = Object.keys(PHRASES.urgency_escalation);
+        let introCount = 0;
+        let outroCount = 0;
+
+        urgencyPhrases.forEach(p => {
+            if (firstTwoThirds.includes(p)) introCount++;
+            if (lastThird.includes(p)) outroCount++;
+        });
+
+        // If the density in the final third is 2x the intro, that's high velocity (Pressure Tactic)
+        if (outroCount > (introCount * 2) && outroCount > 0) {
+            urgencyVelocity = 25; 
+        }
+    }
+
+    const finalScore = Math.min(100, (score * comboMultiplier) + urgencyVelocity);
     
     const detectedFlow = [];
     if (flowStages.fear) detectedFlow.push("Fear Trigger");
     if (flowStages.authority) detectedFlow.push("Authority Impersonation");
     if (flowStages.urgency) detectedFlow.push("Urgency Escalation");
     if (flowStages.action) detectedFlow.push("Action Request");
+    if (urgencyVelocity > 0) detectedFlow.push("Mounting Pressure Tactic");
 
     return {
         riskScore: finalScore,
         matches: matches.slice(0, 5),
         detectedFlow,
+        urgencyVelocity,
         confidence: stagesHit >= 2 ? (stagesHit >= 3 ? "Very High" : "High") : "Low"
     };
 }

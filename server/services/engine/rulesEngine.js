@@ -60,7 +60,8 @@ function extractFeatures(text) {
     emailCount: emails.length,
     normalizedText: cleanText.toLowerCase(),
     // ADVANCED: Remove ALL separators to catch P-A-Y-M-E-N-T, P.A.Y.M.E.N.T, etc.
-    fuzzyNormalizedText: rawText.toLowerCase().replace(/[^a-z0-9]/g, '')
+    fuzzyNormalizedText: rawText.toLowerCase().replace(/[^a-z0-9]/g, ''),
+    phones
   };
 }
 
@@ -164,41 +165,54 @@ export async function runRules(content, externalSignals = {}, trustSignals = {},
       emergingRiskSource: 0
   };
 
-  // --- MISSION: ENTITY RECOGNITION (RED/GREY LISTS) ---
+  // --- MISSION: ENTITY RECOGNITION (RED/GREY LISTS & TRUST CASCADE) ---
   try {
       const lowerContent = content.toLowerCase();
       const fuzzyContent = lowerContent.replace(/[^a-z0-9]/g, '');
+      const phones = metadata.phones || [];
       
+      // Fetch all entities to check both names AND associated identifiers (Trust Cascade)
       const allEntities = await TrustEntity.find({}).lean();
       
+      // 1. Check for Name Matches (Red Flag)
       const redHit = allEntities.find(b => {
           if (b.category !== 'red_flag') return false;
           const entityName = b.nameLower;
-          
-          // Try exact word match for short names
-          if (entityName.length < 4) {
-              return new RegExp(`\\b${entityName}\\b`, 'i').test(lowerContent);
-          }
-          
-          // Try fuzzy match for longer names (ignoring punctuation/spaces)
           const fuzzyEntity = entityName.replace(/[^a-z0-9]/g, '');
+          
+          if (fuzzyEntity.length < 10) {
+              const escaped = entityName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+              return new RegExp(`\\b${escaped}\\b`, 'i').test(lowerContent);
+          }
           return fuzzyContent.includes(fuzzyEntity);
       });
 
-      if (redHit) {
+      // 2. Trust Cascade: Check for Identifier Matches (Phones/URLs)
+      // This catches scammers even if they change the company name.
+      const cascadeHit = allEntities.find(e => {
+          return e.associatedIdentifiers?.some(id => {
+              const cleanId = id.replace(/[^a-z0-9]/g, '');
+              // Check if any extracted phone or URL matches a known scam identifier
+              return phones.some(p => p.includes(cleanId)) || lowerContent.includes(cleanId);
+          });
+      });
+
+      if (redHit || cascadeHit) {
+          const matchedName = redHit?.name || cascadeHit?.name;
           signals.knownScamSource = 1;
-          reasons.push(`DATABASE MATCH: Associated with known entity "${redHit.name}"`);
+          reasons.push(`TRUST CASCADE: Associated with ${matchedName} via shared credentials (phone/infrastructure)`);
       }
 
+      // 3. Grey List Check
       const greyHit = allEntities.find(g => {
           if (g.category !== 'grey_list') return false;
           const entityName = g.nameLower;
-          
-          if (entityName.length < 4) {
-              return new RegExp(`\\b${entityName}\\b`, 'i').test(lowerContent);
-          }
-          
           const fuzzyEntity = entityName.replace(/[^a-z0-9]/g, '');
+          
+          if (fuzzyEntity.length < 10) {
+              const escaped = entityName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+              return new RegExp(`\\b${escaped}\\b`, 'i').test(lowerContent);
+          }
           return fuzzyContent.includes(fuzzyEntity);
       });
 
@@ -214,26 +228,33 @@ export async function runRules(content, externalSignals = {}, trustSignals = {},
   // --- INTEGRATED MISSION VERDICT (Evidence First) ---
   let indiaConfidenceRisk = 0;
 
+  // 1. Evidence: Visual Paradox (OCR Variance)
+  if (externalSignals.ocrConfidenceParadox) {
+      indiaConfidenceRisk = Math.max(indiaConfidenceRisk, 75);
+      reasons.push("Visual Paradox: Significant variance in text clarity detected (Standard Body vs Variable Zone). Possible digital manipulation/collage.");
+  }
+
   // 1b. Evidence: Technical Anomalies (Software/Creation)
   if (externalSignals.softwareMetadata && !signals.trustedDomain) {
-      // Only flag if not from a trusted source
       reasons.push("Authentication Alert: Document metadata indicates creation via consumer design tools (e.g. Canva/Photoshop) rather than official ERP systems.");
   }
 
-  // 1. Evidence: Structural Faults (Invalid ID)
-  if (hasStructuralAnomaly) {
-      indiaConfidenceRisk = Math.max(indiaConfidenceRisk, 95);
-      reasons.push("Alert: Invalid Aadhaar/PAN structure detected in content");
+  // 1c. Evidence: Temporal Paradox (Old Entity vs Throwaway Infrastructure)
+  const mainCin = entityAnalysis.metadata?.detectedEntities?.find(e => e.type === 'CIN' && e.parsed);
+  if (mainCin && mainCin.parsed.year < (new Date().getFullYear() - 5)) {
+      const isThrowawayDomain = /(vercel\.app|github\.io|netlify\.app|pages\.dev|web\.app|firebaseapp\.com|form\.jotform)/i.test(content);
+      if (isThrowawayDomain) {
+          indiaConfidenceRisk = Math.max(indiaConfidenceRisk, 70);
+          reasons.push(`Temporal Paradox: Entity registered in ${mainCin.parsed.year} is using modern throwaway/instant infrastructure for official business.`);
+      }
   }
 
-  // 1c. Evidence: Missing Critical Official Identifiers (for Jobs)
-  if ((signals.jobContext || signals.jobScam) && !externalSignals.hasCin && !externalSignals.hasGst) {
-      reasons.push("Regulatory Warning: Internship/Job offer lacks mandatory corporate registration (CIN/GST) details.");
-  }
-
-  // 2. Evidence: Nature of Language
+  // 2. Evidence: Nature of Language (Urgency Velocity)
   if (scriptAnalysis.riskScore > 40) {
       indiaConfidenceRisk = Math.max(indiaConfidenceRisk, scriptAnalysis.riskScore);
+      if (scriptAnalysis.urgencyVelocity > 0) {
+          reasons.push("Behavioral Signal: High 'Urgency Velocity' (Psychological pressure mounting towards the end of document).");
+      }
       if (scriptAnalysis.detectedFlow.length > 1) {
           reasons.push(`Behavioral Flow: ${scriptAnalysis.detectedFlow.join(' → ')}`);
       }
@@ -349,8 +370,9 @@ export async function runRules(content, externalSignals = {}, trustSignals = {},
   if (signals.missingCriticalFields) prosecutionScore += 20;
   if (scriptAnalysis.riskScore > 50) prosecutionScore += 15;
   
-  // Specific Heavy Hitters
-  if (signals.knownScamSource || signals.knownScamLink) prosecutionScore = 1500; // Overwhelming Guilt
+  // Specific Heavy Hitters (Weighted, not hardcoded 100%)
+  if (signals.knownScamSource) prosecutionScore += 85; 
+  if (signals.knownScamLink) prosecutionScore += 90;
   if (signals.structuralAnomalies) prosecutionScore += 50;
   
   // B. Defense Case (Legitimacy Evidence - White Box)

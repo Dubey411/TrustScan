@@ -122,6 +122,8 @@ export async function runEntityLearning() {
                 const existing = await TrustEntity.findOne({ nameLower: lowerName });
                 
                 if (!existing || existing.category !== 'red_flag') {
+                    const phonesInScan = scan.content.match(/(\+?\d{1,3}[- ]?)?\d{10}/g) || [];
+                    
                     await TrustEntity.findOneAndUpdate(
                         { nameLower: lowerName },
                         { 
@@ -132,6 +134,9 @@ export async function runEntityLearning() {
                                 autoLearned: true,
                                 trustScore: totalScore,
                                 lastOccurrence: new Date()
+                            },
+                            $addToSet: {
+                                associatedIdentifiers: { $each: phonesInScan }
                             }
                         },
                         { upsert: true }
