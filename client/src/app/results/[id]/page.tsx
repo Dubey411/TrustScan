@@ -58,7 +58,7 @@ export default function SharedResultsPage() {
           <p className="text-muted-foreground text-center max-w-md mb-8">
             The scan result you are looking for might have expired, been deleted, or the link is incorrect.
           </p>
-          <a href="/homepage" className="px-8 py-3 bg-primary text-white rounded-xl font-bold hover:shadow-lg transition-all">
+          <a href="/" className="px-8 py-3 bg-primary text-white rounded-xl font-bold hover:shadow-lg transition-all">
             Back to Safety
           </a>
         </main>

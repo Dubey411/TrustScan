@@ -48,7 +48,7 @@ export default async function InfoPage({ params }: { params: Promise<{ slug: str
           </div>
 
           <div className="mt-12 group">
-            <a href="/homepage" className="text-primary font-bold flex items-center justify-center gap-2 hover:gap-3 transition-all">
+            <a href="/" className="text-primary font-bold flex items-center justify-center gap-2 hover:gap-3 transition-all">
                 <Icon name="ArrowLeftIcon" size={18} />
                 Back to Safety
             </a>

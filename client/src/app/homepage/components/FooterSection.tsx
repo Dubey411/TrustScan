@@ -51,7 +51,7 @@ const FooterSection = () => {
           
           {/* Brand */}
           <div className="lg:col-span-1">
-            <Link href="/homepage" className="flex items-center gap-2 mb-4">
+            <Link href="/" className="flex items-center gap-2 mb-4">
               <span className="text-xl font-headline font-bold text-primary">
                 TrustScan
               </span>
