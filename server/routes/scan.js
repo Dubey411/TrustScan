@@ -97,7 +97,7 @@ router.post("/scan", upload.single('file'), async (req, res) => {
   console.log('DEBUG: ENTERING SCAN ROUTE');
   console.log('📥 [Scan API] Received request - Type:', req.body.type || 'unknown');
   try {
-    let { content, type, userId, depth, location, senderId } = req.body;
+    let { content, type, userId, userEmail, depth, location, senderId } = req.body;
     let externalSignals = {};
     let trustSignals = {};
     let scanMeta = undefined;
@@ -129,7 +129,22 @@ router.post("/scan", upload.single('file'), async (req, res) => {
     let ocrDepth = 'basic';
 
     if (userId) {
-        const user = await User.findOne({ firebaseUid: userId });
+        // Use upsert pattern to ensure user always exists in DB
+        let user = await User.findOne({ firebaseUid: userId });
+        if (!user) {
+            console.log(`🆕 [User] No DB record for UID: ${userId}. Creating one on-the-fly.`);
+            try {
+                user = await User.create({
+                    firebaseUid: userId,
+                    email: userEmail || null,
+                    credits: 5,
+                    lastCreditRecharge: new Date()
+                });
+            } catch (createErr) {
+                console.error('⚠️ [User] Could not auto-create user record:', createErr.message);
+            }
+        }
+
         if (user) {
             const isAdmin = user.email === 'trustscan.ai@gmail.com';
 

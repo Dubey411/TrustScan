@@ -170,6 +170,7 @@ export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfa
         const scanData: any = { 
             type: selectedScanType, 
             userId: user?.uid || undefined,
+            userEmail: user?.email || undefined,
             depth: analysisDepth,
             senderId: senderId || undefined
         };
