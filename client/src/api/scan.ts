@@ -15,6 +15,7 @@ interface ScanRequest {
   content?: string;
   type: "message" | "link" | "document" | "email" | "job" | "company";
   userId?: string;
+  userEmail?: string;
   file?: File;
   depth?: 'basic' | 'standard' | 'deep';
   location?: any;
@@ -47,6 +48,7 @@ export async function performScan(data: ScanRequest): Promise<ScanResult> {
       formData.append("file", data.file);
       formData.append("type", data.type);
       if (data.userId) formData.append("userId", data.userId);
+      if (data.userEmail) formData.append("userEmail", data.userEmail);
       if (data.content) formData.append("content", data.content);
       if (data.depth) formData.append("depth", data.depth);
       if (data.location) formData.append("location", JSON.stringify(data.location));
