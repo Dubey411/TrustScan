@@ -8,10 +8,7 @@ function getGenAI() {
             console.error("❌ [Prophet AI] GEMINI_API_KEY is missing or invalid in environment variables!");
             return null;
         }
-        // Explicitly use v1 instead of v1beta to avoid model availability issues
-        genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY); // Default is usually v1 or v1beta depending on SDK
-        // In newer SDKs, we might need to specify it if it defaults to v1beta and fails.
-        // Actually, let's try gemini-1.5-flash-latest which is more robust.
+        genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     }
     return genAI;
 }
@@ -33,8 +30,7 @@ export async function generateAIInsight(text, riskScore, reasons, signals) {
     for (const modelName of modelsToTry) {
         try {
             console.log(`🤖 [Prophet AI] Attempting analysis with ${modelName}...`);
-            // Explicitly force v1 API version
-            const model = aiInstance.getGenerativeModel({ model: modelName }, { apiVersion: 'v1' });
+            const model = aiInstance.getGenerativeModel({ model: modelName });
             
             // Optimize context: Skip long legal filler, focus on intent
             const contextSnippet = text.substring(0, 3000); 
