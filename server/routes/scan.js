@@ -377,6 +377,7 @@ router.post("/scan", upload.single('file'), async (req, res) => {
     // 4. ✨ NEW: Prophet AI Insight (LLM Reasoning Layer)
     // ONLY trigger for DEEP scans as per user request
     let aiInsight = null;
+    console.log(`🔍 [AI Gate] analysisLayer=${analysisLayer}, depth=${depth}, hasKey=${!!(process.env.GEMINI_API_KEY && !process.env.GEMINI_API_KEY.includes('PASTE'))}`);
     if (analysisLayer === 3) {
         console.log(`🧠 [Prophet AI] Triggering Deep Analysis for: ${type}, Score: ${finalRisk}%`);
         try {
