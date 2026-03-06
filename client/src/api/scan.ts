@@ -7,6 +7,8 @@ export interface ScanResult {
   confidence: "Very High" | "High" | "Medium" | "Low";
   reasons: string[];
   recommendation?: any[];
+  aiInsight?: string; // Explicitly added
+  analysisLayer?: number;
 }
 
 interface ScanRequest {

@@ -48,5 +48,15 @@
         "name": "TrustedDomain",
         "domain": "bitbucket.org",
         "category": "trusted_tech"
+    },
+    {
+        "name": "TrustedDomain",
+        "domain": "edunetfoundation.org",
+        "category": "trusted_ngo"
+    },
+    {
+        "name": "TrustedDomain",
+        "domain": "ibm.com",
+        "category": "trusted_tech"
     }
 ]

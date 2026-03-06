@@ -163,13 +163,19 @@ async function checkForFastPathFraud(text) {
     // Helper for safe matching
     const isMatch = (entityName) => {
         const name = entityName.toLowerCase();
-        if (name.length < 5) {
-            const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            return new RegExp(`\\b${escaped}\\b`, 'i').test(lowerText);
+        
+        // 1. Strict Boundary Match (Best for short/medium names)
+        const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const boundaryRegex = new RegExp(`\\b${escaped}\\b`, 'i');
+        if (boundaryRegex.test(lowerText)) return true;
+
+        // 2. Fuzzy Match (Only for longer names to avoid accidential substring hits like "e for t")
+        if (name.length > 7) {
+            const fuzzyName = name.replace(/[^a-z0-9]/g, '');
+            return fuzzyText.includes(fuzzyName);
         }
         
-        const fuzzyName = name.replace(/[^a-z0-9]/g, '');
-        return fuzzyText.includes(fuzzyName);
+        return false;
     };
 
     // 1. Check Blacklist (Red Flag)

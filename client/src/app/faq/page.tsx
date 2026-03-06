@@ -6,6 +6,9 @@ import Icon from '@/components/ui/AppIcon';
 export const metadata: Metadata = {
   title: 'FAQ - Fake Job Offer Check, Link Safety & CIN Verification',
   description: 'Common questions about how to check fake job offers, verify if a link is safe, and detect UPI fraud messages using TrustScan AI.',
+  alternates: {
+    canonical: '/faq',
+  },
   keywords: ['fake job offer check', 'is this link safe', 'UPI fraud message', 'CIN verification online', 'TrustScan FAQ'],
 };
 

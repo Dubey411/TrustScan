@@ -84,18 +84,14 @@ const GPTDashboardLayout = ({
       }
 
       const newScan = {
-          id: scanId || `temp-${Date.now()}`, // Still use a temp but mark it so it fails validation gracefully
+          ...data.apiResult, // Spread for future-proofing
+          id: scanId || `temp-${Date.now()}`,
           target: data.target,
           result: resultStatus as 'safe' | 'risky' | 'scam',
           date: new Date().toLocaleDateString(),
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           scanType: data.type,
           confidence: data.apiResult?.riskScore || 0,
-          reasons: data.apiResult?.reasons || [],
-          flags: data.apiResult?.flags || { green: [], red: [] },
-          signals: data.apiResult?.signals || {},
-          scanMeta: data.apiResult?.scanMeta || undefined,
-          recommendation: data.apiResult?.recommendation || []
       };
 
       // Add to history

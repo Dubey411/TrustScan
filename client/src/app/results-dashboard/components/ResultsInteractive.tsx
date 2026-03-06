@@ -12,6 +12,8 @@ import ShareResults from './ShareResults';
 import DownloadReport from './DownloadReport';
 import LinkAnalysisCard from './LinkAnalysisCard';
 import { BusinessVerificationCard } from './BusinessVerificationCard';
+import ProphetInsightCard from './ProphetInsightCard';
+import { DatabaseHitCard } from './DatabaseHitCard';
 import TrustScanReportCard from './TrustScanReportCard';
 import { API_BASE_URL } from '@/api/scan';
 import Icon from '@/components/ui/AppIcon';
@@ -58,7 +60,7 @@ interface Feature {
     id: number | string;
     target: string;
     scanType?: string;
-    result: 'safe' | 'risky' | 'scam' | 'fraud' | 'suspicious';
+    result: 'safe' | 'risky' | 'scam' | 'fraud' | 'suspicious' | 'action_required';
     confidence?: number;
     date?: string;
     reasons?: string[];
@@ -86,13 +88,18 @@ interface Feature {
         host: string;
         flags: string[];
       }>;
-      entityCount?: number;
       detectedEntities?: Array<{
         type: string;
         value: string;
         isValid: boolean;
         portalUrl: string;
         label: string;
+      }>;
+      databaseHits?: Array<{
+        name: string;
+        category: 'red_flag' | 'grey_list';
+        type: string;
+        addedAt?: string;
       }>;
     };
     recommendation?: Action[];
@@ -106,12 +113,14 @@ interface Feature {
     };
     userRating?: number;
     userFeedback?: string | null;
+    aiInsight?: string;
   };
 
   showFeedback?: boolean;
 }
 
 const ResultsInteractive = ({ scanData, showFeedback = true }: ResultsInteractiveProps) => {
+  const [internalScanData, setInternalScanData] = useState<any>(scanData || null);
   const [isHydrated, setIsHydrated] = useState(false);
   const [actions, setActions] = useState<Action[]>([]);
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
@@ -120,23 +129,60 @@ const ResultsInteractive = ({ scanData, showFeedback = true }: ResultsInteractiv
   useEffect(() => {
     setIsHydrated(true);
     
+    // Load from localStorage if no prop provided (Dashboard Case)
+    if (!scanData) {
+        const saved = localStorage.getItem('latestScan');
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                // Map apiResult if it exists, otherwise use the object itself
+                setInternalScanData(parsed.apiResult || parsed);
+            } catch (e) {
+                console.error("Failed to parse latest scan", e);
+            }
+        }
+    } else {
+        // Fix: If scanData is the wrapper object from ScanInterface, extract the result
+        const normalizedData = (scanData as any).apiResult || scanData;
+        setInternalScanData(normalizedData);
+    }
+  }, [scanData]);
+
+  // 💡 ROBUST UNWRAPPER: Try to find the result object whether it is wrapped in apiResult or not
+  const getUnwrappedData = (data: any) => {
+      if (!data) return null;
+      // If it has apiResult, that's our real data
+      if (data.apiResult) return data.apiResult;
+      // If it has riskScore, it's already unwrapped
+      if (data.riskScore !== undefined || data.status) return data;
+      // If it doesn't have id/risk/status/apiResult, it might be the wrong object, but let's fallback
+      return data;
+  };
+
+  const activeScanData = getUnwrappedData(internalScanData || scanData);
+  const risk = activeScanData?.riskScore !== undefined ? activeScanData.riskScore : (Number(activeScanData?.confidence) || 50);
+  const finalResult = activeScanData?.result || activeScanData?.status || (risk < 35 ? "safe" : "scam");
+  const isSafe = finalResult === 'safe' || risk < 35;
+
+
+  useEffect(() => {
     // Check if feedback was already given
-    if (scanData?.userRating || scanData?.userFeedback) {
+    if (activeScanData?.userRating || activeScanData?.userFeedback) {
         setFeedbackSubmitted(true);
-        if (scanData.userRating) setHoverRating(scanData.userRating);
+        if (activeScanData.userRating) setHoverRating(activeScanData.userRating);
     } else {
         setFeedbackSubmitted(false);
         setHoverRating(0);
     }
 
-    if (scanData?.recommendation && scanData.recommendation.length > 0) {
-      setActions(scanData.recommendation);
-    } else if (scanData?.reasons && scanData.reasons.length > 0) {
-      setActions(generateFallbackActions(scanData.reasons));
+    if (activeScanData?.recommendation && activeScanData.recommendation.length > 0) {
+      setActions(activeScanData.recommendation);
+    } else if (activeScanData?.reasons && activeScanData.reasons.length > 0) {
+      setActions(generateFallbackActions(activeScanData.reasons));
     } else {
       setActions([]);
     }
-  }, [scanData?.id, scanData?.reasons]);
+  }, [activeScanData?.id, activeScanData?.reasons, activeScanData?.riskScore]);
 
   const handleToggleAction = (id: number) => {
     if (!isHydrated) return;
@@ -167,10 +213,16 @@ const ResultsInteractive = ({ scanData, showFeedback = true }: ResultsInteractiv
   // Dynamic Red Flags from API
   const dynamicRedFlags: RedFlag[] = scanData?.reasons?.map((reason, index) => {
       let category = 'Security Threat';
-      if (reason.includes('link') || reason.includes('URL') || reason.includes('domain')) category = 'Link Fraud';
-      if (reason.includes('brand') || reason.includes('typo')) category = 'Impersonation';
-      if (reason.includes('shortener')) category = 'Obfuscation';
-      if (reason.includes('financial') || reason.includes('fee')) category = 'Financial risk';
+      const lowReason = reason.toLowerCase();
+      
+      if (lowReason.includes('link') || lowReason.includes('url') || lowReason.includes('domain')) category = 'Link Fraud';
+      else if (lowReason.includes('brand') || lowReason.includes('typo') || lowReason.includes('impersonation')) category = 'Impersonation';
+      else if (lowReason.includes('shortener')) category = 'Obfuscation';
+      else if (lowReason.includes('financial') || lowReason.includes('fee') || lowReason.includes('payment')) category = 'Financial Risk';
+      else if (lowReason.includes('cin') || lowReason.includes('gst') || lowReason.includes('identity')) category = 'Identity Fraud';
+      else if (lowReason.includes('behavioral') || lowReason.includes('urgency') || lowReason.includes('pressure')) category = 'Behavioral Threat';
+      else if (lowReason.includes('network alert') || lowReason.includes('trust cascade')) category = 'Database Hit';
+      else if (lowReason.includes('business model') || lowReason.includes('verification note')) category = 'Trust Warning';
       
       return {
           id: index + 1,
@@ -189,10 +241,9 @@ const ResultsInteractive = ({ scanData, showFeedback = true }: ResultsInteractiv
       }
   ]);
 
-  const isSafe = scanData?.result === 'safe';
-  const isDocument = (scanData as any)?.scanType === 'document' || !!scanData?.scanMeta;
-  const isLink = (scanData as any)?.scanType === 'link' || (!!scanData?.metadata?.detectedLinks && scanData.metadata.detectedLinks.length > 0);
-  const isCompany = scanData?.scanType === 'company';
+  const isDocument = (activeScanData as any)?.scanType === 'document' || !!activeScanData?.scanMeta;
+  const isLink = (activeScanData as any)?.scanType === 'link' || (!!activeScanData?.metadata?.detectedLinks && activeScanData.metadata.detectedLinks.length > 0);
+  const isCompany = activeScanData?.scanType === 'company';
   
   const getSignalScore = (key: string, mockDefault: number) => {
     const signalValue = (scanData?.signals as any)?.[key] || 0;
@@ -266,27 +317,38 @@ const ResultsInteractive = ({ scanData, showFeedback = true }: ResultsInteractiv
       );
   }
 
+  console.log('📦 [ResultsInteractive] Rendering. Keys in activeScanData:', Object.keys(activeScanData || {}).join(', '));
+  console.log('🤖 AI INSIGHT CHECK:', !!activeScanData?.aiInsight);
+
   return (
     <div className="space-y-6 p-6 lg:p-8 max-w-6xl mx-auto">
       {/* Header with Target */}
       <div className="mb-2">
          <h2 className="text-xl font-headline font-bold text-foreground truncate">
-            {scanData?.target ? `Analysis for: "${scanData.target}"` : 'Scan Analysis Results'}
+            {activeScanData?.target ? `Analysis for: "${activeScanData.target}"` : 'Scan Analysis Results'}
          </h2>
-         {scanData?.date && <p className="text-sm text-muted-foreground">{scanData.date}</p>}
+         {activeScanData?.date && <p className="text-sm text-muted-foreground">{activeScanData.date}</p>}
       </div>
 
-
-      {/* Verdict Badge */}
+      {/* 🚀 Verdict Badge (Result at Top) */}
       <VerdictBadge 
-        verdict={scanData?.result || "scam"} 
-        score={scanData?.riskScore !== undefined ? scanData.riskScore : Number(scanData?.confidence) || 87} 
-        type={scanData?.scanType === 'link' ? 'link' : ((scanData as any)?.scanType === 'document' || scanData?.scanMeta ? 'document' : 'text')}
-        customLabel={scanData?.scanMeta?.verdictLabel}
+        verdict={
+            activeScanData?.metadata?.databaseHits?.some((h: any) => h.category === 'red_flag') 
+                ? 'blacklisted' 
+                : activeScanData?.metadata?.databaseHits?.some((h: any) => h.category === 'grey_list') 
+                    ? 'greylisted' 
+                    : finalResult as any
+        } 
+        score={activeScanData?.riskScore !== undefined ? activeScanData.riskScore : Number(activeScanData?.confidence) || 87} 
+        type={activeScanData?.scanType === 'link' ? 'link' : ((activeScanData as any)?.scanType === 'document' || activeScanData?.scanMeta ? 'document' : 'text')}
+        customLabel={activeScanData?.scanMeta?.verdictLabel}
       />
 
+      {/* 🔮 Deep Search result (Prophet AI Insight follows) */}
+      <ProphetInsightCard insight={activeScanData?.aiInsight || ""} />
+
       {/* Human Readable Report (Simple Guide) */}
-      <TrustScanReportCard report={scanData?.trustScanReport} />
+      <TrustScanReportCard report={activeScanData?.trustScanReport} />
 
       {/* Red Flag Warning Banner */}
       {!isSafe && displayFlags.length > 0 && (
@@ -304,7 +366,7 @@ const ResultsInteractive = ({ scanData, showFeedback = true }: ResultsInteractiv
       )}
 
       {/* Partial Analysis Warning */}
-      {isDocument && scanData?.scanMeta && (scanData.scanMeta.totalPages || 0) > (scanData.scanMeta.pagesAnalyzed || 0) && (
+      {isDocument && activeScanData?.scanMeta && (activeScanData.scanMeta.totalPages || 0) > (activeScanData.scanMeta.pagesAnalyzed || 0) && (
           <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 flex items-start gap-4 animate-fade-in mb-6">
               <Icon name="InformationCircleIcon" size={24} className="text-blue-500 mt-0.5 flex-shrink-0" />
               <div>
@@ -312,7 +374,7 @@ const ResultsInteractive = ({ scanData, showFeedback = true }: ResultsInteractiv
                       Partial Document Analysis
                   </h3>
                   <p className="text-sm text-foreground/80">
-                      Standard scan analyzed the first <strong>{scanData.scanMeta.pagesAnalyzed}</strong> pages of this {scanData.scanMeta.totalPages}-page document. For full multi-page verification, please upgrade to Premium.
+                      Standard scan analyzed the first <strong>{activeScanData.scanMeta.pagesAnalyzed}</strong> pages of this {activeScanData.scanMeta.totalPages}-page document. For full multi-page verification, please upgrade to Premium.
                   </p>
               </div>
           </div>
@@ -329,7 +391,7 @@ const ResultsInteractive = ({ scanData, showFeedback = true }: ResultsInteractiv
                     <h3 className="text-sm font-bold uppercase tracking-wider text-primary">Document-Specific Analysis</h3>
                 </div>
                 <div className="p-4 space-y-6">
-                    {scanData?.scanMeta && <ScanMetaCard meta={scanData.scanMeta} />}
+                    {activeScanData?.scanMeta && <ScanMetaCard meta={activeScanData.scanMeta} />}
                     <div className="bg-background/50 rounded-xl p-4 border border-primary/10">
                         <h4 className="text-xs font-bold text-muted-foreground uppercase mb-3 flex items-center gap-2">
                             <Icon name="DocumentTextIcon" size={14} />
@@ -338,11 +400,11 @@ const ResultsInteractive = ({ scanData, showFeedback = true }: ResultsInteractiv
                         <div className="grid grid-cols-2 gap-4 text-sm">
                             <div className="flex flex-col">
                                 <span className="text-muted-foreground text-xs">Source Method</span>
-                                <span className="font-semibold text-foreground">{scanData?.scanMeta?.source || 'Neural OCR'}</span>
+                                <span className="font-semibold text-foreground">{activeScanData?.scanMeta?.source || 'Neural OCR'}</span>
                             </div>
                             <div className="flex flex-col">
                                 <span className="text-muted-foreground text-xs">Characters Extracted</span>
-                                <span className="font-semibold text-foreground">{scanData?.scanMeta?.textLength || 0} chars</span>
+                                <span className="font-semibold text-foreground">{activeScanData?.scanMeta?.textLength || 0} chars</span>
                             </div>
                         </div>
                     </div>
@@ -350,9 +412,9 @@ const ResultsInteractive = ({ scanData, showFeedback = true }: ResultsInteractiv
             </div>
           )}
 
-          {isLink && scanData?.metadata?.detectedLinks && scanData.metadata.detectedLinks.length > 0 && (
+          {isLink && activeScanData?.metadata?.detectedLinks && activeScanData.metadata.detectedLinks.length > 0 && (
              <div className="border-t-4 border-sky-500 rounded-2xl overflow-hidden shadow-brand-lg transition-all hover:shadow-sky-500/10">
-                <LinkAnalysisCard detectedLinks={scanData.metadata.detectedLinks} />
+                <LinkAnalysisCard detectedLinks={activeScanData.metadata.detectedLinks} />
              </div>
           )}
 
@@ -363,35 +425,35 @@ const ResultsInteractive = ({ scanData, showFeedback = true }: ResultsInteractiv
                     Message Analysis
                  </h3>
                  <p className="text-foreground leading-relaxed">
-                    {scanData?.target || "No content provided for textual analysis."}
+                    {activeScanData?.target || "No content provided for textual analysis."}
                  </p>
             </div>
           )}
 
           
+          {/* Intelligence Database Hits (Red/Grey List) */}
+          {activeScanData?.metadata?.databaseHits && activeScanData.metadata.databaseHits.length > 0 && (
+            <DatabaseHitCard hits={activeScanData.metadata.databaseHits} />
+          )}
+
           {/* Company Verification Result - Replaces Red Flags/Threats for "company" scan */}
-          {(isCompany || (scanData?.metadata?.detectedEntities && scanData.metadata.detectedEntities.length > 0)) && (
+          {(isCompany || (activeScanData?.metadata?.detectedEntities && activeScanData.metadata.detectedEntities.length > 0)) && (
             <BusinessVerificationCard 
-                entities={scanData?.metadata?.detectedEntities || []} 
-                scanType={scanData?.scanType || (isCompany ? 'company' : 'text')}
-                target={scanData?.target}
+                entities={activeScanData?.metadata?.detectedEntities || []} 
+                scanType={activeScanData?.scanType || (isCompany ? 'company' : 'text')}
+                target={activeScanData?.target}
             />
           )}
 
           {!isCompany && (
             <>
-                <GreenFlagsList flags={scanData?.flags?.green || []} />
+                <GreenFlagsList flags={activeScanData?.flags?.green || []} />
                 <RedFlagsList flags={displayFlags} />
                 
-                <ThreatAnalysis categories={mockThreatCategories} />
+                {/* <ThreatAnalysis categories={mockThreatCategories} /> */}
             </>
           )}
-          {!isCompany && actions.length > 0 && (
-             <div id="recommended-actions" className="scroll-mt-24">
-                <RecommendedActions actions={actions} onToggleAction={handleToggleAction} />
-             </div>
-          )}
-        </div>
+         </div>
 
         {/* Right Column - Actions & Upgrades */}
         <div className="space-y-6">
@@ -406,11 +468,11 @@ const ResultsInteractive = ({ scanData, showFeedback = true }: ResultsInteractiv
                 {!feedbackSubmitted ? (
                 <div className="flex flex-col items-center gap-4">
                     <div className="flex items-center gap-2">
-                    {[1, 2, 3, 4, 5].map((star) => (
+                    {[1, 2, 3, 4, 5].map((starIdx) => (
                         <button
-                        key={star}
-                        onClick={() => submitFeedback(star)}
-                        onMouseEnter={() => setHoverRating(star)}
+                        key={starIdx}
+                        onClick={() => submitFeedback(starIdx)}
+                        onMouseEnter={() => setHoverRating(starIdx)}
                         onMouseLeave={() => setHoverRating(0)}
                         disabled={isSubmittingFeedback}
                         className={`p-1 transition-all duration-200 ${isSubmittingFeedback ? 'opacity-50 cursor-not-allowed' : 'hover:scale-110'}`}
@@ -418,8 +480,8 @@ const ResultsInteractive = ({ scanData, showFeedback = true }: ResultsInteractiv
                         <Icon 
                             name="StarIcon" 
                             size={32} 
-                            variant={(hoverRating || 0) >= star ? "solid" : "outline"}
-                            className={`${(hoverRating || 0) >= star ? "text-amber-400" : "text-muted-foreground"}`}
+                            variant={(hoverRating || 0) >= starIdx ? "solid" : "outline"}
+                            className={`${(hoverRating || 0) >= starIdx ? "text-amber-400" : "text-muted-foreground"}`}
                         />
                         </button>
                     ))}
@@ -441,14 +503,20 @@ const ResultsInteractive = ({ scanData, showFeedback = true }: ResultsInteractiv
           )}
 
           <ShareResults 
-            scanId={String(scanData?.id || "SCN-2026-001234")} 
-            verdict={(scanData?.result || "SCAM").toUpperCase()} 
+            scanId={String(activeScanData?.id || "SCN-2026-001234")} 
+            verdict={(activeScanData?.result || "SCAM").toUpperCase()} 
           />
           <DownloadReport 
             isPremium={false} 
-            scanId={String(scanData?.id || "SCN-2026-001234")} 
+            scanId={String(activeScanData?.id || "SCN-2026-001234")} 
           />
           <UpgradePrompt features={mockPremiumFeatures} />
+          
+          {!isCompany && actions.length > 0 && (
+             <div id="recommended-actions" className="scroll-mt-24 animate-fade-in">
+                <RecommendedActions actions={actions} onToggleAction={handleToggleAction} />
+             </div>
+          )}
         </div>
       </div>
     </div>);

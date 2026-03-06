@@ -117,7 +117,7 @@ const scanSchema = new mongoose.Schema({
   // -- Layer 2 & Monetization --
   analysisLayer: {
     type: Number,
-    enum: [1, 2],
+    enum: [1, 2, 3],
     default: 1
   },
   creditsConsumed: {
@@ -143,6 +143,10 @@ const scanSchema = new mongoose.Schema({
   smsHeaderAnalysis: {
     type: mongoose.Schema.Types.Mixed,
     required: false
+  },
+  aiInsight: {
+    type: String,
+    default: null
   },
   expiresAt: {
     type: Date,

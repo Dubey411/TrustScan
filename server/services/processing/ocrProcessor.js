@@ -63,7 +63,7 @@ export async function processDocument(fileBuffer, mimeType, originalName = "", d
 
     // --- Fast Path Verdict Mapping ---
     if (pipelineResult.signals.visual_anomalies.includes('KNOWN_SCAM_DATABASE_HIT')) {
-        externalSignals.contextMismatch = 1; // Trigger jobScam rules
+        externalSignals.knownScamSource = 1; 
     }
     if (pipelineResult.signals.visual_anomalies.includes('GREYLIST_ENTITY_DETECTED')) {
         externalSignals.urgency = 1; // Trigger verification rules

@@ -7,6 +7,9 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'About TrustScan | Fake Job Offer Check & UPI Fraud Detection',
   description: 'Learn how TrustScan AI helps you with fake job offer checks, determining is this link safe, and CIN verification online.',
+  alternates: {
+    canonical: '/about-page',
+  },
   keywords: ['about trustscan', 'fake job offer check', 'UPI fraud message', 'is this link safe'],
 };
 

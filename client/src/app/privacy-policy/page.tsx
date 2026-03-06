@@ -1,6 +1,15 @@
 import Header from '@/components/common/Header';
 import FooterSection from '../homepage/components/FooterSection';
 import Icon from '@/components/ui/AppIcon';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Privacy Policy | TrustScan AI - Your Data Safety',
+  description: 'Understand how TrustScan AI protects your data while performing fake job offer checks and link scans. We prioritize your privacy and minimize data retention.',
+  alternates: {
+    canonical: '/privacy-policy',
+  },
+};
 
 export default function PrivacyPolicy() {
   return (

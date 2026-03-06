@@ -72,6 +72,31 @@ async function fetchMetadata(url) {
     }
 }
 
+/**
+ * Fetches Domain Creation Date via RDAP (modern WHOIS)
+ */
+async function getDomainCreationDate(domain) {
+    try {
+        const controller = new AbortController();
+        const id = setTimeout(() => controller.abort(), 5000);
+
+        const response = await fetch(`https://rdap.org/domain/${domain}`, {
+            signal: controller.signal,
+            headers: { 'Accept': 'application/json' }
+        });
+        clearTimeout(id);
+
+        if (!response.ok) return null;
+        const data = await response.json();
+
+        // RDAP events: looking for 'registration' or 'creation'
+        const registrationEvent = data.events?.find(e => e.eventAction === 'registration' || e.eventAction === 'creation');
+        return registrationEvent ? registrationEvent.eventDate : null;
+    } catch (err) {
+        return null;
+    }
+}
+
 const isShortener = (host) => {
   const shorteners = [
     'bit.ly', 't.co', 'goo.gl', 'tinyurl.com', 'is.gd', 'buff.ly', 'adf.ly', 'bit.do', 'mcaf.ee', 'su.pr',
@@ -147,8 +172,22 @@ export async function analyzeLinks(text, layer = 1) {
   // 1. Must (have protocol/www) OR 
   // 2. Must (use known TLD) OR
   // 3. Must (be a modern deployment subdomain)
-  const urlRegex = /(?:https?:\/\/|www\.)[\w\-]+\.[a-z]{2,12}(\/.*)?|[\w\-]+\.(com|net|org|in|co|io|ly|ai|me|info|biz|site|online|top|xyz|gov|ac|edu|ru|ua|tw|cn|uk|pk|jp|de|fr|br|ca|au|us|app|dev|page|link)\b|\b[\w\-]+\.(vercel\.app|github\.io|netlify\.app|pages\.dev|web\.app|firebaseapp\.com)\b/gi;
-  const rawUrls = text.match(urlRegex) || [];
+  const initialUrls = text.match(urlRegex) || [];
+  
+  // Deduplicate by normalized hostname to prevent same link showing multiple times
+  const seenHosts = new Set();
+  const rawUrls = initialUrls.filter(url => {
+      try {
+          let nUrl = url.toLowerCase();
+          if (!nUrl.startsWith('http')) nUrl = 'http://' + nUrl;
+          const h = new URL(nUrl).hostname.replace(/^www\./, '');
+          if (seenHosts.has(h)) return false;
+          seenHosts.add(h);
+          return true;
+      } catch (e) {
+          return false;
+      }
+  });
   
   const signals = {
     suspiciousTld: 0,
@@ -161,7 +200,8 @@ export async function analyzeLinks(text, layer = 1) {
     pathObfuscation: 0,
     pathObfuscation: 0,
     contentMismatch: 0, // New Signal
-    knownScamLink: 0    // New Signal (Blacklist)
+    knownScamLink: 0,    // New Signal (Blacklist)
+    suspiciousAge: 0    // New Signal (RDAP Age)
   };
 
   const detectedLinks = [];
@@ -215,6 +255,8 @@ export async function analyzeLinks(text, layer = 1) {
       // 2. LIVE METADATA SCAN (L3 ONLY - Deep)
       if (layer >= 3) {
           const meta = await fetchMetadata(normalizedUrl);
+          const creationDate = await getDomainCreationDate(host || urlObj.hostname);
+          
           if (meta) {
               linkAnalysis.liveMetadata = meta;
               const suspiciousBrand = ["facebook", "amazon", "apple", "netflix", "google", "bank", "sbi", "paytm"].find(b => 
@@ -225,6 +267,15 @@ export async function analyzeLinks(text, layer = 1) {
                  linkAnalysis.flags.push('BRAND_CONTENT_MISMATCH');
               }
           }
+
+          if (creationDate) {
+              linkAnalysis.creationDate = creationDate;
+              const ageInDays = (new Date() - new Date(creationDate)) / (1000 * 60 * 60 * 24);
+              if (ageInDays < 365) {
+                  signals.suspiciousAge = 1;
+                  linkAnalysis.flags.push('YOUNG_DOMAIN');
+              }
+          }
       }
 
       // 3. Structural Flags (L1+)
@@ -232,6 +283,7 @@ export async function analyzeLinks(text, layer = 1) {
           signals.punycodeHomograph = 1;
           linkAnalysis.flags.push('HOMOGRAPH_ATTACK');
       }
+      const parts = host.split('.');
       if (parts.length > 4) {
           signals.subdomainAbuse = 1;
           linkAnalysis.flags.push('EXCESSIVE_SUBDOMAINS');

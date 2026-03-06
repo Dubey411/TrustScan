@@ -32,17 +32,17 @@ const Header = ({ className = '' }: HeaderProps) => {
           // Optional: localStorage.clear(); if you want to be absolute
         }
 
-        window.location.href = '/homepage';
+        window.location.href = '/';
     } catch (error) {
         console.error("Logout failed:", error);
         // Fallback: even if Firebase fails, clear local state and redirect
         localStorage.removeItem('isAuthenticated');
-        window.location.href = '/homepage';
+        window.location.href = '/';
     }
   };
 
   const baseNavigationItems = [
-    { label: 'Home', href: '/homepage', icon: 'HomeIcon' },
+    { label: 'Home', href: '/', icon: 'HomeIcon' },
     { label: 'Pricing', href: '/pricing-page', icon: 'CurrencyRupeeIcon' },
     { label: 'About', href: '/about-page', icon: 'InformationCircleIcon' },
   ];

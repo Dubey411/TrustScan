@@ -19,7 +19,9 @@ const INDUSTRY_GROUPS = {
     "72": "R&D/Consultancy",
     "74": "Business Services",
     "80": "Education",
-    "85": "Health/Social Work"
+    "85": "Health/Social Work",
+    "92": "Recreational/Cultural",
+    "93": "Other Services"
 };
 
 // Helper for robust API calls
@@ -229,8 +231,16 @@ function detectPartialMatchDiscrepancies(parsedCin, text) {
 
     // 3. Industry Mismatch
     const groupName = INDUSTRY_GROUPS[parsedCin.industryGroup];
-    if (groupName === "IT/Software" && (normalizedText.includes("construction") || normalizedText.includes("spices") || normalizedText.includes("cement"))) {
-        discrepancies.push(`Industry Conflict: Listed as ${groupName} but content suggests different business activity.`);
+    if (groupName === "IT/Software") {
+        const suspiciousContexts = ["hospital", "medical", "customs", "police", "arrest", "narcotics", "ebay", "amazon", "refund"];
+        for (const context of suspiciousContexts) {
+            if (normalizedText.includes(context)) {
+                discrepancies.push(`Industry Conflict: ${groupName} entity used in ${context} context. High-sophistication impersonation suspected.`);
+                break;
+            }
+        }
+    } else if (groupName && (normalizedText.includes("investment") || normalizedText.includes("trading")) && groupName !== "Banking/Finance") {
+        discrepancies.push(`Industry Conflict: Listed as ${groupName} but content suggests financial/investment activity.`);
     }
 
     return discrepancies;

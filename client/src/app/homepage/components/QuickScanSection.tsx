@@ -57,7 +57,7 @@ const QuickScanSection = ({ isVisible, onClose }: QuickScanSectionProps) => {
                 variant={scanType === 'job' ? 'solid' : 'outline'}
                 className={scanType === 'job' ? 'text-primary' : 'text-muted-foreground'}
               />
-              <span className="text-sm font-medium text-foreground">Job Offer</span>
+              <span className="text-sm font-medium text-foreground">Check Offer Letter</span>
             </button>
 
             <button
@@ -72,7 +72,7 @@ const QuickScanSection = ({ isVisible, onClose }: QuickScanSectionProps) => {
                 variant={scanType === 'link' ? 'solid' : 'outline'}
                 className={scanType === 'link' ? 'text-primary' : 'text-muted-foreground'}
               />
-              <span className="text-sm font-medium text-foreground">Phishing Link</span>
+              <span className="text-sm font-medium text-foreground">Check Link Safety</span>
             </button>
 
             <button
@@ -87,7 +87,7 @@ const QuickScanSection = ({ isVisible, onClose }: QuickScanSectionProps) => {
                 variant={scanType === 'message' ? 'solid' : 'outline'}
                 className={scanType === 'message' ? 'text-primary' : 'text-muted-foreground'}
               />
-              <span className="text-sm font-medium text-foreground">Message</span>
+              <span className="text-sm font-medium text-foreground">Check Message</span>
             </button>
           </div>
 

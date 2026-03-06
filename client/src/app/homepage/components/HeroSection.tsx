@@ -33,11 +33,12 @@ const HeroSection = ({ onScanClick }: HeroSectionProps) => {
             </div>
 
             <h1 className="text-4xl lg:text-6xl font-headline font-bold leading-tight">
-              Your Safety is Our Priority
+              Check Offer Letters & <br />
+              <span className="text-success-green">Verify Company CIN</span> 
             </h1>
 
             <p className="text-lg lg:text-xl text-primary-foreground/90 leading-relaxed">
-              Protect yourself from fake job offers and internship scams with AI-powered fraud detection. Smart scanning for smart careers.
+              Instantly perform a <strong>fake job offer check</strong>, verify company legitimacy, and ensure a link is safe or not harmful. India's smartest AI-powered shield for your career.
             </p>
 
             {/* Stats */}

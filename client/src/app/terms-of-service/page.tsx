@@ -1,6 +1,15 @@
 import Header from '@/components/common/Header';
 import FooterSection from '../homepage/components/FooterSection';
 import Icon from '@/components/ui/AppIcon';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Terms of Service | TrustScan AI',
+  description: 'Read the terms and conditions for using TrustScan AI. Learn about proper use of our fraud detection tools and accuracy disclaimers.',
+  alternates: {
+    canonical: '/terms-of-service',
+  },
+};
 
 export default function TermsOfService() {
   return (

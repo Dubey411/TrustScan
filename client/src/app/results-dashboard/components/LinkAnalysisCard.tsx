@@ -86,6 +86,17 @@ const FLAG_MAP: Record<string, { label: string; description: string; color: stri
 const LinkAnalysisCard = ({ detectedLinks }: LinkAnalysisCardProps) => {
   if (!detectedLinks || detectedLinks.length === 0) return null;
 
+  // Extra safety: Deduplicate by normalized host for frontend display
+  const seenHosts = new Set();
+  const uniqueLinks = detectedLinks.filter(link => {
+      const h = (link.host || new URL(link.url.startsWith('http') ? link.url : 'http://' + link.url).hostname).toLowerCase().replace(/^www\./, '');
+      if (seenHosts.has(h)) return false;
+      seenHosts.add(h);
+      return true;
+  });
+
+  if (uniqueLinks.length === 0) return null;
+
   return (
     <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
       <div className="px-6 py-4 border-b border-border bg-muted/30 flex items-center justify-between">
@@ -94,11 +105,11 @@ const LinkAnalysisCard = ({ detectedLinks }: LinkAnalysisCardProps) => {
           Detailed Link Analysis
         </h3>
         <span className="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
-          {detectedLinks.length} Links Found
+          {uniqueLinks.length} Links Found
         </span>
       </div>
       <div className="divide-y divide-border">
-        {detectedLinks.map((link, idx) => (
+        {uniqueLinks.map((link, idx) => (
           <div key={idx} className="p-6 space-y-4 hover:bg-muted/10 transition-colors">
             <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
               <div className="flex-1 min-w-0 w-full">

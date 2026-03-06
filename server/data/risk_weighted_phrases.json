@@ -12,7 +12,14 @@
         "parcel": 15,
         "accidentally reported": 30,
         "banned": 25,
-        "account deletion": 25
+        "account deletion": 25,
+        "prison": 30,
+        "accused": 25,
+        "social stigma": 20,
+        "defamation": 15,
+        "thana": 20,
+        "jail": 30,
+        "paisa": 15
     },
     "authority_impersonation": {
         "mumbai customs": 20,
@@ -37,7 +44,14 @@
         "avoid blackout": 15,
         "hurry up": 20,
         "before the promotion ends": 20,
-        "limited time": 15
+        "limited time": 15,
+        "zaroori": 20,
+        "bahut zaroori": 25,
+        "abhi": 15,
+        "turant": 20,
+        "last date": 15,
+        "shadi order": 20,
+        "hospital admit": 30
     },
     "action_requests": {
         "press 1": 25,
@@ -70,5 +84,23 @@
         "internship certificate fee": 35,
         "refundable deposit": 25,
         "hr round booking": 20
+    },
+    "domestic_emergencies": {
+        "accident": 25,
+        "hospital bills": 30,
+        "medical emergency": 25,
+        "bail out": 30,
+        "arrested": 30,
+        "kidnapped": 40,
+        "son": 15,
+        "daughter": 15,
+        "relative": 10
+    },
+    "upi_scam_patterns": {
+        "scan qr code to receive": 40,
+        "receive payment scan": 35,
+        "request link": 20,
+        "check balance to receive": 30,
+        "forward message to get": 25
     }
 }

@@ -3,14 +3,16 @@ import multer from "multer";
 import { runRules } from "../services/engine/rulesEngine.js";
 import { processDocument } from "../services/processing/ocrProcessor.js";
 import { getRecommendedActions } from "../services/engine/recommendationEngine.js";
-import { checkTriggersAndTrain } from "../services/ml/mlManager.js";
+import { generateAIInsight } from "../services/analysis/aiReasoningService.js";
 import Scan from "../models/Scan.js";
 import User from "../models/User.js";
+import TrustEntity from "../models/TrustEntity.js";
 import mongoose from "mongoose";
 import fs from "fs";
 import { analyzeSmsHeader } from "../services/analysis/smsHeaderScanner.js";
 import { analyzeScamScript } from "../services/analysis/scriptScanner.js";
 import { generateTrustScanReport } from "../services/processing/reportGenerator.js";
+import { checkTriggersAndTrain } from "../services/ml/mlManager.js";
 
 import path from "path";
 import { fileURLToPath } from 'url';
@@ -126,24 +128,44 @@ router.post("/scan", upload.single('file'), async (req, res) => {
     // --- PRE-ENTRY: Tier & Permission Logic ---
     let ocrDepth = 'basic';
 
-    if (depth === 'deep') {
-        if (userId) {
-            const user = await User.findOne({ firebaseUid: userId });
-            if (user && user.credits > 0) {
-                console.log(`💎 [Premium] Deep Scan active. Full Intelligence Enabled.`);
-                user.credits -= 1;
+    if (userId) {
+        const user = await User.findOne({ firebaseUid: userId });
+        if (user) {
+            const isAdmin = user.email === 'trustscan.ai@gmail.com';
+
+            // --- Testing Time: Recharge 5 credits every 3 days ---
+            const threeDaysInMs = 3 * 24 * 60 * 60 * 1000;
+            const now = new Date();
+            const lastRecharge = user.lastCreditRecharge || user.createdAt;
+            
+            if (!isAdmin && (now - lastRecharge > threeDaysInMs || user.credits === undefined || (user.credits === 0 && !user.lastCreditRecharge))) {
+                console.log(`🎁 [Testing] Recharging 5 credits for user: ${userId}`);
+                user.credits = 5;
+                user.lastCreditRecharge = now;
                 await user.save();
-                analysisLayer = 3;
-                creditsConsumed = 1;
-                ocrDepth = 'deep';
-            } else {
-                console.log(`🔒 [Limit] No credits for Deep Scan. Scaling to Standard.`);
-                depth = 'standard'; 
             }
-        } else {
-            console.log(`👤 [Guest] Guest cannot use Deep Scan. Scaling to Basic.`);
-            depth = 'basic';
+
+            if (depth === 'deep') {
+                if (isAdmin || user.credits > 0) {
+                    console.log(`💎 [Premium] Deep Scan active. Full Intelligence Enabled.`);
+                    if (!isAdmin) {
+                        user.credits -= 1;
+                        await user.save();
+                        creditsConsumed = 1;
+                    } else {
+                        console.log(`🦸 [Admin] Skipping credit deduction for: ${user.email}`);
+                    }
+                    analysisLayer = 3;
+                    ocrDepth = 'deep';
+                } else {
+                    console.log(`🔒 [Limit] No credits for Deep Scan. Scaling to Standard.`);
+                    depth = 'standard'; 
+                }
+            }
         }
+    } else if (depth === 'deep' || depth === 'standard') {
+        console.log(`👤 [Guest] Guest cannot use ${depth}. Scaling to Basic.`);
+        depth = 'basic';
     }
 
     if (depth === 'standard') {
@@ -203,9 +225,9 @@ router.post("/scan", upload.single('file'), async (req, res) => {
     
     // Depth sensitivity adjustments
     if (analysisLayer === 3) {
-        finalRisk = Math.min(100, finalRisk * 1.15); // Deep is 15% more sensitive
+        finalRisk = Math.round(Math.min(100, finalRisk * 1.15)); // Deep is 15% more sensitive
     } else if (analysisLayer === 2) {
-        finalRisk = Math.min(100, finalRisk * 1.05); // Standard is 5% more sensitive
+        finalRisk = Math.round(Math.min(100, finalRisk * 1.05)); // Standard is 5% more sensitive
     }
 
 
@@ -309,14 +331,12 @@ router.post("/scan", upload.single('file'), async (req, res) => {
     if (finalRisk >= 75) status = "fraud";
     else if (finalRisk >= 60) status = "suspicious";
     else if (finalRisk >= 50) status = "action_required";
-    else if (finalRisk >= 40) status = "risky";
-    else if (finalRisk >= 20 && result.reasons.length > 0) status = "risky";
-    else if (finalRisk >= 1) status = "safe"; 
+    else if (finalRisk >= 35) status = "risky"; // Raised from 20 to 35 to prevent Edunet false positives
+    else status = "safe"; 
     
-    // Safety check: Never mark as 'safe' if there are active red flag reasons
-    if (status === "safe" && result.reasons.length > 0) {
+    // Safety check: Never mark as 'safe' if there are critical red flags (Score will reflect this anyway)
+    if (status === "safe" && finalRisk > 30) {
         status = "risky";
-        finalRisk = Math.max(finalRisk, 40);
     }
 
     // 5. Calculate Verdict Actions
@@ -354,6 +374,25 @@ router.post("/scan", upload.single('file'), async (req, res) => {
         ? "Medium"
         : "Low";
 
+    // 4. ✨ NEW: Prophet AI Insight (LLM Reasoning Layer)
+    // ONLY trigger for DEEP scans as per user request
+    let aiInsight = null;
+    if (analysisLayer === 3) {
+        console.log(`🧠 [Prophet AI] Triggering Deep Analysis for: ${type}, Score: ${finalRisk}%`);
+        try {
+            aiInsight = await generateAIInsight(content, finalRisk, result.reasons || [], result.signals || {});
+            if (!aiInsight) {
+                console.log("⚠️ [Prophet AI] Generation returned empty result. Using fallback.");
+                aiInsight = "The AI investigator analyzed several patterns but could not find specific anomalies to highlight. The risk score reflects the detected markers.";
+            }
+        } catch (aiErr) {
+            console.error("❌ [Prophet AI] Reasoning layer failed:", aiErr.message);
+            aiInsight = "Neural analysis is momentarily unavailable, but the TrustScan engine has completed the risk assessment.";
+        }
+    } else {
+        console.log(`💡 [Prophet AI] Skipped. Deep Scan required for AI reasoning.`);
+    }
+
     // 5. Prepare DB record with ML features (Minimal Storage Optimization)
     // Reduce size for Atlas free tier / efficiency
     const minimalMetadata = { ...result.metadata };
@@ -384,7 +423,10 @@ router.post("/scan", upload.single('file'), async (req, res) => {
       
       // SMS Header Detection
       senderId: senderId || null,
-      smsHeaderAnalysis: smsAnalysis || null
+      smsHeaderAnalysis: smsAnalysis || null,
+      
+      // AI Prophet Insight
+      aiInsight: aiInsight
     };
 
 
@@ -443,11 +485,16 @@ router.post("/scan", upload.single('file'), async (req, res) => {
       console.log(`✅ [Database] Permanent Save Successful! ID: ${savedDoc._id}`);
       
       // 7. Response to client
+      console.log(`📦 [API] Dispatching response for ${savedDoc._id}. AI Insight Present: ${!!aiInsight}`);
+      if (aiInsight) console.log(`📄 [API] Insight Snippet: "${aiInsight.substring(0, 50)}..."`);
+
       res.json({
         id: savedDoc._id,
-
+        result: status, // Map status to result for UI compatibility
         status,
         riskScore: finalRisk,
+        aiInsight: aiInsight || null, 
+        analysisLayer,
         confidence,
         reasons: scanDataRecord.reasons,
         flags: result.flags, // New Green/Red Flags
@@ -465,6 +512,8 @@ router.post("/scan", upload.single('file'), async (req, res) => {
         status,
         riskScore: finalRisk,
         confidence,
+        aiInsight: aiInsight || null,
+        analysisLayer,
         reasons: scanDataRecord.reasons,
         flags: result.flags,
         signals: result.signals,
@@ -532,16 +581,83 @@ router.post("/feedback", async (req, res) => {
         scan.userFeedback = feedback;
     }
 
+    // 5. AUTO-LEARNING ENGINE: Trigger Auto-Grey Listing
+    if (scan.userFeedback === 'incorrect_fraud') {
+        try {
+            const detectedEntities = scan.metadata?.detectedEntities || [];
+            const companyName = scan.type === 'company' ? scan.content : (scan.metadata?.databaseHits?.[0]?.name);
+            
+            // Collect candidates for Grey Listing
+            const candidates = [];
+            
+            // Case A: Hard Identifiers (CIN/GST)
+            detectedEntities.forEach(entity => {
+                if (entity.isValid && (entity.type === 'CIN' || entity.type === 'GSTIN')) {
+                    candidates.push({
+                        name: entity.enrichment?.name || `Suspicious Entity (${entity.value})`,
+                        identifier: entity.value,
+                        type: 'Community Reported'
+                    });
+                }
+            });
+
+            // Case B: Company Scan (Pure Name)
+            if (scan.type === 'company' && scan.content.length > 3) {
+                candidates.push({
+                    name: scan.content,
+                    type: 'Community Reported (Direct Scan)'
+                });
+            }
+
+            // Process Candidates
+            for (const item of candidates) {
+                const nameLower = item.name.toLowerCase().trim();
+                
+                // Avoid redundant entries
+                const existing = await TrustEntity.findOne({ 
+                    $or: [
+                        { nameLower },
+                        { associatedIdentifiers: item.identifier }
+                    ] 
+                });
+
+                if (!existing) {
+                    console.log(`🤖 [Auto-Learner] Adding "${item.name}" to Grey List via User Feedback...`);
+                    await TrustEntity.create({
+                        name: item.name,
+                        nameLower,
+                        category: 'grey_list',
+                        type: item.type,
+                        autoLearned: true,
+                        associatedIdentifiers: item.identifier ? [item.identifier] : [],
+                        evidence: [`User reported as scam via ScanID: ${scanId}`]
+                    });
+                } else if (existing.category === 'grey_list') {
+                     // Increment trust score / occurrence if already greylisted
+                     existing.trustScore = (existing.trustScore || 0) + 1;
+                     existing.evidence.push(`Additional community report: ${scanId}`);
+                     await existing.save();
+                }
+            }
+        } catch (learnErr) {
+            console.error("🤖 [Auto-Learner] Failed to process feedback for ML training:", learnErr);
+        }
+    }
+
     await scan.save();
 
     console.log(`✅ Feedback updated for scan ${scanId} (Rating: ${scan.userRating}, Label: ${scan.userFeedback})`);
     res.json({ 
-        message: "Feedback received. Thank you for helping us improve!",
+        message: "Report received. Your feedback helps our AI learn and warn other users!",
         userFeedback: scan.userFeedback 
     });
 
     // Reactive Trigger: Check if we should retrain based on this new feedback
-    checkTriggersAndTrain();
+    try {
+        checkTriggersAndTrain();
+    } catch (mlErr) {
+        console.error("⚠️ [ML Manager] Trigger check failed:", mlErr.message);
+    }
   } catch (error) {
     console.error("❌ Feedback Error Detailed:", {
       message: error.message,
@@ -578,6 +694,7 @@ router.get("/results/:id", async (req, res) => {
       signals: scan.signals,
       metadata: scan.metadata,
       recommendation: scan.recommendation,
+      aiInsight: scan.aiInsight, // Return the AI reasoning for shared links
       date: new Date(scan.createdAt).toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'long',

@@ -147,16 +147,44 @@ export function validateCryptoAddress(address) {
 }
 
 /**
+ * Validates Indian Financial System Code (IFSC)
+ * Format: 4 letters (Bank), 0 (Reserved), 6 characters (Branch)
+ */
+export function validateIFSC(ifsc) {
+    if (!ifsc) return false;
+    const cleanIFSC = ifsc.toUpperCase().trim();
+    
+    // Pattern: 4 Alphas + 0 + 6 Alphanum
+    const ifscRegex = /^[A-Z]{4}0[A-Z0-9]{6}$/;
+    if (!ifscRegex.test(cleanIFSC)) return false;
+
+    // Optional: Bank Code Verification (First 4 chars)
+    return true; 
+}
+
+/**
  * Scans text and extracts all IDs, validating each
  * Returns true if ANY invalid ID structure is found
  */
 export function detectStructuralAnomalies(text) {
     if (!text) return false;
     
-    // 1. Aadhaar Patterns
+    // 1. Aadhaar Patterns - CONTEXT AWARE
+    // Only validate as Aadhaar if keywords like Aadhaar or UID are nearby (within 50 chars)
     const aadhaarMatches = text.match(/\b\d{4}[\s-]\d{4}[\s-]\d{4}\b|\b\d{12}\b/g) || [];
+    const lowerText = text.toLowerCase();
+    
     for (const match of aadhaarMatches) {
-        if (!validateAadhaar(match)) return true;
+        const index = text.indexOf(match);
+        const context = lowerText.substring(Math.max(0, index - 50), Math.min(text.length, index + match.length + 50));
+        
+        // If it looks like an Aadhaar but NO context keywords are around, skip mathematical validation
+        // to avoid flagging random 12-digit ref numbers.
+        const hasAadhaarContext = /aadhaar|uid|unique/i.test(context);
+        
+        if (hasAadhaarContext) {
+            if (!validateAadhaar(match)) return true;
+        }
     }
     
     // 2. PAN Patterns
@@ -178,6 +206,18 @@ export function detectStructuralAnomalies(text) {
         if (validateCryptoAddress(match)) {
             // Mentioning a crypto address in an unsolicited offer is itself a structural anomaly for our motive
             return true; 
+        }
+    }
+    
+    // 5. IFSC Code Patterns (Context Aware)
+    const potentialIfsc = text.match(/\b[A-Z]{4}[A-Z0-9]{5,10}\b/gi) || [];
+    for (const match of potentialIfsc) {
+        const idx = text.indexOf(match);
+        const context = text.substring(Math.max(0, idx - 20), Math.min(text.length, idx + match.length + 10)).toUpperCase();
+        if (context.includes("IFSC")) {
+             if (!validateIFSC(match)) {
+                 return true;
+             }
         }
     }
     

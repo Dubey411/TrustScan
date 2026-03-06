@@ -35,17 +35,12 @@ const HomepageInteractive = () => {
     // ResultsInteractive expects: { id, target, result, confidence, date, reasons }
     
     const formattedResult = {
-        id: data.id || (data as any)._id || `guest-${Date.now()}`,
+        ...data.apiResult, // Spread all API fields first
+        id: data.id || data.apiResult?.id || data.apiResult?._id || `guest-${Date.now()}`,
         target: data.target,
         result: data.apiResult?.status || 'safe',
         confidence: data.apiResult?.riskScore || 0,
         date: new Date().toLocaleDateString(),
-        reasons: data.apiResult?.reasons || [],
-        flags: data.apiResult?.flags || { green: [], red: [] },
-        signals: data.apiResult?.signals || {},
-        metadata: data.apiResult?.metadata || {},
-        scanMeta: data.apiResult?.scanMeta || undefined,
-        recommendation: data.apiResult?.recommendation || [],
         scanType: data.type
     };
     

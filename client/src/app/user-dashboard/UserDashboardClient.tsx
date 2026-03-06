@@ -167,6 +167,7 @@ import GPTDashboardLayout from './components/gpt-layout/GPTDashboardLayout';
         }
 
         return {
+            ...scan, // Spread all DB fields first
             id: scan._id,
             scanType: scan.type.charAt(0).toUpperCase() + scan.type.slice(1),
             target: scan.fileName || (scan.content.substring(0, 30) + (scan.content.length > 30 ? '...' : '')),
@@ -175,13 +176,6 @@ import GPTDashboardLayout from './components/gpt-layout/GPTDashboardLayout';
 
             date: new Date(scan.createdAt).toLocaleDateString(),
             time: new Date(scan.createdAt).toLocaleTimeString(),
-            reasons: (scan as any).reasons || [],
-            flags: (scan as any).flags || { green: [], red: [] },
-            signals: (scan as any).signals || {},
-            scanMeta: (scan as any).scanMeta || undefined,
-            recommendation: (scan as any).recommendation || [],
-            userRating: (scan as any).userRating,
-            userFeedback: (scan as any).userFeedback
         };
     });
 
@@ -254,60 +248,56 @@ import GPTDashboardLayout from './components/gpt-layout/GPTDashboardLayout';
         name: "First Scan",
         description: "Complete your first security scan",
         icon: "CheckBadgeIcon",
-        earned: true,
-        earnedDate: "Jan 2026"
+        earned: userData.totalScans >= 1,
+        earnedDate: userData.totalScans >= 1 ? "Unlocked" : null
       },
       {
         id: 2,
         name: "Vigilant Scanner",
-        description: "Perform 10 consecutive scans",
+        description: "Perform 10 active scans",
         icon: "EyeIcon",
-        earned: true,
-        earnedDate: "Jan 2026"
+        earned: userData.totalScans >= 10,
+        progress: userData.totalScans < 10 ? userData.totalScans : undefined,
+        total: 10,
+        earnedDate: userData.totalScans >= 10 ? "Unlocked" : null
       },
       {
         id: 3,
         name: "Threat Hunter",
-        description: "Detect 5 scam attempts",
+        description: "Detect 3 scam attempts",
         icon: "ShieldExclamationIcon",
-        earned: true,
-        earnedDate: "Jan 2026"
+        earned: userData.totalThreats >= 3,
+        progress: userData.totalThreats < 3 ? userData.totalThreats : undefined,
+        total: 3,
+        earnedDate: userData.totalThreats >= 3 ? "Unlocked" : null
       },
       {
         id: 4,
-        name: "Safety Streak",
-        description: "Maintain 30-day scanning streak",
-        icon: "FireIcon",
-        earned: false,
-        progress: 15,
-        total: 30
+        name: "Clean Record",
+        description: "Analyze 5 safe documents",
+        icon: "ShieldCheckIcon",
+        earned: (userData.totalScans - userData.totalThreats) >= 5,
+        progress: (userData.totalScans - userData.totalThreats) < 5 ? (userData.totalScans - userData.totalThreats) : undefined,
+        total: 5,
       },
       {
         id: 5,
-        name: "Community Guardian",
-        description: "Report 10 new scam patterns",
-        icon: "UserGroupIcon",
-        earned: false,
-        progress: 3,
-        total: 10
-      },
-      {
-        id: 6,
         name: "Premium Member",
-        description: "Upgrade to premium plan",
+        description: "Unlock all Pro features",
         icon: "StarIcon",
-        earned: false
+        earned: userData.planName !== 'Free',
+        earnedDate: userData.planName !== 'Free' ? "Active" : null
       }];
 
 
   const profileData = {
-    name: "Priya Sharma",
-    email: "priya.sharma@example.com",
-    phone: "+91 98765 43210",
-    avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_1e14322e7-1763296357021.png",
-    avatarAlt: "Professional headshot of young Indian woman with long dark hair wearing blue blazer smiling at camera",
-    institution: "Indian Institute of Technology, Delhi",
-    graduationYear: "2027"
+    name: user?.displayName || "TrustScan User",
+    email: user?.email || "user@trustscan.ai",
+    phone: user?.phoneNumber || "+91 (Verified Account)",
+    avatar: user?.photoURL || "https://img.rocket.new/generatedImages/rocket_gen_img_1e14322e7-1763296357021.png",
+    avatarAlt: "User profile avatar",
+    institution: "Academic/Professional Account",
+    graduationYear: "Active"
   };
 
   return (

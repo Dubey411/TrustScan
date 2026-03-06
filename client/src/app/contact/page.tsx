@@ -6,6 +6,9 @@ import Icon from '@/components/ui/AppIcon';
 export const metadata: Metadata = {
   title: 'Contact Us - TrustScan',
   description: 'Get in touch with the TrustScan security team for support or reporting fraud.',
+  alternates: {
+    canonical: '/contact',
+  },
 };
 
 export default function ContactPage() {

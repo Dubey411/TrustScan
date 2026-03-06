@@ -67,7 +67,15 @@ const RedFlagsList = ({ flags }: RedFlagsListProps) => {
                       {flag.severity.toUpperCase()}
                     </span>
                   </div>
-                  <p className="text-sm text-foreground/70 leading-relaxed font-medium">{flag.description}</p>
+                  <p className="text-sm text-foreground/70 leading-relaxed font-medium">
+                    {flag.description.split(/("(?:[^"\\]|\\.)*")/).map((part, i) => 
+                      part.startsWith('"') && part.endsWith('"') ? (
+                        <span key={i} className="bg-error/20 text-error px-1.5 py-0.5 rounded-md font-bold mx-1 border border-error/30 shadow-sm animate-pulse-subtle">
+                          {part.replace(/"/g, '')}
+                        </span>
+                      ) : part
+                    )}
+                  </p>
                 </div>
               </div>
             </div>

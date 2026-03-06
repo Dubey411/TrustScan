@@ -181,8 +181,8 @@
             "and": [
                 {
                     "hasKeywordsAny": [
-                        "work from home",
-                        "part time job",
+                        "work from home earn daily",
+                        "quick money part time",
                         "earn money online",
                         "daily income",
                         "weekly payout",
@@ -485,7 +485,7 @@
         "riskLevel": "medium",
         "category": "jobScam",
         "reason": "Professional internship/job offer missing official Business ID (CIN/GST)",
-        "impliedRisk": 65,
+        "impliedRisk": 40,
         "logic": {
             "and": [
                 {
@@ -589,6 +589,27 @@
                         "social security",
                         "social security number",
                         "tax identification number"
+                    ]
+                }
+            ]
+        }
+    },
+    {
+        "id": "IFSC_STRUCTURAL_ANOMALY",
+        "riskLevel": "high",
+        "category": "structuralAnomalies",
+        "reason": "Invalid Indian Bank IFSC code structure detected (Required: 4 letters, 0, 6 characters)",
+        "impliedRisk": 85,
+        "logic": {
+            "and": [
+                {
+                    "hasSignal": "structuralAnomalies"
+                },
+                {
+                    "hasKeywordsAny": [
+                        "IFSC",
+                        "bank details",
+                        "account number"
                     ]
                 }
             ]

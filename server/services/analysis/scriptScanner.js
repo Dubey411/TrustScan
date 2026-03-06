@@ -64,7 +64,26 @@ export function analyzeScamScript(text) {
             if (normalized.includes(phrase)) {
                 score += weight;
                 matches.push({ phase: 'Recruitment Hook', match: phrase });
-                // Recruitment hooks often count as an action (payment request)
+                flowStages.action = true;
+            }
+        });
+    }
+
+    if (PHRASES.domestic_emergencies) {
+        Object.entries(PHRASES.domestic_emergencies).forEach(([phrase, weight]) => {
+            if (normalized.includes(phrase)) {
+                score += weight;
+                matches.push({ phase: 'Domestic Emergency', match: phrase });
+                flowStages.fear = true;
+            }
+        });
+    }
+
+    if (PHRASES.upi_scam_patterns) {
+        Object.entries(PHRASES.upi_scam_patterns).forEach(([phrase, weight]) => {
+            if (normalized.includes(phrase)) {
+                score += weight;
+                matches.push({ phase: 'UPI Fraud Pattern', match: phrase });
                 flowStages.action = true;
             }
         });

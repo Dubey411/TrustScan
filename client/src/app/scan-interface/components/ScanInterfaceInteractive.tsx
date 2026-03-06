@@ -90,41 +90,41 @@ export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfa
     {
       id: 'email',
       icon: 'EnvelopeIcon',
-      title: 'Email/Message Scan',
-      description: 'Analyze suspicious emails, UPI fraud messages, or SMS content',
+      title: 'Fake Job Offer Check',
+      description: 'Analyze suspicious emails, WhatsApp UPI fraud messages, or job offers',
       inputType: 'text',
       placeholder: 'Paste the email, UPI fraud message, or job offer here...',
       maxLength: 5000,
-      buttonText: 'Analyze Message'
+      buttonText: 'Check Offer for Fraud'
     },
     {
       id: 'company',
       icon: 'BuildingOffice2Icon',
-      title: 'Company Verifier',
-      description: 'Validate business legitimacy via GSTIN or CIN Verification Online',
+      title: 'Verify Company / CIN',
+      description: 'Check company CIN record and GSTIN registration to verify business legitimacy',
       inputType: 'text',
-      placeholder: 'Enter Company Name, GSTIN, or CIN for verification online...',
+      placeholder: 'Enter Company Name, GSTIN, or Check Company CIN online...',
       maxLength: 500,
-      buttonText: 'Verify Entity'
+      buttonText: 'Verify Company'
     },
     {
       id: 'link',
       icon: 'LinkIcon',
-      title: 'Link/URL Scan',
-      description: 'Check if this link is safe and detect phishing attempts',
+      title: 'Check Link Safety',
+      description: 'Check if this link is safe or harmful and detect phishing attempts',
       inputType: 'link',
-      placeholder: 'Enter URL to check "is this link safe"...',
-      buttonText: 'Check Link Safety'
+      placeholder: 'Enter URL (e.g. check is this link safe)...',
+      buttonText: 'Check if Link is Safe'
     },
     {
       id: 'document',
       icon: 'DocumentIcon',
-      title: 'Document Scan',
-      description: 'Upload offer letters, contracts, or documents for verification',
+      title: 'Check Offer Letter PDF',
+      description: 'Upload job offer letters, contracts, or IDs for deep fake detection',
       inputType: 'file',
       acceptedFormats: ['.pdf', '.doc', '.docx', '.jpg', '.jpeg', '.png'],
       maxSize: 10 * 1024 * 1024,
-      buttonText: 'Scan Document'
+      buttonText: 'Check Offer Letter'
     },
 ];
 
@@ -379,8 +379,8 @@ export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfa
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-lg font-headline font-semibold text-foreground">Analysis Depth</h3>
                     {user && (
-                      <span className="text-[10px] uppercase font-bold text-primary bg-primary/10 px-2 py-1 rounded-md border border-primary/20">
-                        {userCredits} Credits Available
+                      <span className={`text-[10px] uppercase font-bold px-2 py-1 rounded-md border ${user?.email === 'trustscan.ai@gmail.com' ? 'bg-primary/20 border-primary text-primary' : 'bg-primary/10 border-primary/20 text-primary'}`}>
+                        {user?.email === 'trustscan.ai@gmail.com' ? 'Admin Access' : `${userCredits} Credits Available`}
                       </span>
                     )}
                   </div>
@@ -438,41 +438,35 @@ export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfa
 
                     <button
                       onClick={() => {
-                        if (userCredits > 0) {
+                        const isAdmin = user?.email === 'trustscan.ai@gmail.com';
+                        if (isAdmin || userCredits > 0) {
                           setAnalysisDepth('deep');
                         } else {
-                          router.push('/pricing-page');
+                          setError("You have run out of Deep Scan credits. Logged-in users get 5 free every 3 days!");
                         }
                       }}
                       className={`relative p-4 rounded-xl border-2 transition-all duration-300 text-left group ${
                         analysisDepth === 'deep'
-                          ? 'border-primary bg-primary/5 shadow-brand'
-                          : userCredits > 0 
-                            ? 'border-border bg-card hover:border-primary/50'
+                          ? 'border-indigo-500 bg-indigo-500/5 shadow-[0_0_20px_rgba(99,102,241,0.2)]'
+                          : (userCredits > 0 || user?.email === 'trustscan.ai@gmail.com')
+                            ? 'border-border bg-card hover:border-indigo-500/50'
                             : 'border-muted bg-muted/20 opacity-70 cursor-not-allowed'
                       }`}
                     >
                       <div className="absolute -top-3 -right-3 z-10 flex gap-1">
-                        {userCredits > 0 ? (
-                           <span className="bg-success text-white text-[10px] uppercase font-bold px-2 py-1 rounded-full shadow-sm tracking-widest animate-pulse">
-                            PREMIUM
-                          </span>
-                        ) : (
-                          <span className="bg-muted-foreground text-white text-[10px] uppercase font-bold px-2 py-0.5 rounded-full shadow-sm tracking-wider">
-                            LOCKED
-                          </span>
-                        )}
+                         <span className="bg-indigo-600 text-white text-[10px] uppercase font-bold px-2 py-0.5 rounded-full shadow-lg tracking-wider animate-pulse">
+                          AI+
+                        </span>
                       </div>
                       <div className="flex items-center gap-2 mb-1">
-                        <Icon name="BeakerIcon" size={20} variant="solid" className={userCredits > 0 ? "text-primary" : "text-muted-foreground"} />
+                        <Icon name="SparklesIcon" size={20} variant="solid" className={userCredits > 0 ? "text-indigo-500" : "text-muted-foreground"} />
                         <span className={`font-semibold ${userCredits > 0 ? "text-foreground" : "text-muted-foreground"}`}>Deep Scan</span>
                       </div>
-                      <p className="text-xs text-muted-foreground">Premium 10+ Page Search</p>
+                      <p className="text-xs text-muted-foreground">Prophet AI Logic (-1 Credit)</p>
                       
-                      {/* Tooltip on hover if locked */}
-                      {userCredits === 0 && (
+                      {userCredits === 0 && user?.email !== 'trustscan.ai@gmail.com' && (
                         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 rounded-xl">
-                          <span className="text-[10px] font-bold text-primary uppercase">Buy Credits</span>
+                          <span className="text-[10px] font-bold text-indigo-500 uppercase">Wait for Recharge</span>
                         </div>
                       )}
                     </button>

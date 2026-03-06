@@ -22,7 +22,7 @@ const userSchema = new mongoose.Schema({
   },
   credits: {
     type: Number,
-    default: 0 // Set to 0 until Deep Scan APIs (Layer 2) are active
+    default: 5 // Testing Time: Give 5 credits by default
   },
   totalScans: {
     type: Number,
@@ -41,6 +41,10 @@ const userSchema = new mongoose.Schema({
     city: String,
     state: String,
     country: { type: String, default: "India" }
+  },
+  lastCreditRecharge: {
+    type: Date,
+    default: Date.now
   },
   createdAt: {
     type: Date,

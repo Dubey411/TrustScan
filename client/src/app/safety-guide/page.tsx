@@ -6,6 +6,9 @@ import Icon from '@/components/ui/AppIcon';
 export const metadata: Metadata = {
   title: 'Safety Guide | Fake Job Offer Check & CIN Verification Online',
   description: 'Learn how to perform a fake job offer check, ensure is this link safe, and do CIN verification online to protect yourself.',
+  alternates: {
+    canonical: '/safety-guide',
+  },
   keywords: ['safety guide', 'fake job offer check', 'CIN verification online', 'is this link safe'],
 };
 

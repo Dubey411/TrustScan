@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+dotenv.config();
 import path from "path";
 import fs from "fs";
 import os from "os";
@@ -12,9 +13,6 @@ import { initializeMLAutomation } from "./services/ml/mlManager.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-
-dotenv.config();
 
 process.on('uncaughtException', (err) => {
   console.error('CRASH (Uncaught Exception):', err.message, err.stack);

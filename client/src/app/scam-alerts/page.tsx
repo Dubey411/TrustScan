@@ -6,6 +6,9 @@ import Icon from '@/components/ui/AppIcon';
 export const metadata: Metadata = {
   title: 'Live Scam Alerts | UPI Fraud Messages & Fake Job Offers',
   description: 'Stay updated on the latest fraudulent schemes. Check fake job offers and UPI fraud messages targeting students.',
+  alternates: {
+    canonical: '/scam-alerts',
+  },
   keywords: ['live scam alerts', 'UPI fraud message', 'fake job offer check', 'online fraud India'],
 };
 

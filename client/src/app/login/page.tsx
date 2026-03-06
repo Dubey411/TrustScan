@@ -5,6 +5,9 @@ import LoginInteractive from './components/LoginInteractive';
 export const metadata: Metadata = {
   title: 'Login - TrustScan',
   description: 'Sign in to your TrustScan account to access your personalized dashboard, scan history, and comprehensive job fraud protection tools. Secure authentication with social login options.',
+  alternates: {
+    canonical: '/login',
+  },
 };
 
 export default function LoginPage() {

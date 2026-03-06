@@ -37,7 +37,18 @@ const GreenFlagsList = ({ flags }: GreenFlagsListProps) => {
                 variant="solid"
                 className="text-success mt-0.5 flex-shrink-0"
             />
-            <p className="text-sm font-bold text-foreground/80 leading-snug">{flag}</p>
+            <p className="text-sm font-bold text-foreground/80 leading-snug">
+                {flag.split(/(\bExoneration:.*?:|"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/).map((part, i) => {
+                    if (part.startsWith('Exoneration:') || part.startsWith('"') || part.startsWith("'")) {
+                        return (
+                            <span key={i} className="bg-success/20 text-success-foreground px-1.5 py-0.5 rounded-md font-black mx-1 border border-success/30">
+                                {part.replace(/['"]|Exoneration: /g, '')}
+                            </span>
+                        );
+                    }
+                    return part;
+                })}
+            </p>
           </div>
         ))}
       </div>

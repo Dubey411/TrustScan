@@ -2,24 +2,53 @@ import { notFound } from 'next/navigation';
 import Header from '@/components/common/Header';
 import FooterSection from '../homepage/components/FooterSection';
 import Icon from '@/components/ui/AppIcon';
+import { Metadata } from 'next';
+
+const pageData: Record<string, { title: string; desc: string }> = {
+  'blog': { 
+    title: 'TrustScan Blog', 
+    desc: 'Deep dives into Indian cyber-fraud trends, security tips, and TrustScan product updates.' 
+  },
+  'careers': { 
+    title: 'Join Our Mission', 
+    desc: 'Help us build India\'s strongest AI defense against digital fraud. Explore career opportunities at TrustScan.' 
+  },
+  'press': { 
+    title: 'Press & Media', 
+    desc: 'Official news, media assets, and press contact information for TrustScan AI.' 
+  },
+  'cookie-policy': { 
+    title: 'Cookie Policy', 
+    desc: 'Information about how TrustScan uses cookies to improve your security experience.' 
+  },
+  'disclaimer': { 
+    title: 'Legal Disclaimer', 
+    desc: 'Important legal notices regarding the use of TrustScan AI results and data.' 
+  },
+};
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const page = pageData[slug];
+
+  if (!page) return {};
+
+  return {
+    title: `${page.title} | TrustScan AI`,
+    description: page.desc,
+    alternates: {
+      canonical: `/${slug}`,
+    },
+  };
+}
 
 export default async function InfoPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const titles: Record<string, string> = {
-    'blog': 'TrustScan Blog',
-    'scam-alerts': 'Live Scam Alerts',
-    'contact': 'Contact Us',
-    'careers': 'Join Our Mission',
-    'press': 'Press & Media',
-    'cookie-policy': 'Cookie Policy',
-    'disclaimer': 'Legal Disclaimer',
-  };
+  const page = pageData[slug];
 
-  if (!titles[slug]) {
+  if (!page) {
     notFound();
   }
-
-  const title = titles[slug];
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -31,7 +60,7 @@ export default async function InfoPage({ params }: { params: Promise<{ slug: str
                 <Icon name="InformationCircleIcon" size={40} />
             </div>
           <h1 className="text-4xl md:text-5xl font-headline font-bold text-foreground mb-4">
-            {title}
+            {page.title}
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-12">
             We are currently building this section to provide you with the most accurate and up-to-date security information.
@@ -43,7 +72,7 @@ export default async function InfoPage({ params }: { params: Promise<{ slug: str
              </div>
              <p className="font-bold text-foreground">Coming Soon</p>
              <p className="text-xs text-muted-foreground mt-1 text-center">
-                Our team is actively compiling data for the {title} section. Stay tuned!
+                Our team is actively compiling data for the {page.title} section. Stay tuned!
              </p>
           </div>
 
@@ -62,13 +91,5 @@ export default async function InfoPage({ params }: { params: Promise<{ slug: str
 }
 
 export function generateStaticParams() {
-  return [
-    { slug: 'blog' },
-    { slug: 'scam-alerts' },
-    { slug: 'contact' },
-    { slug: 'careers' },
-    { slug: 'press' },
-    { slug: 'cookie-policy' },
-    { slug: 'disclaimer' },
-  ];
+  return Object.keys(pageData).map((slug) => ({ slug }));
 }

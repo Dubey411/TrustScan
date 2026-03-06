@@ -124,6 +124,11 @@ export async function runRules(content, externalSignals = {}, trustSignals = {},
 
   const metadata = extractFeatures(content);
   
+  // Trust signals will be calculated after entity analysis
+  let matchedFamousOrg = null;
+  let isVerifiedEntity = false;
+  let hasVerifiableIdentity = false;
+  
   // -- Gibberish / Low Info Detection --
   const cleanContent = content.trim();
   if (cleanContent.length > 0) {
@@ -132,14 +137,12 @@ export async function runRules(content, externalSignals = {}, trustSignals = {},
       const consonantCount = (cleanContent.match(/[bcdfghjklmnpqrstvwxz]/gi) || []).length;
       const vowelRatio = vowelCount / (vowelCount + consonantCount || 1);
       
-      // Keyboard Mashing Detection (Long strings with very few vowels or repeating chars)
       const isKeyboardMash = (cleanContent.length > 15 && vowelRatio < 0.1) || 
-                             /(.)\1{4,}/.test(cleanContent); // 5+ repeating chars
+                             /(.)\1{4,}/.test(cleanContent);
       
-      // A string is "not text" if it has no spaces, and is just consonant noise
       const looksLikeNoise = cleanContent.length > 20 && !hasSpaces && vowelRatio < 0.15;
       
-      if (isKeyboardMash || looksLikeNoise) {
+      if ((isKeyboardMash || looksLikeNoise) && !isVerifiedEntity && !matchedFamousOrg) {
           signals.lowInfoContent = 1;
       }
   }
@@ -153,6 +156,20 @@ export async function runRules(content, externalSignals = {}, trustSignals = {},
   const smsAnalysis = senderId ? analyzeSmsHeader(senderId, content) : null;
   const hasStructuralAnomaly = detectStructuralAnomalies(content);
 
+  // --- MISSION: IDENTITY-BASED TRUST (Moving away from hardcoded name lists) ---
+  const detectedCins = entityAnalysis.metadata?.detectedEntities?.filter(e => e.type === 'CIN' && e.isValid) || [];
+  const detectedGsts = entityAnalysis.metadata?.detectedEntities?.filter(e => e.type === 'GSTIN' && e.isValid) || [];
+  
+  hasVerifiableIdentity = (detectedCins.length > 0 || detectedGsts.length > 0);
+  isVerifiedEntity = entityAnalysis.metadata?.detectedEntities?.some(e => e.enrichment && e.enrichment.source !== 'CIN_DECODE');
+  
+  const famousOrgMatch = /(edunet|ibm|aicte|skill india|nptel|coursera|udemy|larsen & toubro|l&t|tata|tcs|infosys|wipro|hcl|reliance|accenture|capgemini|google|microsoft|amazon)/i.exec(content);
+  matchedFamousOrg = famousOrgMatch ? famousOrgMatch[0] : null;
+  
+  if (isVerifiedEntity || matchedFamousOrg) {
+      signals.trustedOrg = 1;
+  }
+
   // Initialize Signals Vector
   signals = { 
       ...signals, 
@@ -162,7 +179,8 @@ export async function runRules(content, externalSignals = {}, trustSignals = {},
       scamFlowDetected: scriptAnalysis?.riskScore > 50 ? 1 : 0,
       structuralAnomalies: hasStructuralAnomaly ? 1 : 0,
       knownScamSource: 0,
-      emergingRiskSource: 0
+      emergingRiskSource: 0,
+      suspiciousAge: activityAnalysis.signals.suspiciousAge || 0
   };
 
   // --- MISSION: ENTITY RECOGNITION (RED/GREY LISTS & TRUST CASCADE) ---
@@ -197,10 +215,18 @@ export async function runRules(content, externalSignals = {}, trustSignals = {},
           });
       });
 
+      const databaseHits = [];
+
       if (redHit || cascadeHit) {
-          const matchedName = redHit?.name || cascadeHit?.name;
+          const hit = redHit || cascadeHit;
           signals.knownScamSource = 1;
-          reasons.push(`TRUST CASCADE: Associated with ${matchedName} via shared credentials (phone/infrastructure)`);
+          reasons.push(`TRUST CASCADE: Associated with ${hit.name} via shared credentials (phone/infrastructure)`);
+          databaseHits.push({
+              name: hit.name,
+              category: 'red_flag',
+              type: hit.type || 'Documented Scam',
+              addedAt: hit.addedAt
+          });
       }
 
       // 3. Grey List Check
@@ -219,7 +245,16 @@ export async function runRules(content, externalSignals = {}, trustSignals = {},
       if (greyHit) {
           signals.emergingRiskSource = 1;
           reasons.push(`NETWORK ALERT: "${greyHit.name}" is on our active verification list`);
+          databaseHits.push({
+              name: greyHit.name,
+              category: 'grey_list',
+              type: greyHit.type || 'Suspicious Behavioral Patterns',
+              addedAt: greyHit.addedAt
+          });
       }
+
+      // Return metadata include database hits
+      metadata.databaseHits = databaseHits;
 
   } catch (e) {
       console.error("RulesEngine: Trust DB Check failed", e);
@@ -239,13 +274,14 @@ export async function runRules(content, externalSignals = {}, trustSignals = {},
       reasons.push("Authentication Alert: Document metadata indicates creation via consumer design tools (e.g. Canva/Photoshop) rather than official ERP systems.");
   }
 
-  // 1c. Evidence: Temporal Paradox (Old Entity vs Throwaway Infrastructure)
+  // 1c. Evidence: Temporal Paradox (Old Entity vs Throwaway or Young Infrastructure)
   const mainCin = entityAnalysis.metadata?.detectedEntities?.find(e => e.type === 'CIN' && e.parsed);
   if (mainCin && mainCin.parsed.year < (new Date().getFullYear() - 5)) {
-      const isThrowawayDomain = /(vercel\.app|github\.io|netlify\.app|pages\.dev|web\.app|firebaseapp\.com|form\.jotform)/i.test(content);
-      if (isThrowawayDomain) {
-          indiaConfidenceRisk = Math.max(indiaConfidenceRisk, 70);
-          reasons.push(`Temporal Paradox: Entity registered in ${mainCin.parsed.year} is using modern throwaway/instant infrastructure for official business.`);
+      const isThrowawayDomain = /(vercel\.app|github\.io|netlify\.app|pages\.dev|web\.app|firebaseapp\.com|form\.jotform|xyz|online|site|top|shop|info|vip|club)/i.test(content);
+      if (isThrowawayDomain || signals.suspiciousAge || signals.suspiciousTld) {
+          indiaConfidenceRisk = Math.max(indiaConfidenceRisk, 85);
+          const ageReason = signals.suspiciousAge ? "Domain is less than 1 year old" : (signals.suspiciousTld ? "Using a suspicious TLD" : "Using throwaway/instant infrastructure");
+          reasons.push(`Temporal Paradox: Entity registered in ${mainCin.parsed.year} but ${ageReason} detected for official business.`);
       }
   }
 
@@ -290,8 +326,18 @@ export async function runRules(content, externalSignals = {}, trustSignals = {},
     if (condition.hasKeywordsAny) {
       return condition.hasKeywordsAny.some(kw => {
         const lowerKw = kw.toLowerCase();
-        // Check standard AND fuzzy (e.g. "payment" matches "p-a-y-m-e-n-t" in fuzzyText)
-        return text.includes(lowerKw) || fuzzyText.includes(lowerKw.replace(/[^a-z0-9]/g, ''));
+        // 1. Strict Word Boundary Check (Primary)
+        const escaped = lowerKw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const boundaryRegex = new RegExp(`\\b${escaped}\\b`, 'i');
+        if (boundaryRegex.test(text)) return true;
+
+        // 2. Fuzzy/Fragment Check (Secondary - only for longer or complex terms)
+        if (lowerKw.length > 5) {
+            const fuzzyKw = lowerKw.replace(/[^a-z0-9]/g, '');
+            if (fuzzyKw.length > 0 && fuzzyText.includes(fuzzyKw)) return true;
+        }
+        
+        return false;
       });
     }
     if (condition.hasFeature) {
@@ -329,9 +375,63 @@ export async function runRules(content, externalSignals = {}, trustSignals = {},
     }
   });
 
+  // --- 4. ADVERSARIAL DEBATE SYSTEM (Prosecution vs Defense) ---
+  let prosecutionScore = 0;
+  const prosecutionEvidence = [...reasons];
+  
+  if (signals.urgency) prosecutionScore += 30;
+  if (signals.financial) prosecutionScore += 40;
+  if (signals.jobScam) prosecutionScore += 25;
+  if (signals.impersonation) prosecutionScore += 35;
+  if (signals.missingCriticalFields) prosecutionScore += 20;
+  if (scriptAnalysis.riskScore > 50) prosecutionScore += 15;
+  
+  if (signals.knownScamSource) prosecutionScore += 85; 
+  if (signals.knownScamLink) prosecutionScore += 90;
+  if (signals.structuralAnomalies) prosecutionScore += 50;
+  
+  let defenseScore = 0;
+  const defenseEvidence = [];
+  
+  if (signals.trustedDomain) {
+      defenseScore += 100; 
+      defenseEvidence.push("Identity Verified: Originates from a verified corporate domain, confirming sender authenticity.");
+  } else if (isVerifiedEntity) {
+      defenseScore += 80;
+      const source = entityAnalysis.metadata.detectedEntities.find(e => e.enrichment)?.enrichment?.source || "Official Registry";
+      defenseEvidence.push(`Identity Verified: Entity confirmed via ${source}. Positive registration record found.`);
+  } else if (matchedFamousOrg) {
+      defenseScore += 60;
+      defenseEvidence.push(`Reputation Check: Document mentions a known legitimate organization (${matchedFamousOrg}).`);
+  } else if (hasVerifiableIdentity) {
+      defenseScore += 40;
+      defenseEvidence.push("Identity Provided: Document includes structurally valid business registration IDs (CIN/GST).");
+  } else if (trustSignals.officialDomain) {
+      defenseScore += 50;
+      defenseEvidence.push("Source Credibility: Sender uses an official business domain implies accountability.");
+  }
+
+  const hasLegalClauses = /(confidentiality|non-disclosure|termination clause|jurisdiction|intellectual property|code of conduct)/i.test(content);
+  if (hasLegalClauses) {
+      defenseScore += 25;
+      defenseEvidence.push("Professional Depth: Contains official legal or confidentiality clauses.");
+  }
+
+  const hasDetailedOps = /(performance review|probation period|leave policy|intellectual property|indemnity|governing law|code of conduct|benefits|gratuity|provident fund|working hours|joining date|notice period|bonus structure)/i.test(content);
+  if (hasDetailedOps) {
+      defenseScore += 35;
+      defenseEvidence.push("Professional Depth: Contains detailed clauses regarding operations, benefits, and legalities consistent with genuine institutions.");
+  }
+
+  if (trustSignals.standardStructure || metadata.textLength > 500) {
+      defenseScore += 15;
+      defenseEvidence.push("Document Consistency: Structure, length, and formatting align with professional business correspondence norms.");
+  }
+
   // --- DYNAMIC ENTITY ASSOCIATION (The "New Threat" Detector) ---
-  // User Request: "If unique company name comes in doubt by rules, find that as suspicious"
-  if (maxImpliedRisk > 75 && !signals.knownScamSource) {
+  // Heuristic: If risk from other rules is already EXTREME (>85%) AND there's no defense, 
+  // identify the unknown entity as a potential emerging threat.
+  if (maxImpliedRisk >= 85 && !signals.knownScamSource && !hasTrustedOrg && defenseScore < 40) {
       // Heuristic to find the Org Name if not already known
       // Look for: "Welcome to [Name]", "Team [Name]", "Offer from [Name]"
       const contextRegex = /(?:welcome to|team|hr|joining|offer from|career at)\s+([A-Z][a-zA-Z0-9\s\.]{3,25})\b/i;
@@ -343,7 +443,7 @@ export async function runRules(content, externalSignals = {}, trustSignals = {},
           const isGeneric = /^(the|your|our|all|india|private|limited|team|management)$/i.test(potentialName);
           
           if (!isGeneric && potentialName.length > 3) {
-             reasons.push(`Suspicious Entity Association: High-risk indicators detected around unverified entity "${potentialName}".`);
+             reasons.push(`Suspicious Entity Association: Extremely high-risk indicators detected around unverified entity "${potentialName}".`);
              signals.emergingRiskSource = 1; // Mark as emerging threat
           }
       }
@@ -359,61 +459,30 @@ export async function runRules(content, externalSignals = {}, trustSignals = {},
 
   // --- 4. ADVERSARIAL DEBATE SYSTEM (Prosecution vs Defense) ---
   
-  // A. Prosecution Case (Why it looks like Fraud)
-  let prosecutionScore = 0;
-  const prosecutionEvidence = [...reasons];
+  // Scoring aggregation complete. Ready for dynamic association check.
   
-  if (signals.urgency) prosecutionScore += 30;
-  if (signals.financial) prosecutionScore += 40;
-  if (signals.jobScam) prosecutionScore += 25;
-  if (signals.impersonation) prosecutionScore += 35;
-  if (signals.missingCriticalFields) prosecutionScore += 20;
-  if (scriptAnalysis.riskScore > 50) prosecutionScore += 15;
+  // --- 4. EXONERATION SYSTEM (Trusted & Verified Entities) ---
+  // If we have a verified identity AND NO red/grey list flags, we offer full mitigation.
+  const isVerified = (isVerifiedEntity || matchedFamousOrg);
+  const hasNetworkWarnings = (signals.knownScamSource || signals.emergingRiskSource);
+  const isExonerated = isVerified && !hasNetworkWarnings;
+  const exonerationTarget = matchedFamousOrg || "Verified Business Entity";
   
-  // Specific Heavy Hitters (Weighted, not hardcoded 100%)
-  if (signals.knownScamSource) prosecutionScore += 85; 
-  if (signals.knownScamLink) prosecutionScore += 90;
-  if (signals.structuralAnomalies) prosecutionScore += 50;
-  
-  // B. Defense Case (Legitimacy Evidence - White Box)
-  let defenseScore = 0;
-  const defenseEvidence = [];
-  
-  // 1. Identity & Verifiability
-  if (signals.trustedDomain) {
-      defenseScore += 100; 
-      defenseEvidence.push("Identity Verified: Originates from a verified corporate domain, confirming sender authenticity.");
-  } else if (trustSignals.officialDomain) {
-      defenseScore += 50;
-      defenseEvidence.push("Source Credibility: Sender uses an official business domain implies accountability.");
+  if (isExonerated) {
+      // If there's a financial demand, we still keep a moderate floor.
+      if (signals.financial > 0 || signals.jobScam > 0) {
+          defenseScore += 40; // Significant defense boost
+          defenseEvidence.push(`Exoneration (Partial): ${exonerationTarget} verified but requests for money (Fees/Security) detected. Verified businesses rarely ask for money.`);
+      } else {
+          defenseScore += 100; // Full acquittal
+          defenseEvidence.push(`Exoneration: ${exonerationTarget} verified. Identity trust established.`);
+      }
+  } else if (isVerified && signals.emergingRiskSource) {
+      // "Verified but Grey" - Handles companies like Bluestock (Registered but predatory/paid)
+      defenseScore += 30; // Minor defense because we know who they are
+      defenseEvidence.push("Verification Note: Entity is registered but has active reports of 'Pay-to-Work' or predatory recruitment models.");
   }
 
-  // 2. Professional & Legal Indicators
-  const hasLegalClauses = /(confidentiality|non-disclosure|termination clause|jurisdiction|intellectual property|code of conduct)/i.test(content);
-  if (hasLegalClauses) {
-      defenseScore += 25;
-      defenseEvidence.push("Professional Standards: Contains standard binding legal clauses (Confidentiality/Termination) consistent with genuine employment contracts.");
-  }
-
-  // 3. Financial Integrity (The strongest negative signal)
-  if (!signals.financial && !signals.registrationFee && !signals.jobScam) {
-      // We credit this slightly to distinguish from pure scams, but it's table stakes.
-      defenseScore += 10;
-      defenseEvidence.push("Financial Integrity: No suspicious requests for deposits, training fees, or hidden charges were detected.");
-  }
-
-  // 4. Document Consistency & Structure
-  if (trustSignals.standardStructure || metadata.textLength > 500) {
-      defenseScore += 15;
-      defenseEvidence.push("Document Consistency: Structure, length, and formatting align with professional business correspondence norms.");
-  }
-
-  // 5. Context Awareness (Job Specific)
-  if (signals.jobContext && !signals.jobScam && !signals.urgency) {
-      defenseScore += 20;
-      defenseEvidence.push("Offer Realism: Terms and tone reflect standard recruitment practices without artificial urgency or exaggerated claims.");
-  }
-  
   // C. The Court Verdict (Weighted Balancing)
   // Base ML Score (The "Gut Feeling")
   let z = modelWeights.bias || 0;
@@ -428,22 +497,73 @@ export async function runRules(content, externalSignals = {}, trustSignals = {},
   // Apply The Defense's Reductions
   // CRITICAL: prosecutionScore must be factored in, otherwise Red Flags don't affect the score!
   let finalRiskCalculation = Math.max(mlScore, maxImpliedRisk, prosecutionScore);
-  
-  // If Defense is STRONG (Verified Domain), it can acquit almost anything except Known Scams
-  if (defenseScore > 80 && !signals.knownScamSource && !signals.knownScamLink) {
-      finalRiskCalculation = Math.min(finalRiskCalculation, 10); // Acquitted
-      defenseEvidence.push("Defense Overruled Prosecution due to Verified Identity");
-  } else {
-      // Standard mitigation - defense can reduce score but not below floor if red flags exist
-      const protectionFactor = Math.min(defenseScore, 40);
-      finalRiskCalculation -= protectionFactor;
+
+  // --- ANOMALY MODE: High Confidence Conflict Resolution ---
+  if (prosecutionScore > 75 && defenseScore > 75) {
+      finalRiskCalculation = Math.max(90, finalRiskCalculation); 
+      reasons.unshift("ANOMALY DETECTED: Found authoritative identity alongside extreme risk signals. High-sophistication impersonation suspected.");
+      defenseEvidence.push("Anomaly Alert: Legitimacy signals are high, but criminal patterns are present. Manual verification required.");
+  }
+  // --- FINANCIAL FLOOR: Verified brands asking for money ---
+  else if (signals.financial > 0) {
+      const mitigation = Math.min(defenseScore * 0.4, 30); // Max 30% reduction for verified entities
+      finalRiskCalculation = Math.max(70, finalRiskCalculation - mitigation);
       
-      // If we have critical red flags, the floor should be at least 85%
-      if ((signals.knownScamSource || signals.knownScamLink) && finalRiskCalculation < 85) {
-          finalRiskCalculation = 95;
+      if (isVerifiedEntity || matchedFamousOrg) {
+          defenseEvidence.push(`Payment Alert: Verified entity is requesting payment. While the identity is confirmed, legitimate direct recruitment rarely involves advance fees.`);
+          if (signals.emergingRiskSource) {
+              reasons.push("Business Model Warning: Entity is known for 'Paid Internship' or 'Training-cum-Placement' models. Not a standard direct hire.");
+          }
+      } else {
+          defenseEvidence.push("Financial Context Penalty: Legitimate brands do not request advance payments for recruitment or training.");
       }
   }
-  
+  // --- JOB CONTEXT FLOOR: Stay cautious about offers from unverified sources ---
+  else if (signals.jobScam > 0) {
+      const mitigation = Math.min(defenseScore * 0.7, 60); // More room for mitigation if trusted
+      
+      if (isVerifiedEntity || matchedFamousOrg) {
+          // If it's a verified or famous org, allow 'Safe' status
+          finalRiskCalculation = Math.max(20, finalRiskCalculation - mitigation); 
+          const targetName = matchedFamousOrg || "Verified Institution";
+          defenseEvidence.push(`Verified Institution (${targetName}): Legitimate offer likely. Verified safe reference detected.`);
+      } else {
+          finalRiskCalculation = Math.max(40, finalRiskCalculation - mitigation);
+          defenseEvidence.push("Recruitment Safety Alert: Verify company registration for unverified offer letters.");
+      }
+  }
+  // If Defense is MODERATE to STRONG, dampen the risk
+  else if (defenseScore > 50 && !signals.knownScamSource && !signals.knownScamLink) {
+      const suppression = (defenseScore / 100) * 40; // Max 40% reduction
+      finalRiskCalculation = Math.max(0, finalRiskCalculation - suppression);
+      
+      // Verification identity check (Acquittal)
+      if (defenseScore > 80) {
+          finalRiskCalculation = Math.min(finalRiskCalculation, 10); 
+          defenseEvidence.push("Defense Analysis: Identity or professional depth exceeds risk thresholds. Verification recommended.");
+      }
+  } else {
+      // Standard mitigation - defense can reduce score but not below floor if red flags exist
+      const protectionFactor = Math.min(defenseScore, 30);
+      finalRiskCalculation -= protectionFactor;
+      
+  }
+
+  // --- 🔥 FINAL DATABASE OVERRIDES: Human Intelligence ALWAYS takes priority ---
+  // Moved outside of logic to ensure they dominate any other signals.
+  if (signals.knownScamSource) {
+      finalRiskCalculation = 99; // Red List Force
+      reasons.unshift("CRITICAL BLACKLIST: This entity is confirmed as a fraudulent source in our database.");
+  } else if (signals.emergingRiskSource) {
+      finalRiskCalculation = Math.max(70, finalRiskCalculation); // Grey List Floor
+      reasons.unshift("GREYLIST ALERT: Entity matches patterns of predatory recruitment consultancies.");
+  }
+
+  // Legacy catch-all for scam links
+  if (signals.knownScamLink && !signals.knownScamSource && finalRiskCalculation < 85) {
+      finalRiskCalculation = 95;
+  }
+
   // Formatting the Debate Output
   const flags = {
     red: [...new Set(prosecutionEvidence)],
@@ -455,14 +575,6 @@ export async function runRules(content, externalSignals = {}, trustSignals = {},
         defenseArgument: (defenseEvidence && defenseEvidence.length > 0) ? defenseEvidence.join('. ') : "No strong authentication signals found."
     }
   };
-
-  // Add curiosity green flags if safe
-  if (finalRiskCalculation < 30) {
-      const proLink = activityAnalysis.metadata?.detectedLinks?.find(l => l.liveMetadata?.curiosityTags?.platform === 'Custom/Other');
-      if (proLink) {
-         flags.green.push("Site Authentication: Professional Custom Architecture Detected");
-      }
-  }
 
   return {
     riskScore: Math.round(Math.max(0, Math.min(100, finalRiskCalculation))),

@@ -38,6 +38,7 @@ export default function ScanProgress({ isScanning, onComplete, depth = 'basic', 
     { label: 'Initializing Neural Pipeline', icon: 'CommandLineIcon', log: 'Starting core engine v4.2...' },
     { label: type === 'document' ? 'OCR Layer Reconstruction' : 'Decrypting Payload Structure', icon: 'CpuChipIcon', log: 'Extracting metadata vectors...' },
     { label: 'Signal Context Matching', icon: 'MagnifyingGlassIcon', log: 'Consulting global fraud database (98% hitrate)...' },
+    { label: 'Neural Prophet Reasoning', icon: 'SparklesIcon', log: 'Activating LLM reasoning layer for intent analysis...' },
     { label: 'Risk Vector Classification', icon: 'ShieldExclamationIcon', log: 'Running logic gates on 248 signals...' },
     { label: 'Generating Security Report', icon: 'DocumentTextIcon', log: 'Compiling final forensic verdict...' },
   ];

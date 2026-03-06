@@ -15,7 +15,7 @@ const FooterSection = () => {
 
   const footerLinks = {
     product: [
-      { label: 'How It Works', href: '/homepage#how-it-works' },
+      { label: 'How It Works', href: '/#how-it-works' },
       { label: 'Scan Types', href: '/scan-interface' },
       { label: 'Pricing', href: '/pricing-page' },
     ],

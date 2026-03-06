@@ -123,7 +123,7 @@ export function getRecommendedActions(signals, status) {
     }
 
     // --- 3. Job / Recruitment Scams ---
-    if (signals.jobScam || signals.registrationFee || signals.jobContext) {
+    if (signals.jobScam || signals.registrationFee || signals.jobContext || signals.emergingRiskSource) {
         // PREVENTATIVE WARNING (User Report: "They ask for money later during orientation")
         actions.push({
             id: idCounter++,
@@ -133,18 +133,28 @@ export function getRecommendedActions(signals, status) {
             completed: false
         });
 
-        if (signals.jobScam || signals.registrationFee) {
+        if (signals.emergingRiskSource) {
+            actions.push({
+                id: idCounter++,
+                title: 'Business Model Alert: Paid Internships',
+                description: 'This entity is reported to charge students for training-cum-internships. This is often an exploitation tactic. Consider unpaid alternatives from AICTE or NPTEL.',
+                priority: 'important',
+                completed: false
+            });
+        }
+
+        if (signals.jobScam || signals.registrationFee || signals.emergingRiskSource) {
             actions.push({
                 id: idCounter++,
                 title: 'Verify company on MCA Portal',
-                description: 'Check if the company is legally registered on the Ministry of Corporate Affairs (MCA) website.',
+                description: 'Check if the company is legally registered on the Ministry of Corporate Affairs (MCA) website. Legitimate registration does not always mean legitimate behavior.',
                 priority: 'important',
                 completed: false
             });
             actions.push({
                 id: idCounter++,
-                title: 'Research reviews on Glassdoor',
-                description: 'Check platforms like Glassdoor or AmbitionBox for reviews from other candidates or employees.',
+                title: 'Research reviews on Glassdoor/LinkedIn',
+                description: 'Check platforms like Glassdoor, AmbitionBox, or LinkedIn for reviews from other candidates regarding "Paid" internships.',
                 priority: 'important',
                 completed: false
             });
