@@ -22,11 +22,11 @@ export async function generateAIInsight(text, riskScore, reasons, signals) {
 
     // List of models to try in order of preference (prioritizing 1.5-flash which has huge free limits)
     const modelsToTry = [
-        "gemini-1.5-flash-latest",
-        "gemini-1.5-flash", 
-        "gemini-2.0-flash-001",
         "gemini-2.0-flash",
-        "gemini-2.5-flash"
+        "gemini-1.5-flash",
+        "gemini-1.5-flash-latest",
+        "gemini-2.0-flash-lite",
+        "gemini-1.5-pro"
     ];
     let lastError = null;
 
