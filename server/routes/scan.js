@@ -146,7 +146,17 @@ router.post("/scan", upload.single('file'), async (req, res) => {
         }
 
         if (user) {
-            const isAdmin = user.email === 'trustscan.ai@gmail.com';
+            // Patch missing email from request (for legacy records created without email)
+            if (!user.email && userEmail) {
+                user.email = userEmail;
+                await user.save();
+                console.log(`🔧 [User] Patched missing email for UID: ${userId} → ${userEmail}`);
+            }
+
+            // Admin check uses both DB email AND request email as fallback
+            const effectiveEmail = user.email || userEmail;
+            const isAdmin = effectiveEmail === 'trustscan.ai@gmail.com';
+            if (isAdmin) console.log(`🦸 [Admin] Admin user detected: ${effectiveEmail}`);
 
             // --- Testing Time: Recharge 5 credits every 3 days ---
             const threeDaysInMs = 3 * 24 * 60 * 60 * 1000;
@@ -168,7 +178,7 @@ router.post("/scan", upload.single('file'), async (req, res) => {
                         await user.save();
                         creditsConsumed = 1;
                     } else {
-                        console.log(`🦸 [Admin] Skipping credit deduction for: ${user.email}`);
+                        console.log(`🦸 [Admin] Skipping credit deduction for: ${effectiveEmail}`);
                     }
                     analysisLayer = 3;
                     ocrDepth = 'deep';
