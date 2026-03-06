@@ -168,10 +168,8 @@ async function resolveRedirects(url) {
 export async function analyzeLinks(text, layer = 1) {
   if (!text) return { signals: {}, metadata: {} };
 
-  // Refined extraction: 
-  // 1. Must (have protocol/www) OR 
-  // 2. Must (use known TLD) OR
-  // 3. Must (be a modern deployment subdomain)
+  // Robust URL extraction regex
+  const urlRegex = /(?:https?:\/\/|www\.)[a-zA-Z0-9\-\.]+(?:\.[a-zA-Z]{2,})(?:\/\S*)?|[a-zA-Z0-9\-\.]+(?:\.[a-zA-Z]{2,})(?:\/\S*)?/gi;
   const initialUrls = text.match(urlRegex) || [];
   
   // Deduplicate by normalized hostname to prevent same link showing multiple times
