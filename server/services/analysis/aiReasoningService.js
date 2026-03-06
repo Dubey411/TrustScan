@@ -17,22 +17,23 @@ export async function generateAIInsight(text, riskScore, reasons, signals) {
     const aiInstance = getGenAI();
     if (!aiInstance) return null; 
 
-    // List of models to try in order of preference (prioritizing 1.5-flash which has huge free limits)
+    // gemini-1.5-flash has highest free quota (1500 req/day)
+    // gemini-2.0-flash has lower free quota but is newer
     const modelsToTry = [
-        "gemini-2.0-flash",
-        "gemini-1.5-flash",
-        "gemini-1.5-flash-latest",
-        "gemini-2.0-flash-lite",
-        "gemini-1.5-pro"
+        { name: "gemini-1.5-flash", version: "v1beta" },
+        { name: "gemini-2.0-flash", version: "v1beta" },
+        { name: "gemini-1.5-pro", version: "v1beta" },
     ];
     let lastError = null;
 
-    for (const modelName of modelsToTry) {
+    for (const { name: modelName, version } of modelsToTry) {
         try {
-            console.log(`🤖 [Prophet AI] Attempting analysis with ${modelName}...`);
-            const model = aiInstance.getGenerativeModel({ model: modelName });
+            console.log(`🤖 [Prophet AI] Attempting ${modelName} (${version})...`);
+            const model = aiInstance.getGenerativeModel(
+                { model: modelName },
+                { apiVersion: version }
+            );
             
-            // Optimize context: Skip long legal filler, focus on intent
             const contextSnippet = text.substring(0, 3000); 
 
             const prompt = `
@@ -65,23 +66,22 @@ export async function generateAIInsight(text, riskScore, reasons, signals) {
             4. If it's a 100% impersonation scam, be firm and warn the user not to pay any money.
             5. Format as a single paragraph.
 
-            INVESTIGATOR INSIGHT: (Search community repo for similar cases)`;
+            INVESTIGATOR INSIGHT:`;
 
             const result = await model.generateContent(prompt);
             const response = await result.response;
             const resultText = response.text();
             
             if (resultText) {
-                console.log(`✅ [Prophet AI] Successfully generated insight using ${modelName}`);
+                console.log(`✅ [Prophet AI] Success with ${modelName}!`);
                 return resultText.trim();
             }
         } catch (err) {
             lastError = err;
-            console.warn(`🤖 [Prophet AI] ${modelName} failed:`, err.message);
-            // Continue to next model
+            console.warn(`🤖 [Prophet AI] ${modelName} failed: ${err.message?.substring(0, 150)}`);
         }
     }
 
-    console.error("🤖 [Prophet AI] All models failed. Last error:", lastError?.message);
+    console.error("🤖 [Prophet AI] All models failed. Last error:", lastError?.message?.substring(0, 200));
     return null;
 }
