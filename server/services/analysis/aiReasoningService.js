@@ -42,70 +42,24 @@ function generateHeuristicInsight(reasons, signals) {
     return `Based on identifying ${reasons.slice(0, 2).join(" and ")}, our engine has flagged this as highly suspicious. We strongly advise against sharing sensitive documents.`;
 }
 
+
+
 /**
- * Fallback AI Layer: Sarvam AI (Indus)
- * Used if Gemini is rate-limited or unavailable.
+ * Smart AI Insight Generator
+ * Uses Gemini or Sarvam AI to explain scan results.
  */
-async function generateSarvamInsight(text, riskScore, reasons, signals) {
-    const key = process.env.SARVAM_API_KEY;
-    if (!key || key.includes('PASTE')) return null;
-
-    try {
-        console.log("🤖 [Prophet AI] Attempting Sarvam AI (Indus)...");
-        const response = await fetch('https://api.sarvam.ai/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'api-subscription-key': key,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                model: "sarvam-m", 
-                messages: [
-                    {
-                        role: "system",
-                        content: "You are a Senior Fraud Investigator for CheckIt, an Indian platform. Explain why a document is suspicious in 1-2 concise sentences. Focus on Indian context (fake MNCs, fees, Telegram traps). Speak directly to user. No bold text."
-                    },
-                    {
-                        role: "user",
-                        content: `Risk Score: ${riskScore}%\nFlags: ${reasons.join(", ")}\nSignals: ${JSON.stringify(signals)}\n\nContent: ${text.substring(0, 2000)}`
-                    }
-                ],
-                max_tokens: 150,
-                temperature: 0.7
-            })
-        });
-
-        if (!response.ok) {
-            const errBody = await response.text();
-            console.warn(`🤖 [Prophet AI] Sarvam API error: ${response.status} - ${errBody.substring(0, 100)}`);
-            return null;
-        }
-
-        const data = await response.json();
-        const content = data.choices?.[0]?.message?.content;
-        
-        if (content && content.length > 10) {
-            console.log("✅ [Prophet AI] Success with Sarvam AI!");
-            return content.trim();
-        }
-    } catch (e) {
-        console.warn("🤖 [Prophet AI] Sarvam AI failed execution:", e.message);
-    }
-    return null;
-}
-
-export async function generateAIInsight(text, riskScore, reasons, signals) {
+export async function generateAIInsight(text, riskScore, reasons, signals, metadata = {}) {
     const aiInstance = getGenAI();
     
-    // 1. If no AI key, use Heuristic immediately
-    if (!aiInstance) return generateHeuristicInsight(reasons, signals);
+    // Extract research data for prompt
+    const researchSnippet = metadata.detectedEntities?.map(e => 
+        `[${e.type}: ${e.value}] Valid: ${e.isValid}. Research: ${e.enrichment?.name || 'N/A'}, Status: ${e.enrichment?.status || 'N/A'}`
+    ).join("\n") || "No official entities found.";
 
-    // 2. Try the most stable model names
-    const modelsToTry = [
-        "gemini-1.5-flash",
-        "gemini-2.0-flash-lite",
-        "gemini-1.5-flash-8b"
-    ];
+    // 1. Fallback if no instances configured
+    if (!aiInstance && !process.env.SARVAM_API_KEY) return generateHeuristicInsight(reasons, signals);
+
+    const modelsToTry = ["gemini-1.5-flash", "gemini-2.0-flash-lite", "gemini-1.5-flash-8b"];
 
     const safetySettings = [
         { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
@@ -116,41 +70,54 @@ export async function generateAIInsight(text, riskScore, reasons, signals) {
 
     for (const modelName of modelsToTry) {
         try {
-            // Use v1beta explicitly for flash models
-            const model = aiInstance.getGenerativeModel(
-                { model: modelName, safetySettings },
-                { apiVersion: 'v1beta' }
-            );
-            
-            const contextSnippet = text.substring(0, 3000); 
-
+            const model = aiInstance.getGenerativeModel({ model: modelName, safetySettings }, { apiVersion: 'v1beta' });
             const prompt = `
-            Context: Indian Job/Document Fraud Detection.
-            Data: Score ${riskScore}%, Flags: ${reasons.join(", ")}.
-            Content: "${contextSnippet}"
+            Expert Investigation for CheckIt (India).
+            Risk: ${riskScore}%. Reasons: ${reasons.join(", ")}.
+            
+            RESEARCHED DATA (Our system's background verify):
+            ${researchSnippet}
 
-            Task: Explain in 1-2 sentences WHY this is suspicious. Speak to the user. No bold text.
-            Expert Insight:`;
+            CONTENT: "${text.substring(0, 3000)}"
+
+            Task: Inform the user why this is likely fraud using the research and content. 
+            Speak to the user. No bold text. max 2 sentences.
+            Insight:`;
 
             const result = await model.generateContent(prompt);
             const response = await result.response;
             const resText = response.text();
             
-            if (resText && resText.trim().length > 10) {
-                console.log(`✅ [Prophet AI] Success with ${modelName}`);
-                return resText.trim();
-            }
+            if (resText && resText.trim().length > 10) return resText.trim();
         } catch (err) {
-            console.warn(`🤖 [Prophet AI] ${modelName} skipped: ${err.message?.substring(0, 50)}`);
-            // If it's a 429, don't spam, just try the next one or move to fallback
+            console.warn(`🤖 [Prophet AI] ${modelName} skipped.`);
         }
     }
 
-    // 3. Fallback to Sarvam AI (Indus) if Gemini fails
-    const sarvamInsight = await generateSarvamInsight(text, riskScore, reasons, signals);
-    if (sarvamInsight) return sarvamInsight;
+    // 3. Fallback to Sarvam AI (Indus) 
+    try {
+        const key = process.env.SARVAM_API_KEY;
+        if (key && !key.includes('PASTE')) {
+            console.log("🤖 [Prophet AI] Attempting Sarvam AI with Research Data...");
+            const response = await fetch('https://api.sarvam.ai/v1/chat/completions', {
+                method: 'POST',
+                headers: { 'api-subscription-key': key, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    model: "sarvam-m",
+                    messages: [
+                        { role: "system", content: "Senior Fraud Investigator. Use Research Data below to explain why a document is suspicious. conciseness=high. No bold." },
+                        { role: "user", content: `Score: ${riskScore}%\nResearch:\n${researchSnippet}\n\nContent: ${text.substring(0, 1500)}` }
+                    ],
+                    max_tokens: 150
+                })
+            });
+            if (response.ok) {
+                const data = await response.json();
+                const content = data.choices?.[0]?.message?.content;
+                if (content) return content.trim();
+            }
+        }
+    } catch (e) { console.warn("🤖 [Prophet AI] Sarvam failed."); }
 
-    // 4. FINAL FALLBACK: If all AI fails, use the smart heuristic
-    console.log("🛠️ [Prophet AI] All AI models limited. Using Smart Heuristic Fallback.");
     return generateHeuristicInsight(reasons, signals);
 }

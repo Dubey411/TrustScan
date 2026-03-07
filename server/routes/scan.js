@@ -406,7 +406,7 @@ router.post("/scan", upload.single('file'), async (req, res) => {
     if (analysisLayer === 3) {
         console.log(`🧠 [Prophet AI] Triggering Deep Analysis for: ${type}, Score: ${finalRisk}%`);
         try {
-            aiInsight = await generateAIInsight(content, finalRisk, result.reasons || [], result.signals || {});
+            aiInsight = await generateAIInsight(content, finalRisk, result.reasons || [], result.signals || {}, result.metadata || {});
             if (!aiInsight) {
                 console.log("⚠️ [Prophet AI] Generation returned empty result. Using fallback.");
                 aiInsight = "The AI investigator analyzed several patterns but could not find specific anomalies to highlight. The risk score reflects the detected markers.";
