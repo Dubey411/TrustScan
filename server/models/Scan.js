@@ -48,7 +48,6 @@ const scanSchema = new mongoose.Schema({
     personalData: { type: Number, default: 0 },
     scamKeywords: { type: Number, default: 0 },
     trustSignal: { type: Number, default: 0 },
-    scamKeywords: { type: Number, default: 0 },
     softwareMetadata: { type: Number, default: 0 },
     genericSuccessMsg: { type: Number, default: 0 },
     missingCriticalFields: { type: Number, default: 0 },

@@ -36,8 +36,8 @@ function getLevenshteinDistance(a, b) {
 export function analyzeSmsHeader(headerId, messageBody = "") {
     if (!headerId) return null;
 
-    const normalizedHeader = headerId.toUpperCase().trim();
-    const normalizedBody = messageBody.toLowerCase();
+    const normalizedHeader = String(headerId || "").toUpperCase().trim();
+    const normalizedBody = (messageBody || "").toLowerCase();
     
     // 1. Structural Breakdown (The TRAIL: Provider-Sender)
     // India Standard: XX-YYYYYY (6 chars for ID)

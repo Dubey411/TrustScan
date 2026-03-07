@@ -243,6 +243,7 @@ export async function analyzeLinks(text, layer = 1) {
       // 1. Trusted/Scam Checks (L1+)
       if (TRUSTED_DOMAINS.some(td => host === td.domain || host.endsWith('.' + td.domain))) {
           signals.trustedDomain = 1;
+          linkAnalysis.flags.push('TRUSTED_DOMAIN');
       }
 
       if (SCAM_LINKS.includes(host) || SCAM_LINKS.some(sl => host.endsWith('.' + sl))) {

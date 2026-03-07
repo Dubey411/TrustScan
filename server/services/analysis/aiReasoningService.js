@@ -51,10 +51,16 @@ function generateHeuristicInsight(reasons, signals) {
 export async function generateAIInsight(text, riskScore, reasons, signals, metadata = {}) {
     const aiInstance = getGenAI();
     
-    // Extract research data for prompt
-    const researchSnippet = metadata.detectedEntities?.map(e => 
+    // Extract research data for prompt (Entities + Links)
+    const entityRes = metadata.detectedEntities?.map(e => 
         `[${e.type}: ${e.value}] Valid: ${e.isValid}. Research: ${e.enrichment?.name || 'N/A'}, Status: ${e.enrichment?.status || 'N/A'}`
-    ).join("\n") || "No official entities found.";
+    ) || [];
+
+    const linkRes = metadata.detectedLinks?.filter(l => l.flags?.includes('TRUSTED_DOMAIN') || l.liveMetadata?.title).map(l => 
+        `[Link: ${l.host}] Status: ${l.flags?.includes('TRUSTED_DOMAIN') ? 'VERIFIED_TRUSTED' : 'Live'}. Meta: ${l.liveMetadata?.title || 'Unknown'}`
+    ) || [];
+
+    const researchSnippet = [...entityRes, ...linkRes].join("\n") || "No official entities or trusted links found.";
 
     // 1. Fallback if no instances configured
     if (!aiInstance && !process.env.SARVAM_API_KEY) return { 
