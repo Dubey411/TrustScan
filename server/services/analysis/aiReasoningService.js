@@ -83,7 +83,8 @@ export async function generateAIInsight(text, riskScore, reasons, signals, metad
 
             CONTENT: "${text.substring(0, 3000)}"
 
-            Task: Inform the user why this is likely fraud using the research and content. 
+            Task: Evaluate the content and research to provide a balanced expert opinion. 
+            If the data suggests it is LEGITIMATE, explain why. If it is SUSPICIOUS, highlight red flags.
             Speak to the user. No bold text. max 2 sentences.
             Insight:`;
 
@@ -111,7 +112,7 @@ export async function generateAIInsight(text, riskScore, reasons, signals, metad
                 body: JSON.stringify({
                     model: "sarvam-m",
                     messages: [
-                        { role: "system", content: "Senior Fraud Investigator. Use Research Data below to explain why a document is suspicious. conciseness=high. No bold." },
+                        { role: "system", content: "Neutral Fraud Investigator. Use Research Data below to provide a balanced verdict. If legitimate, explain why. If suspicious, highlight flags. conciseness=high. No bold." },
                         { role: "user", content: `Score: ${riskScore}%\nResearch:\n${researchSnippet}\n\nContent: ${text.substring(0, 1500)}` }
                     ],
                     max_tokens: 150

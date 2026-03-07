@@ -58,5 +58,15 @@
         "name": "TrustedDomain",
         "domain": "ibm.com",
         "category": "trusted_tech"
+    },
+    {
+        "name": "Larsen & Toubro ECC",
+        "domain": "lntecc.com",
+        "category": "trusted_corp"
+    },
+    {
+        "name": "Larsen & Toubro",
+        "domain": "larsentoubro.com",
+        "category": "trusted_corp"
     }
 ]
