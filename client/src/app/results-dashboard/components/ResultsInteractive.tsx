@@ -114,6 +114,7 @@ interface Feature {
     userRating?: number;
     userFeedback?: string | null;
     aiInsight?: string;
+    aiModel?: string;
   };
 
   showFeedback?: boolean;
@@ -345,7 +346,10 @@ const ResultsInteractive = ({ scanData, showFeedback = true }: ResultsInteractiv
       />
 
       {/* 🔮 Deep Search result (Prophet AI Insight follows) */}
-      <ProphetInsightCard insight={activeScanData?.aiInsight || ""} />
+      <ProphetInsightCard 
+        insight={activeScanData?.aiInsight || ""} 
+        modelUsed={activeScanData?.aiModel} 
+      />
 
       {/* Human Readable Report (Simple Guide) */}
       <TrustScanReportCard report={activeScanData?.trustScanReport} />

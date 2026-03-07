@@ -402,18 +402,30 @@ router.post("/scan", upload.single('file'), async (req, res) => {
     // 4. ✨ NEW: Prophet AI Insight (LLM Reasoning Layer)
     // ONLY trigger for DEEP scans as per user request
     let aiInsight = null;
+    let aiModel = null;
     console.log(`🔍 [AI Gate] analysisLayer=${analysisLayer}, depth=${depth}, hasKey=${!!(process.env.GEMINI_API_KEY && !process.env.GEMINI_API_KEY.includes('PASTE'))}`);
     if (analysisLayer === 3) {
         console.log(`🧠 [Prophet AI] Triggering Deep Analysis for: ${type}, Score: ${finalRisk}%`);
         try {
-            aiInsight = await generateAIInsight(content, finalRisk, result.reasons || [], result.signals || {}, result.metadata || {});
+            const aiResult = await generateAIInsight(content, finalRisk, result.reasons || [], result.signals || {}, result.metadata || {});
+            
+            if (aiResult && typeof aiResult === 'object') {
+                aiInsight = aiResult.insight;
+                aiModel = aiResult.modelUsed;
+            } else if (aiResult) {
+                aiInsight = aiResult;
+                aiModel = "Neural Layer v4"; 
+            }
+
             if (!aiInsight) {
                 console.log("⚠️ [Prophet AI] Generation returned empty result. Using fallback.");
                 aiInsight = "The AI investigator analyzed several patterns but could not find specific anomalies to highlight. The risk score reflects the detected markers.";
+                aiModel = "TrustScan Heuristic";
             }
         } catch (aiErr) {
             console.error("❌ [Prophet AI] Reasoning layer failed:", aiErr.message);
             aiInsight = "Neural analysis is momentarily unavailable, but the TrustScan engine has completed the risk assessment.";
+            aiModel = "Error Fallback";
         }
     } else {
         console.log(`💡 [Prophet AI] Skipped. Deep Scan required for AI reasoning.`);
@@ -452,7 +464,8 @@ router.post("/scan", upload.single('file'), async (req, res) => {
       smsHeaderAnalysis: smsAnalysis || null,
       
       // AI Prophet Insight
-      aiInsight: aiInsight
+      aiInsight: aiInsight,
+      aiModel: aiModel
     };
 
 

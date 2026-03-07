@@ -57,7 +57,10 @@ export async function generateAIInsight(text, riskScore, reasons, signals, metad
     ).join("\n") || "No official entities found.";
 
     // 1. Fallback if no instances configured
-    if (!aiInstance && !process.env.SARVAM_API_KEY) return generateHeuristicInsight(reasons, signals);
+    if (!aiInstance && !process.env.SARVAM_API_KEY) return { 
+        insight: generateHeuristicInsight(reasons, signals), 
+        modelUsed: "TrustScan Heuristic" 
+    };
 
     const modelsToTry = ["gemini-1.5-flash", "gemini-2.0-flash-lite", "gemini-1.5-flash-8b"];
 
@@ -88,7 +91,10 @@ export async function generateAIInsight(text, riskScore, reasons, signals, metad
             const response = await result.response;
             const resText = response.text();
             
-            if (resText && resText.trim().length > 10) return resText.trim();
+            if (resText && resText.trim().length > 10) return { 
+                insight: resText.trim(), 
+                modelUsed: modelName.toLowerCase().includes('gemini') ? "Gemini Flash Core" : modelName 
+            };
         } catch (err) {
             console.warn(`🤖 [Prophet AI] ${modelName} skipped.`);
         }
@@ -114,10 +120,16 @@ export async function generateAIInsight(text, riskScore, reasons, signals, metad
             if (response.ok) {
                 const data = await response.json();
                 const content = data.choices?.[0]?.message?.content;
-                if (content) return content.trim();
+                if (content) return { 
+                    insight: content.trim(), 
+                    modelUsed: "Indus LLM (Sarvam)" 
+                };
             }
         }
     } catch (e) { console.warn("🤖 [Prophet AI] Sarvam failed."); }
 
-    return generateHeuristicInsight(reasons, signals);
+    return { 
+        insight: generateHeuristicInsight(reasons, signals), 
+        modelUsed: "TrustScan Heuristic" 
+    };
 }

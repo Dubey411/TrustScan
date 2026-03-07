@@ -148,6 +148,10 @@ const scanSchema = new mongoose.Schema({
     type: String,
     default: null
   },
+  aiModel: {
+    type: String,
+    default: null
+  },
   expiresAt: {
     type: Date,
     index: { expires: 0 } // Document will be deleted at this timestamp

@@ -3,9 +3,10 @@ import Icon from '@/components/ui/AppIcon';
 
 interface ProphetInsightCardProps {
   insight: string;
+  modelUsed?: string;
 }
 
-export const ProphetInsightCard = ({ insight }: ProphetInsightCardProps) => {
+export const ProphetInsightCard = ({ insight, modelUsed }: ProphetInsightCardProps) => {
   if (!insight) return null;
   return (
     <div className="relative group overflow-hidden border-2 border-indigo-500/20 rounded-2xl mb-6 shadow-sm">
@@ -32,7 +33,9 @@ export const ProphetInsightCard = ({ insight }: ProphetInsightCardProps) => {
           </div>
           
           <div className="hidden md:flex items-center gap-1 bg-slate-800/80 px-2 py-1 rounded-full border border-slate-700">
-             <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">Neural Layer v4</span>
+             <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest font-mono">
+               {modelUsed && modelUsed.includes('Heuristic') ? 'Safety Rule Engine' : 'Neural Inference v5'}
+             </span>
           </div>
         </div>
 
@@ -45,7 +48,7 @@ export const ProphetInsightCard = ({ insight }: ProphetInsightCardProps) => {
             <div className="flex flex-col gap-2 pl-4 border-l-2 border-slate-700">
                <div className="h-4 w-3/4 bg-slate-800 animate-pulse rounded" />
                <div className="h-4 w-1/2 bg-slate-800 animate-pulse rounded" />
-               <p className="text-[10px] text-slate-500 italic mt-2 animate-pulse">Connecting to Gemini High-Confidence Layer...</p>
+               <p className="text-[10px] text-slate-500 italic mt-2 animate-pulse">Running Neural Investigation...</p>
             </div>
           )}
         </div>
@@ -62,10 +65,12 @@ export const ProphetInsightCard = ({ insight }: ProphetInsightCardProps) => {
              <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Deep Verification Protocol</span>
           </div>
           
-          <div className="flex items-center gap-2 text-[9px] text-slate-600 font-bold uppercase tracking-[0.2em]">
-             <span className="bg-slate-800 px-2 py-0.5 rounded text-slate-400 border border-slate-700/50">Gemini Flash Core</span>
+          <div className="flex items-center gap-2 text-[9px] text-slate-600 font-bold uppercase tracking-[0.1em]">
+             <span className="bg-slate-800 px-2 py-0.5 rounded text-indigo-300 border border-slate-700 font-mono">
+               Engine: {modelUsed || "Gemini Flash Core"}
+             </span>
              <span className="w-1 h-1 rounded-full bg-slate-700" />
-             <span className="hover:text-indigo-400 transition-colors cursor-default underline decoration-slate-800 underline-offset-4">Learn How This Works</span>
+             <span className="hover:text-indigo-400 transition-colors cursor-default underline decoration-slate-800 underline-offset-4">Learn More</span>
           </div>
         </div>
       </div>
