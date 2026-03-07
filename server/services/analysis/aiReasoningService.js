@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/generative-ai";
 
 let genAI = null;
 
@@ -17,71 +17,80 @@ export async function generateAIInsight(text, riskScore, reasons, signals) {
     const aiInstance = getGenAI();
     if (!aiInstance) return null; 
 
-    // gemini-1.5-flash has highest free quota (1500 req/day)
-    // gemini-2.0-flash has lower free quota but is newer
+    // Highest quota model first
     const modelsToTry = [
-        { name: "gemini-1.5-flash", version: "v1beta" },
-        { name: "gemini-2.0-flash", version: "v1beta" },
-        { name: "gemini-1.5-pro", version: "v1beta" },
+        "gemini-1.5-flash",
+        "gemini-1.5-flash-latest",
+        "gemini-2.0-flash",
+        "gemini-1.5-pro",
     ];
+
+    // Safety settings to prevent false positives for "fraud" content
+    const safetySettings = [
+        { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+        { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
+        { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
+        { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+    ];
+
     let lastError = null;
 
-    for (const { name: modelName, version } of modelsToTry) {
+    for (const modelName of modelsToTry) {
         try {
-            console.log(`🤖 [Prophet AI] Attempting ${modelName} (${version})...`);
+            console.log(`🤖 [Prophet AI] Attempting ${modelName} (v1beta)...`);
+            
+            // Forces the backend to use the latest beta endpoint which is more reliable for flash
             const model = aiInstance.getGenerativeModel(
-                { model: modelName },
-                { apiVersion: version }
+                { model: modelName, safetySettings },
+                { apiVersion: 'v1beta' }
             );
             
-            const contextSnippet = text.substring(0, 3000); 
+            const contextSnippet = text.substring(0, 5000); 
 
             const prompt = `
-            You are a Senior Fraud Investigator for "CheckIt", an Indian startup platform that protects students and job seekers from scams.
-            A user has uploaded a document (offer letter/job post). Our ML Rules Engine has already analyzed it.
+            You are a Senior Fraud Investigator for "CheckIt", an Indian platform protecting job seekers.
             
-            INPUT DATA:
-            - ML Risk Score: ${riskScore}%
-            - Flagged Reasons: ${reasons.join(", ")}
-            - ML Signals: ${JSON.stringify(signals)}
+            ML ANALYSIS:
+            - Risk Score: ${riskScore}%
+            - Reasons: ${reasons.join(", ")}
+            - Signals: ${JSON.stringify(signals)}
             
-            DOCUMENT TEXT SNIPPET:
-            """
-            ${contextSnippet}
-            """
+            CONTENT TO ANALYZE:
+            "${contextSnippet}"
 
-            YOUR TASK:
-            Analyze the "Intent" and "Reputation" of this document/company. Explain WHY it might be a scam in human-friendly language. 
-            Focus on common Indian scam tactics and community sentiment (using your internal knowledge of reports from sites like Reddit, Glassdoor, or Quora):
-            - Training Fees or Security Deposit requests (The #1 scam signal).
-            - Lack of official company identifiers (CIN/GST) or faked ones.
-            - Professional-looking text for a company that users often report as a "Consultancy Trap" or "Data Entry Scam".
-            - Urgent deadlines for payment or "selection" without a proper interview.
-            - Use of unofficial communication (Telegram/Personal Gmail) for a supposedly "Big Brand".
+            TASK:
+            Tell the user WHY this is likely a scam or what to look out for. 
+            Focus on Indian context (fake MNCs, training fees, Telegram traps).
+            Keep it strictly under 3 short sentences. Speak directly to the user (e.g., "I noticed that...").
+            Do not use bold characters.
 
-            REQUIREMENTS:
-            1. Keep it concise (max 3 sentences).
-            2. Speak directly to the user (e.g., "I noticed that...").
-            3. Use your knowledge of "Grey List" companies: If a company is legally real but has a terrible reputation for charging students for jobs, mention it.
-            4. If it's a 100% impersonation scam, be firm and warn the user not to pay any money.
-            5. Format as a single paragraph.
-
-            INVESTIGATOR INSIGHT:`;
+            EXPLANATION:`;
 
             const result = await model.generateContent(prompt);
             const response = await result.response;
             const resultText = response.text();
             
-            if (resultText) {
+            if (resultText && resultText.trim().length > 10) {
                 console.log(`✅ [Prophet AI] Success with ${modelName}!`);
                 return resultText.trim();
+            } else {
+                console.warn(`⚠️ [Prophet AI] ${modelName} returned empty or too short response.`);
             }
         } catch (err) {
             lastError = err;
-            console.warn(`🤖 [Prophet AI] ${modelName} failed: ${err.message?.substring(0, 150)}`);
+            const shortMsg = err.message?.substring(0, 150);
+            console.warn(`🤖 [Prophet AI] ${modelName} failed: ${shortMsg}`);
+            
+            // If it's a 429, we might want to skip other fast flash models
+            if (shortMsg.includes('429')) {
+                console.warn("🛑 [Prophet AI] Rate limited. Cooling down.");
+                break; 
+            }
         }
     }
 
-    console.error("🤖 [Prophet AI] All models failed. Last error:", lastError?.message?.substring(0, 200));
+    if (lastError) {
+        console.error("🤖 [Prophet AI] All attempts failed. Error summary:", lastError.message?.substring(0, 200));
+    }
     return null;
 }
