@@ -17,15 +17,16 @@ export async function generateAIInsight(text, riskScore, reasons, signals) {
     const aiInstance = getGenAI();
     if (!aiInstance) return null; 
 
-    // Highest quota model first
+    // We try a mix of 2.0 and 1.5 models across different versions to bypass regional/quota issues
     const modelsToTry = [
-        "gemini-1.5-flash",
-        "gemini-1.5-flash-latest",
-        "gemini-2.0-flash",
-        "gemini-1.5-pro",
+        { name: "gemini-2.0-flash-lite", version: "v1beta" },
+        { name: "gemini-1.5-flash", version: "v1beta" },
+        { name: "gemini-1.5-flash-8b", version: "v1beta" },
+        { name: "gemini-2.0-flash", version: "v1beta" },
+        { name: "gemini-1.5-pro", version: "v1beta" }
     ];
 
-    // Safety settings to prevent false positives for "fraud" content
+    // Aggressive safety settings to ensure fraud analysis isn't censored
     const safetySettings = [
         { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
         { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
@@ -35,34 +36,32 @@ export async function generateAIInsight(text, riskScore, reasons, signals) {
 
     let lastError = null;
 
-    for (const modelName of modelsToTry) {
+    for (const { name: modelName, version } of modelsToTry) {
         try {
-            console.log(`🤖 [Prophet AI] Attempting ${modelName} (v1beta)...`);
+            console.log(`🤖 [Prophet AI] Attempting ${modelName} (${version})...`);
             
-            // Forces the backend to use the latest beta endpoint which is more reliable for flash
             const model = aiInstance.getGenerativeModel(
                 { model: modelName, safetySettings },
-                { apiVersion: 'v1beta' }
+                { apiVersion: version }
             );
             
-            const contextSnippet = text.substring(0, 5000); 
+            // Context is key for a good insight
+            const contextSnippet = text.substring(0, 4000); 
 
             const prompt = `
-            You are a Senior Fraud Investigator for "CheckIt", an Indian platform protecting job seekers.
+            You are a Senior Fraud Investigator. Analyze this input and explain why it is suspicious.
             
-            ML ANALYSIS:
-            - Risk Score: ${riskScore}%
+            ML DATA:
+            - Risk: ${riskScore}%
             - Reasons: ${reasons.join(", ")}
             - Signals: ${JSON.stringify(signals)}
             
-            CONTENT TO ANALYZE:
+            CONTENT:
             "${contextSnippet}"
 
-            TASK:
-            Tell the user WHY this is likely a scam or what to look out for. 
-            Focus on Indian context (fake MNCs, training fees, Telegram traps).
-            Keep it strictly under 3 short sentences. Speak directly to the user (e.g., "I noticed that...").
-            Do not use bold characters.
+            INSTRUCTIONS:
+            Explain the anomaly in 1-2 powerful sentences. Speak to the user. Do not use bold characters.
+            Example: "I detected multiple inconsistencies in the company CIN and the registration date, which often indicates a shell company used for recruitment scams."
 
             EXPLANATION:`;
 
@@ -70,27 +69,24 @@ export async function generateAIInsight(text, riskScore, reasons, signals) {
             const response = await result.response;
             const resultText = response.text();
             
-            if (resultText && resultText.trim().length > 10) {
+            if (resultText && resultText.trim().length > 5) {
                 console.log(`✅ [Prophet AI] Success with ${modelName}!`);
                 return resultText.trim();
-            } else {
-                console.warn(`⚠️ [Prophet AI] ${modelName} returned empty or too short response.`);
             }
         } catch (err) {
             lastError = err;
-            const shortMsg = err.message?.substring(0, 150);
-            console.warn(`🤖 [Prophet AI] ${modelName} failed: ${shortMsg}`);
+            console.warn(`🤖 [Prophet AI] ${modelName} attempt failed.`);
             
-            // If it's a 429, we might want to skip other fast flash models
-            if (shortMsg.includes('429')) {
-                console.warn("🛑 [Prophet AI] Rate limited. Cooling down.");
-                break; 
+            // If it's a quota error, don't stop, try the next model which might have quota
+            if (err.message?.includes('429')) {
+                console.log(`🚥 [Prophet AI] Quota full for ${modelName}, jumping to next...`);
+                continue;
             }
         }
     }
 
     if (lastError) {
-        console.error("🤖 [Prophet AI] All attempts failed. Error summary:", lastError.message?.substring(0, 200));
+        console.error("🤖 [Prophet AI] Final failure reason:", lastError.message?.substring(0, 150));
     }
     return null;
 }
