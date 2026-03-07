@@ -59,7 +59,7 @@ async function generateSarvamInsight(text, riskScore, reasons, signals) {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                model: "sarvam-1",
+                model: "sarvam-m", 
                 messages: [
                     {
                         role: "system",
