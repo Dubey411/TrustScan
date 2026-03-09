@@ -243,8 +243,8 @@ router.post("/scan", upload.single('file'), async (req, res) => {
     }
 
 
-    // 2. Run Unified India Fraud Confidence Engine (Intelligence Layering)
-    const result = await runRules(content, externalSignals, trustSignals, senderId, analysisLayer);
+    // 2. Run Unified India Fraud Confidence Engine (Intelligence Layering + LLM)
+    const result = await runRules(content, externalSignals, trustSignals, senderId, analysisLayer, type);
 
     let finalRisk = result.riskScore || 0;
     
@@ -399,19 +399,28 @@ router.post("/scan", upload.single('file'), async (req, res) => {
         ? "Medium"
         : "Low";
 
-    // 4. ✨ NEW: Prophet AI Insight (LLM Reasoning Layer)
-    // ONLY trigger for DEEP scans as per user request
+    // 4. ✨ UPGRADED: AI Insight for ALL Tiers
+    // Deep Scan → Full Prophet AI reasoning (Gemini)
+    // Basic/Standard → LLM Classification summary (already ran in rulesEngine)
     let aiInsight = null;
     let aiModel = null;
-    console.log(`🔍 [AI Gate] analysisLayer=${analysisLayer}, depth=${depth}, hasKey=${!!(process.env.GEMINI_API_KEY && !process.env.GEMINI_API_KEY.includes('PASTE'))}`);
+    console.log(`🔍 [AI Gate] analysisLayer=${analysisLayer}, depth=${depth}, hasLLM=${!!result.llmClassification}`);
+    
     if (analysisLayer === 3) {
-        console.log(`🧠 [Prophet AI] Triggering Deep Analysis for: ${type}, Score: ${finalRisk}%`);
+        // DEEP SCAN: Prophet AI Investigation (1 API call + ML-built debate)
+        console.log(`🧠 [Prophet AI] Triggering Deep Investigation for: ${type}, Score: ${finalRisk}%`);
         try {
-            const aiResult = await generateAIInsight(content, finalRisk, result.reasons || [], result.signals || {}, result.metadata || {});
+            // Pass flags into metadata so debate builder can use our own ML red/green flags
+            const enrichedMetadata = { ...result.metadata, _flags: result.flags };
+            const aiResult = await generateAIInsight(content, finalRisk, result.reasons || [], result.signals || {}, enrichedMetadata);
             
             if (aiResult && typeof aiResult === 'object') {
                 aiInsight = aiResult.insight;
                 aiModel = aiResult.modelUsed;
+                // Store deep scan exclusive data
+                if (aiResult.deepScanReport) {
+                    scanMeta.deepScanReport = aiResult.deepScanReport;
+                }
             } else if (aiResult) {
                 aiInsight = aiResult;
                 aiModel = "Neural Layer v4"; 
@@ -427,8 +436,11 @@ router.post("/scan", upload.single('file'), async (req, res) => {
             aiInsight = "Neural analysis is momentarily unavailable, but the TrustScan engine has completed the risk assessment.";
             aiModel = "Error Fallback";
         }
-    } else {
-        console.log(`💡 [Prophet AI] Skipped. Deep Scan required for AI reasoning.`);
+    } else if (result.llmClassification && result.llmClassification.summary) {
+        // BASIC/STANDARD: Use the LLM classification summary (already computed, no extra API call)
+        aiInsight = result.llmClassification.summary;
+        aiModel = result.llmClassification.modelUsed ? `AI Classifier (${result.llmClassification.modelUsed})` : "AI Classifier";
+        console.log(`🧠 [AI Lite] Providing LLM classification summary for ${depth || 'basic'} user.`);
     }
 
     // 5. Prepare DB record with ML features (Minimal Storage Optimization)
@@ -532,7 +544,8 @@ router.post("/scan", upload.single('file'), async (req, res) => {
         result: status, // Map status to result for UI compatibility
         status,
         riskScore: finalRisk,
-        aiInsight: aiInsight || null, 
+        aiInsight: aiInsight || null,
+        aiModel: aiModel || null,
         analysisLayer,
         confidence,
         reasons: scanDataRecord.reasons,
@@ -541,7 +554,19 @@ router.post("/scan", upload.single('file'), async (req, res) => {
         metadata: result.metadata,
         scanMeta: scanMeta,
         trustScanReport: generateTrustScanReport(finalRisk, result.signals, result.metadata),
-        recommendation: getRecommendedActions(result.signals, status)
+        recommendation: getRecommendedActions(result.signals, status),
+        // ===== UPGRADE: LLM Intelligence Layer Data =====
+        llmClassification: result.llmClassification ? {
+            isScam: result.llmClassification.isScam,
+            scamType: result.llmClassification.scamType,
+            confidence: result.llmClassification.confidence,
+            redFlags: result.llmClassification.redFlags,
+            greenFlags: result.llmClassification.greenFlags
+        } : null,
+        translationResult: result.translationResult ? {
+            method: result.translationResult.method,
+            originalLang: result.translationResult.originalLang
+        } : null
       });
     } catch (saveError) {
       console.error("❌ MongoDB Save Error:", saveError.message);

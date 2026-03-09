@@ -13,6 +13,7 @@ import DownloadReport from './DownloadReport';
 import LinkAnalysisCard from './LinkAnalysisCard';
 import { BusinessVerificationCard } from './BusinessVerificationCard';
 import ProphetInsightCard from './ProphetInsightCard';
+import DeepScanReportCard from './DeepScanReportCard'; // Premium UI
 import { DatabaseHitCard } from './DatabaseHitCard';
 import TrustScanReportCard from './TrustScanReportCard';
 import { API_BASE_URL } from '@/api/scan';
@@ -345,11 +346,15 @@ const ResultsInteractive = ({ scanData, showFeedback = true }: ResultsInteractiv
         customLabel={activeScanData?.scanMeta?.verdictLabel}
       />
 
-      {/* 🔮 Deep Search result (Prophet AI Insight follows) */}
-      <ProphetInsightCard 
-        insight={activeScanData?.aiInsight || ""} 
-        modelUsed={activeScanData?.aiModel} 
-      />
+      {/* 🔮 Deep Search result (Prophet AI Insight / Deep Scan Report) */}
+      {activeScanData?.scanMeta?.deepScanReport ? (
+          <DeepScanReportCard deepScanReport={activeScanData.scanMeta.deepScanReport} />
+      ) : (
+          <ProphetInsightCard 
+            insight={activeScanData?.aiInsight || ""} 
+            modelUsed={activeScanData?.aiModel} 
+          />
+      )}
 
       {/* Human Readable Report (Simple Guide) */}
       <TrustScanReportCard report={activeScanData?.trustScanReport} />

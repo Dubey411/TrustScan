@@ -16,7 +16,17 @@
     "contextMismatch": 0,
     "lowOcrConfidence": 0,
     "ocrConfidenceParadox": 0,
-    "structuralAnomalies": 2.0999999999999996
+    "structuralAnomalies": 2.0999999999999996,
+    "llmScamDetected": 1.8,
+    "llmFinancialDemand": 1.5,
+    "llmUrgency": 1.2,
+    "llmImpersonation": 1.3,
+    "llm_jobScam": 1.6,
+    "llm_financial": 1.7,
+    "llm_links": 1.4,
+    "llm_impersonation": 1.3,
+    "llm_techSupport": 1.0,
+    "llmLegitimate": -1.5
   },
   "metadata": {
     "capsRatio": 3,

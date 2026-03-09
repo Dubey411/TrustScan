@@ -60,29 +60,58 @@ async function searchCompanyByName(name) {
     try {
         console.log(`🌐 [MCA API] Searching for Company Name: ${searchTerm}...`);
         
-        // 1. Try Company Master Data
-        const apiUrl = `https://api.data.gov.in/resource/4dbe5667-7b6b-41d7-82af-211562424d9a?api-key=${apiKey}&format=json&filters[CompanyName]=${encodeURIComponent(searchTerm)}`;
-        
-        const response = await fetchWithRetry(apiUrl, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept': 'application/json',
-                'Connection': 'close'
-            }
-        });
+        // 1. Try EXACT MATCH first via filter (Most Accurate)
+        const exactUrl = `https://api.data.gov.in/resource/4dbe5667-7b6b-41d7-82af-211562424d9a?api-key=${apiKey}&format=json&filters[CompanyName]=${encodeURIComponent(searchTerm)}`;
+        const exactResponse = await fetchWithRetry(exactUrl);
+        const exactData = await exactResponse.json();
 
-        const data = await response.json();
-        if (data.records && data.records.length > 0) {
-            const record = data.records[0];
-            return {
-                name: record.CompanyName,
-                cin: record.CIN, 
-                status: record.CompanyStatus,
-                address: record.Registered_Office_Address,
-                class: record.CompanyClass,
-                incDate: record.CompanyRegistrationdate_date,
-                source: "GOVT_API_NAME_SEARCH"
-            };
+        let records = exactData.records || [];
+
+        // 2. If no exact match, try SEARCH (q parameter)
+        if (records.length === 0) {
+            const searchUrl = `https://api.data.gov.in/resource/4dbe5667-7b6b-41d7-82af-211562424d9a?api-key=${apiKey}&format=json&q=${encodeURIComponent(searchTerm)}`;
+            const searchResponse = await fetchWithRetry(searchUrl);
+            const searchData = await searchResponse.json();
+            records = searchData.records || [];
+        }
+
+        if (records.length > 0) {
+            // VALIDATION: Clean search terms and find the best word-for-word match
+            // We ignore common corporate fillers to find the "unique" part of the name
+            const coreTerms = searchTerm
+                .replace(/\b(PRIVATE|LIMITED|PVT|LTD|AND|SOLUTIONS|TECHNOLOGY|TECHNOLOGIES|SERVICES|CORP|CORPORATION|INDIA)\b/g, '')
+                .trim()
+                .split(/\s+/)
+                .filter(t => t.length > 2);
+            
+            if (coreTerms.length === 0) {
+                // If search is too generic (e.g. just "Private Limited"), don't return random results
+                return null;
+            }
+
+            // Find a match that contains ALL core terms as whole words or very strong prefixes
+            const bestMatch = records.find(r => {
+                const vendorName = r.CompanyName.toUpperCase();
+                return coreTerms.every(term => {
+                    const regex = new RegExp(`\\b${term}\\b`, 'i');
+                    return regex.test(vendorName) || vendorName.startsWith(term);
+                });
+            });
+
+            if (bestMatch) {
+                console.log(`✅ [MCA API] High-confidence match: "${bestMatch.CompanyName}"`);
+                return {
+                    name: bestMatch.CompanyName,
+                    cin: bestMatch.CIN, 
+                    status: bestMatch.CompanyStatus,
+                    address: bestMatch.Registered_Office_Address,
+                    class: bestMatch.CompanyClass,
+                    incDate: bestMatch.CompanyRegistrationdate_date,
+                    source: "GOVT_API_NAME_SEARCH"
+                };
+            } else {
+                console.log(`⚠️ [MCA API] No high-confidence match for "${searchTerm}" in ${records.length} results. Rejecting fuzzy matches.`);
+            }
         }
     } catch (error) {
         console.error("⚠️ [MCA API] Name Search failed:", error.code || error.message);
@@ -249,7 +278,7 @@ function detectPartialMatchDiscrepancies(parsedCin, text) {
 /**
  * Analyzes text for business entities with Intel Layer
  */
-export async function analyzeEntities(text, layer = 1) {
+export async function analyzeEntities(text, layer = 1, userId = null, metadata = {}) {
   if (!text) return { signals: {}, metadata: {} };
 
   const rawGsts = text.match(GST_REGEX) || [];
@@ -316,21 +345,35 @@ export async function analyzeEntities(text, layer = 1) {
       });
   }
 
-  // Fallback: Name Search (L2+ Standard/Deep Only)
-  if (detectedEntities.length === 0 && text.length < 100 && text.length > 3 && layer >= 2) {
-       const cleanName = text.trim();
+    // Fallback: Targeted Name Search (L2+ Standard/Deep Only)
+    // If we couldn't find a CIN, but the rules engine extracted a potential company name, SEARCH FOR IT.
+    let companyNameToSearch = null;
+    if (metadata?.potentialOrgName) {
+        companyNameToSearch = metadata.potentialOrgName;
+    } else if (text.length < 100 && text.length > 3) {
+        // If it's a very short text (like a manual search query), use the whole text
+        companyNameToSearch = text.trim();
+    }
+
+    if (detectedEntities.length === 0 && companyNameToSearch && layer >= 1) {
+        // Clean the name of common prefixes/footnotes and special chars
+        const cleanName = companyNameToSearch.replace(/[^a-zA-Z0-9\s\&]/gi, '').trim().replace(/\s+/g, ' ');
+        if (cleanName.length > 3) {
+             console.log(`🔍 [Entity Scanner] Invoking MCA Name Search for cleaned name: "${cleanName}"`);
        if (!cleanName.includes('\n')) {
-           // Search only in Mock for L2, Search Real for L3
-           let nameResult = null;
-           if (layer >= 3) {
-               nameResult = await searchCompanyByName(cleanName);
-           } else {
-               // Mock Search for L2
-               const mockEntry = Object.entries(MOCK_COMPANY_DB).find(([cin, data]) => data.name.includes(cleanName.toUpperCase()));
-               if (mockEntry) {
-                   nameResult = { ...mockEntry[1], cin: mockEntry[0] };
-               }
-           }
+            // 1. Try real government API
+            let nameResult = await searchCompanyByName(cleanName);
+            
+            // 2. Fallback to Mock Database if API failed or no result
+            if (!nameResult) {
+                const mockEntry = Object.entries(MOCK_COMPANY_DB).find(([cin, data]) => 
+                    data.name.includes(cleanName.toUpperCase()) || 
+                    cleanName.toUpperCase().includes(data.name)
+                );
+                if (mockEntry) {
+                    nameResult = { ...mockEntry[1], cin: mockEntry[0] };
+                }
+            }
 
            if (nameResult) {
                detectedEntities.push({
@@ -345,6 +388,7 @@ export async function analyzeEntities(text, layer = 1) {
                });
            }
        }
+    }
   }
 
   // GST Logic (Sync - L1+)

@@ -6,6 +6,8 @@ import { analyzeLinks } from '../analysis/linkScanner.js';
 import { analyzeEntities } from '../analysis/entityScanner.js';
 import { analyzeSmsHeader } from '../analysis/smsHeaderScanner.js';
 import { analyzeScamScript } from '../analysis/scriptScanner.js';
+import { classifyWithLLM, llmToSignals } from '../analysis/llmClassifier.js';
+import { detectLanguage, translateToEnglish } from '../analysis/translationService.js';
 import TrustEntity from '../../models/TrustEntity.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -73,9 +75,33 @@ function extractFeatures(text) {
  * @param {string} senderId - Optional SMS Header ID (Indian standard)
  * @param {number} analysisLayer - 1 (Basic), 2 (Standard), 3 (Deep)
  */
-export async function runRules(content, externalSignals = {}, trustSignals = {}, senderId = null, analysisLayer = 1) {
+export async function runRules(content, externalSignals = {}, trustSignals = {}, senderId = null, analysisLayer = 1, scanType = 'email') {
   const reasons = [];
   const rulesFired = [];
+  let translationResult = null;
+  let llmClassification = null;
+
+  // ===== UPGRADE 1: MULTILINGUAL INTELLIGENCE =====
+  // Detect and translate Hindi/Hinglish/Regional content BEFORE rules matching
+  const langDetection = detectLanguage(content);
+  if (langDetection.isNonEnglish) {
+      console.log(`🌐 [Multilingual] Detected ${langDetection.detectedLang} (Confidence: ${langDetection.confidence}%)`);
+      translationResult = await translateToEnglish(content, langDetection.detectedLang);
+      if (translationResult.method !== 'failed' && translationResult.method !== 'none') {
+          console.log(`✅ [Multilingual] Translation successful via ${translationResult.method}`);
+          // Use translated text for rules matching, but keep original for display
+          content = translationResult.translatedText;
+          reasons.push(`Multilingual: Content translated from ${langDetection.detectedLang.toUpperCase()} to English for analysis.`);
+      }
+  }
+
+  // ===== UPGRADE 2: LLM SIGNAL CLASSIFICATION =====
+  // Run Gemini/Sarvam classification in parallel with other analysis
+  try {
+      llmClassification = await classifyWithLLM(content, scanType);
+  } catch (err) {
+      console.warn(`⚠️ [LLM Classifier] Error: ${err.message}`);
+  }
 
   // Initialize Signals Vector
   let signals = {
@@ -151,8 +177,46 @@ export async function runRules(content, externalSignals = {}, trustSignals = {},
   const scriptAnalysis = analyzeScamScript(content);
   const activityAnalysis = await analyzeLinks(content, analysisLayer);
   
-  // --- MISSION: HARD IDENTIFICATION (CIN, Aadhaar, PAN, GST) ---
-  const entityAnalysis = await analyzeEntities(content, analysisLayer);
+  // --- TARGETED COMPANY EXTRACTION FOR MCA VERIFIER ---
+  // Try to find the company name so we can hit the MCA API even if there's no CIN
+  let potentialNameMatch = null;
+  // 1. Context-based regex
+  const contextRegex = /(?:welcome to|team|hr|joining|offer from|career at|on behalf of)\s+([A-Z][a-zA-Z0-9\s\&\.]{3,35})\b/i;
+  let match = content.match(contextRegex);
+  
+  if (match && match[1]) {
+      potentialNameMatch = match[1];
+  } else {
+      // 2. Look for common corporate suffixes or typical organization names missing from context
+      const corporateRegex = /([A-Z][a-zA-Z0-9\s\&\.]{3,40}(?:Private Limited|Pvt Ltd|Ltd|Limited|Technologies|Solutions|Corp|Corporation|Labs|Lab|Inc|LLP|Enterprise|Enterprises|Foundation|Trust))\b/i;
+      match = content.match(corporateRegex);
+      if (match && match[1]) {
+          potentialNameMatch = match[1];
+      }
+  }
+
+  if (potentialNameMatch) {
+      const potentialName = potentialNameMatch.trim();
+      const isGeneric = /^(the|your|our|all|india|private|limited|team|management|human|resources|hr|this|that|these|those)$/i.test(potentialName);
+      if (!isGeneric) {
+          metadata.potentialOrgName = potentialName;
+          console.log(`🎯 [RulesEngine] Targeted MCA Extraction (Regex): Found name "${potentialName}"`);
+      }
+  }
+
+  // --- UPGRADE: LLM FALLBACK FOR NAME EXTRACTION ---
+  // If Regex failed but LLM found a name, use the LLM's finding to hit the MCA API
+  if (!metadata.potentialOrgName && llmClassification?.organizationName) {
+      const llmName = llmClassification.organizationName.trim();
+      const isGeneric = /^(the|your|our|all|india|private|limited|team|management|human|resources|hr|unknown|null|n\/a)$/i.test(llmName);
+      if (!isGeneric && llmName.length > 3) {
+          metadata.potentialOrgName = llmName;
+          console.log(`🎯 [RulesEngine] Targeted MCA Extraction (AI): Found name "${llmName}"`);
+      }
+  }
+
+  // --- MISSION: HARD IDENTIFICATION (CIN, Aadhaar, PAN, GST, MCA NAME SEARCH) ---
+  const entityAnalysis = await analyzeEntities(content, analysisLayer, null, metadata);
   const smsAnalysis = senderId ? analyzeSmsHeader(senderId, content) : null;
   const hasStructuralAnomaly = detectStructuralAnomalies(content);
 
@@ -171,10 +235,13 @@ export async function runRules(content, externalSignals = {}, trustSignals = {},
   }
 
   // Initialize Signals Vector
+  const llmSignals = llmClassification ? llmToSignals(llmClassification) : {};
+  
   signals = { 
       ...signals, 
       ...activityAnalysis.signals, 
       ...entityAnalysis.signals,
+      ...llmSignals,  // ===== UPGRADE: Merge LLM classification signals =====
       smsSpoofRisk: smsAnalysis?.isSpoofed ? 1 : 0,
       scamFlowDetected: scriptAnalysis?.riskScore > 50 ? 1 : 0,
       structuralAnomalies: hasStructuralAnomaly ? 1 : 0,
@@ -398,8 +465,15 @@ export async function runRules(content, externalSignals = {}, trustSignals = {},
       defenseEvidence.push("Identity Verified: Originates from a verified corporate domain, confirming sender authenticity.");
   } else if (isVerifiedEntity) {
       defenseScore += 80;
-      const source = entityAnalysis.metadata.detectedEntities.find(e => e.enrichment)?.enrichment?.source || "Official Registry";
+      const foundEntity = entityAnalysis.metadata.detectedEntities.find(p => p.enrichment);
+      const source = foundEntity?.enrichment?.source || "Official Registry";
+      const orgName = foundEntity?.enrichment?.name || "the organization";
       defenseEvidence.push(`Identity Verified: Entity confirmed via ${source}. Positive registration record found.`);
+      if (source === "GOVT_API_NAME_SEARCH") {
+          reasons.push(`Verification Success: "${orgName}" found in active MCA government records via name search.`);
+      } else {
+          reasons.push(`Verification Success: Entity identity confirmed via official registration records (${orgName}).`);
+      }
   } else if (matchedFamousOrg) {
       defenseScore += 60;
       defenseEvidence.push(`Reputation Check: Document mentions a known legitimate organization (${matchedFamousOrg}).`);
@@ -431,7 +505,7 @@ export async function runRules(content, externalSignals = {}, trustSignals = {},
   // --- DYNAMIC ENTITY ASSOCIATION (The "New Threat" Detector) ---
   // Heuristic: If risk from other rules is already EXTREME (>85%) AND there's no defense, 
   // identify the unknown entity as a potential emerging threat.
-  if (maxImpliedRisk >= 85 && !signals.knownScamSource && !hasTrustedOrg && defenseScore < 40) {
+  if (maxImpliedRisk >= 85 && !signals.knownScamSource && !signals.trustedOrg && defenseScore < 40) {
       // Heuristic to find the Org Name if not already known
       // Look for: "Welcome to [Name]", "Team [Name]", "Offer from [Name]"
       const contextRegex = /(?:welcome to|team|hr|joining|offer from|career at)\s+([A-Z][a-zA-Z0-9\s\.]{3,25})\b/i;
@@ -518,15 +592,20 @@ export async function runRules(content, externalSignals = {}, trustSignals = {},
           defenseEvidence.push("Financial Context Penalty: Legitimate brands do not request advance payments for recruitment or training.");
       }
   }
-  // --- JOB CONTEXT FLOOR: Stay cautious about offers from unverified sources ---
+  // --- JOB CONTEXT FLOOR: More nuanced handling of offer letters ---
   else if (signals.jobScam > 0) {
-      const mitigation = Math.min(defenseScore * 0.7, 60); // More room for mitigation if trusted
+      const mitigation = Math.min(defenseScore * 0.7, 60);
       
       if (isVerifiedEntity || matchedFamousOrg) {
-          // If it's a verified or famous org, allow 'Safe' status
+          // Verified or famous org → allow Safe status
           finalRiskCalculation = Math.max(20, finalRiskCalculation - mitigation); 
           const targetName = matchedFamousOrg || "Verified Institution";
           defenseEvidence.push(`Verified Institution (${targetName}): Legitimate offer likely. Verified safe reference detected.`);
+      } else if (!signals.financial && !signals.urgency && scriptAnalysis.riskScore <= 40) {
+          // Unverified BUT clean (no money demands, no urgency, no scam script)
+          // This is likely a legitimate offer from a smaller/unknown org
+          finalRiskCalculation = Math.max(25, finalRiskCalculation - mitigation);
+          defenseEvidence.push("Recruitment Safety Alert: Verify company registration for unverified offer letters. No financial demands or pressure detected.");
       } else {
           finalRiskCalculation = Math.max(40, finalRiskCalculation - mitigation);
           defenseEvidence.push("Recruitment Safety Alert: Verify company registration for unverified offer letters.");
@@ -543,10 +622,27 @@ export async function runRules(content, externalSignals = {}, trustSignals = {},
           defenseEvidence.push("Defense Analysis: Identity or professional depth exceeds risk thresholds. Verification recommended.");
       }
   } else {
-      // Standard mitigation - defense can reduce score but not below floor if red flags exist
+      // Standard mitigation
       const protectionFactor = Math.min(defenseScore, 30);
       finalRiskCalculation -= protectionFactor;
-      
+  }
+
+  // --- CLEAN DOCUMENT DEFENSE ---
+  // If a document has NO financial demands, NO urgency, and professional formatting,
+  // it should NOT score above 50% regardless of other signals.
+  // This prevents legitimate offer letters from being flagged as Critical Fraud.
+  const hasNoFinancialThreat = !signals.financial && !signals.registrationFee && !externalSignals.registrationFee;
+  const hasNoUrgency = !signals.urgency && (scriptAnalysis.riskScore <= 30);
+  const hasProfessionalStructure = metadata.textLength > 200 && defenseScore >= 15;
+  const isNotBlacklisted = !signals.knownScamSource && !signals.knownScamLink && !signals.emergingRiskSource;
+  
+  if (hasNoFinancialThreat && hasNoUrgency && hasProfessionalStructure && isNotBlacklisted) {
+      const cleanDocumentCap = signals.llmLegitimate ? 30 : 45;
+      if (finalRiskCalculation > cleanDocumentCap) {
+          console.log(`🛡️ [Clean Doc Defense] Score ${Math.round(finalRiskCalculation)}% → capped at ${cleanDocumentCap}% (no financial demand, no urgency, structured content)`);
+          finalRiskCalculation = cleanDocumentCap;
+          defenseEvidence.push("Clean Document: No payment demands, no urgency pressure, and professional formatting detected. Risk capped.");
+      }
   }
 
   // --- 🔥 FINAL DATABASE OVERRIDES: Human Intelligence ALWAYS takes priority ---
@@ -576,12 +672,51 @@ export async function runRules(content, externalSignals = {}, trustSignals = {},
     }
   };
 
+  // ===== UPGRADE 3: LLM RISK FUSION (BALANCED) =====
+  // LLM can NUDGE the score, not OVERRIDE it.
+  // Our own ML engine's score is the primary authority.
+  if (llmClassification) {
+      if (llmClassification.isScam && llmClassification.confidence >= 80) {
+          // LLM detected scam — but only nudge, don't override
+          if (llmClassification.financialDemand) {
+              // Financial demand + LLM scam = strong boost (+15 max)
+              const boost = Math.min(15, (llmClassification.confidence - 60) / 3);
+              finalRiskCalculation = Math.min(100, finalRiskCalculation + boost);
+              console.log(`🧠 [LLM Fusion] Financial scam boost +${boost.toFixed(1)}%`);
+          } else {
+              // No financial demand = mild boost (+8 max)
+              const boost = Math.min(8, (llmClassification.confidence - 70) / 4);
+              finalRiskCalculation = Math.min(100, finalRiskCalculation + boost);
+              console.log(`🧠 [LLM Fusion] Mild boost +${boost.toFixed(1)}% (no financial demand)`);
+          }
+          if (llmClassification.redFlags?.length > 0) {
+              reasons.push(`AI Detection: ${llmClassification.redFlags.slice(0, 2).join(', ')}`);
+          }
+      } else if (!llmClassification.isScam && llmClassification.confidence >= 60 && !signals.knownScamSource) {
+          // LLM says legitimate — reduce score (but don't override blacklist)
+          const reduction = Math.min(15, llmClassification.confidence / 5);
+          finalRiskCalculation = Math.max(0, finalRiskCalculation - reduction);
+          if (llmClassification.greenFlags?.length > 0) {
+              flags.green.push(`AI Analysis: ${llmClassification.greenFlags.slice(0, 2).join(', ')}`);
+          }
+          console.log(`🧠 [LLM Fusion] Legitimacy reduction -${reduction.toFixed(1)}%`);
+      }
+      
+      // Add LLM summary to reasons (both scam and legitimate)
+      if (llmClassification.summary) {
+          reasons.push(`🧠 ${llmClassification.summary}`);
+      }
+  }
+
   return {
     riskScore: Math.round(Math.max(0, Math.min(100, finalRiskCalculation))),
-    reasons: [...new Set(reasons)].slice(0, 4),
+    reasons: [...new Set(reasons)].slice(0, 5),
     flags,
     signals,
     rulesFired,
-    metadata: { ...metadata, ...activityAnalysis.metadata, ...entityAnalysis.metadata }
+    metadata: { ...metadata, ...activityAnalysis.metadata, ...entityAnalysis.metadata },
+    // ===== UPGRADE: Attach LLM + Translation data for downstream services =====
+    llmClassification: llmClassification || null,
+    translationResult: translationResult || null
   };
 }

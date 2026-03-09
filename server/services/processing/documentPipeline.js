@@ -1,4 +1,4 @@
-﻿
+
 import '../globals.js'; // MUST BE FIRST
 import { createWorker } from 'tesseract.js';
 import path from 'path';
@@ -111,7 +111,19 @@ async function analyzePdfStructure(buffer) {
     for (let i = 1; i <= pageCount; i++) {
         const page = await doc.getPage(i);
         const textContent = await page.getTextContent();
-        const text = textContent.items.map(item => item.str).join(' ');
+        
+        // Improved text extraction: Try to preserve some line structure
+        let lastY = -1;
+        let text = "";
+        for (const item of textContent.items) {
+            const currentY = item.transform[5];
+            if (lastY !== -1 && Math.abs(currentY - lastY) > 5) {
+                text += "\n";
+            }
+            text += item.str + " ";
+            lastY = currentY;
+        }
+
         const charCount = text.trim().length;
         const type = charCount > 50 ? 'DIGITAL' : 'SCANNED';
         pages.push({ pageIndex: i, type, charCount, text: text.trim(), pageRef: page });
@@ -237,7 +249,7 @@ export async function runDocumentPipeline(fileBuffer, mimeType, depth = 'basic')
             const workers = [];
 
             for (let i = 0; i < WORKER_COUNT; i++) {
-                const w = await createWorker('eng');
+                const w = await createWorker('eng+hin');
                 scheduler.addWorker(w);
                 workers.push(w);
             }
@@ -257,7 +269,15 @@ export async function runDocumentPipeline(fileBuffer, mimeType, depth = 'basic')
                         fraudMatchReason = fastFraud;
                     }
 
-                    if (page.type === 'SCANNED' || page.charCount < 100) {
+                    // OCR TRIGGER: 
+                    // 1. If page is marked scanned
+                    // 2. If page has almost no text
+                    // 3. ALWAYS OCR Page 1 in Deep/Standard scan (best for catching logos/letterheads)
+                    const shouldOcr = page.type === 'SCANNED' || 
+                                     page.charCount < 100 || 
+                                     (page.pageIndex === 1 && (depth === 'deep' || depth === 'standard'));
+
+                    if (shouldOcr) {
                         try {
                             const isProduction = process.env.RENDER || process.env.NODE_ENV === 'production';
                             const scale = isProduction ? 1.5 : (pdfData.totalPages > 5 ? 1.5 : 2.0); 
@@ -331,7 +351,7 @@ export async function runDocumentPipeline(fileBuffer, mimeType, depth = 'basic')
 
         } else if (mimeType.startsWith('image/')) {
             console.log(`[Pipeline] Processing Image...`);
-            let worker = await createWorker('eng');
+            let worker = await createWorker('eng+hin');
             
             let processedBuffer = fileBuffer;
             try {
