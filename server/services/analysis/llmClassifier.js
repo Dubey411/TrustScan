@@ -54,6 +54,7 @@ JSON FORMAT:
   "financialDemand": true/false,
   "impersonatingBrand": "brand name or null",
   "organizationName": "The primary company/org name in the content or null",
+  "organizationSummary": "A concise 1-paragraph summary (30-50 words) about this company/organization based on its reputation and industry. If it looks fake, state its potential impersonation target.",
   "redFlags": ["flag1", "flag2"],
   "greenFlags": ["flag1", "flag2"],
   "summary": "One sentence explanation for the user"

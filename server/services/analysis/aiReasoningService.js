@@ -89,7 +89,7 @@ async function callGemini(prompt, maxTokens = 300) {
  * ONLY used for Deep Scan forensic reports (premium feature).
  * Uses the same 1 API call but gets real-time web verification.
  */
-async function callGeminiWithSearch(prompt, maxTokens = 500) {
+async function callGeminiWithSearch(prompt, maxTokens = 1200) {
     const ai = getGenAI();
     if (!ai) return null;
 
@@ -101,12 +101,14 @@ async function callGeminiWithSearch(prompt, maxTokens = 500) {
             const model = ai.getGenerativeModel({ 
                 model: modelName, 
                 safetySettings,
-                generationConfig: { maxOutputTokens: maxTokens, temperature: 0.3 },
                 tools: [{ googleSearch: {} }]
             }, { apiVersion: 'v1beta' });
 
             console.log(`🌐 [Prophet AI] ${modelName} + Google Search grounding...`);
-            const result = await model.generateContent(prompt);
+            const result = await model.generateContent({
+                contents: [{ role: 'user', parts: [{ text: prompt }] }],
+                generationConfig: { maxOutputTokens: maxTokens, temperature: 0.5 }
+            });
             const response = await result.response;
             const text = response.text()?.trim();
             
@@ -279,40 +281,48 @@ function buildDebateFromSignals(signals, reasons, flags, riskScore, metadata) {
 async function generateForensicReport(text, riskScore, reasons, signals, metadata, researchSnippet) {
     console.log(`📋 [Deep Scan] Generating Forensic Report (1 API call)...`);
 
-    const reportPrompt = `You are a NEUTRAL cyber-safety analyst at India's National Cyber Crime Bureau.
-Write a structured forensic analysis report. Be OBJECTIVE — if something is legitimate, say so clearly.
+    const reportPrompt = `You are a SENIOR CYBER-FORENSIC INVESTIGATOR. 
+Your task is to conduct a PUNCHY, FACT-BASED forensic investigation. Use Google Search extensively.
 
-CRITICAL INSTRUCTION: Use Google Search to verify any organization names, domains, or phone numbers mentioned in the content. If you verify they are legitimate, explicitly state that in the report.
+CRITICAL: Do NOT write long paragraphs (no "Ramayan"). Be concise. Use bullet points for evidence.
 
-INTELLIGENCE DATA:
-- TrustScan Risk Score: ${riskScore}%
-- Active Signals: ${Object.entries(signals).filter(([k,v]) => v > 0).map(([k]) => k).join(', ') || 'None'}
-- Research Data: ${researchSnippet}
+TRUSTSCAN DATA:
+- Risk Index: ${riskScore}%
+- Signals: ${Object.entries(signals).filter(([k,v]) => v > 0).map(([k]) => k).join(', ') || 'None'}
+- Verified Entities: ${JSON.stringify(metadata?.detectedEntities || [])}
+- Raw Snippet: ${researchSnippet}
 
-CONTENT:
-"${text.substring(0, 2500)}"
+DOCUMENT CONTENT:
+"${text.substring(0, 3500)}"
 
-Write EXACTLY in this format (plain text, no markdown bold):
+Respond ONLY in plain text (no markdown, no bold) using these EXACT headers:
+
+ORGANIZATION OVERVIEW:
+[2-3 punchy sentences summarizing who this organization is and their real-world reputation.]
 
 IDENTITY ANALYSIS:
-[1-2 sentences about the sender/organization. Did your search verify they exist? Are contact details matching?]
+[1-2 sentences on the sender's legitimacy.]
+• [Evidence piece 1]
+• [Evidence piece 2]
+• [Evidence piece 3]
 
-BEHAVIORAL PATTERNS:
-[1-2 sentences. Does the content use urgency, pressure, or manipulation? Or is it professional and measured?]
+BEHAVIORAL & SOCIAL PATTERNS:
+[2-3 sentences. Is the tone professional or manipulative? Does the format match official ${metadata?.potentialOrgName || 'company'} standards?]
 
-FINANCIAL RISK:
-[1-2 sentences. Are there any payment demands, fees, or monetary requests? If none, state that clearly.]
+FINANCIAL & TECHNICAL SIGNALS:
+[1-2 sentences. Are there fees? Are links safe? Mention any Google Search warnings found for this domain.]
 
-TECHNICAL SIGNALS:
-[1-2 sentences about links, domains, document metadata. What did the technical scan find?]
+FORENSIC VERDICT:
+[State the final investigator position clearly. If it is 100% legitimate, say so. If fake, explain why in 2 sentences.]`;
 
-INVESTIGATOR VERDICT:
-[2-3 sentences final assessment. based on your search and analysis. If legitimate, confirm it. If suspicious, explain why. If unclear, say what the user should verify.]`;
-
-    const result = await callGeminiWithSearch(reportPrompt, 500);
+    const result = await callGeminiWithSearch(reportPrompt, 1200); 
     if (result?.text) {
         const modelName = result.grounded ? `${result.model} + Web Search` : result.model;
-        return { report: cleanLLMOutput(result.text), model: modelName };
+        return { 
+            report: cleanLLMOutput(result.text), 
+            model: modelName,
+            searchQueries: result.searchQueries || []
+        };
     }
 
     // Fallback to Sarvam (still 1 call)

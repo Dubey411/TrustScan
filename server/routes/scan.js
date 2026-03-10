@@ -67,22 +67,36 @@ router.get("/me/:uid", async (req, res) => {
             ]
         });
 
+        const twoDaysInMs = 2 * 24 * 60 * 60 * 1000;
+        const now = new Date();
+
         if (!user) {
             user = await User.create({ 
                 firebaseUid: req.params.uid,
                 totalScans: actualScanCount,
                 totalThreats: actualThreats,
-                credits: 3 // Grant 3 free scans upon first login/sync
+                credits: 5, // Testing Time: Start with 5 credits
+                lastCreditRecharge: now
             });
+            console.log(`🆕 [User] New User profile created for ${req.params.uid} with 5 credits.`);
         } else {
+            // --- Testing Time: Recharge for existing users too ---
+            const lastRecharge = user.lastCreditRecharge || user.createdAt || now;
+            const isAdmin = user.email === 'trustscan.ai@gmail.com';
+
+            if (!isAdmin && (now - lastRecharge > twoDaysInMs || user.credits === undefined)) {
+                console.log(`🎁 [Testing] Recharging 5 credits for returning user: ${req.params.uid}`);
+                user.credits = 5;
+                user.lastCreditRecharge = now;
+            }
+
             // Update if persistent stats are out of sync
-            // We force update to 'actual' values to allow correction (count going down)
             if (user.totalScans !== actualScanCount || user.totalThreats !== actualThreats) {
                 user.totalScans = actualScanCount;
                 user.totalThreats = actualThreats;
-                await user.save();
-                console.log(`🛠️ [Self-Heal] Synced stats for user ${req.params.uid} (Threats: ${actualThreats})`);
+                console.log(`🛠️ [Self-Heal] Synced stats for user ${req.params.uid}`);
             }
+            await user.save();
         }
         res.json(user);
     } catch (error) {
@@ -158,12 +172,12 @@ router.post("/scan", upload.single('file'), async (req, res) => {
             const isAdmin = effectiveEmail === 'trustscan.ai@gmail.com';
             if (isAdmin) console.log(`🦸 [Admin] Admin user detected: ${effectiveEmail}`);
 
-            // --- Testing Time: Recharge 5 credits every 3 days ---
-            const threeDaysInMs = 3 * 24 * 60 * 60 * 1000;
+            // --- Testing Time: Recharge 5 credits every 2 days ---
+            const twoDaysInMs = 2 * 24 * 60 * 60 * 1000;
             const now = new Date();
-            const lastRecharge = user.lastCreditRecharge || user.createdAt;
+            const lastRecharge = user.lastCreditRecharge || user.createdAt || now;
             
-            if (!isAdmin && (now - lastRecharge > threeDaysInMs || user.credits === undefined || (user.credits === 0 && !user.lastCreditRecharge))) {
+            if (!isAdmin && (now - lastRecharge > twoDaysInMs || user.credits === undefined || (user.credits === 0 && !user.lastCreditRecharge))) {
                 console.log(`🎁 [Testing] Recharging 5 credits for user: ${userId}`);
                 user.credits = 5;
                 user.lastCreditRecharge = now;

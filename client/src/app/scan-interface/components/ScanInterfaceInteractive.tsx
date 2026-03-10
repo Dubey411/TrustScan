@@ -443,7 +443,7 @@ export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfa
                         if (isAdmin || userCredits > 0) {
                           setAnalysisDepth('deep');
                         } else {
-                          setError("You have run out of Deep Scan credits. Logged-in users get 5 free every 3 days!");
+                          setError("You have run out of Deep Scan credits. Logged-in users get 5 free every 2 days!");
                         }
                       }}
                       className={`relative p-4 rounded-xl border-2 transition-all duration-300 text-left group ${

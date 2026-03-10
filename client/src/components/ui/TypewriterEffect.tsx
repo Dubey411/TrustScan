@@ -21,15 +21,22 @@ export const TypewriterEffect: React.FC<TypewriterEffectProps> = ({
   const [isTyping, setIsTyping] = useState(true);
 
   useEffect(() => {
-    // Reset when content changes
+    // Convert string to array of characters (handles multi-byte glyphs/emojis correctly)
+    const chars = Array.from(content);
     setDisplayedText("");
     setIsTyping(true);
     let currentIndex = 0;
 
     const intervalId = setInterval(() => {
-      if (currentIndex < content.length) {
-        setDisplayedText(content.slice(0, currentIndex + 1));
-        currentIndex++;
+      if (currentIndex < chars.length) {
+        // Optimization: If the next characters are whitespace, skip ahead to avoid perceived "stuck" behavior
+        let nextIndex = currentIndex + 1;
+        while (nextIndex < chars.length && /\s/.test(chars[nextIndex]) && nextIndex - currentIndex < 5) {
+          nextIndex++;
+        }
+        
+        setDisplayedText(chars.slice(0, nextIndex).join(""));
+        currentIndex = nextIndex;
       } else {
         clearInterval(intervalId);
         setIsTyping(false);
@@ -43,7 +50,9 @@ export const TypewriterEffect: React.FC<TypewriterEffectProps> = ({
   return (
     <span className={className}>
       {displayedText}
-      {isTyping && <span className="inline-block w-1.5 h-4 ml-0.5 bg-current animate-pulse align-middle" />}
+      {isTyping && (
+        <span className="inline-block w-1 h-4 ml-0.5 bg-indigo-500 animate-pulse align-middle shadow-[0_0_8px_rgba(99,102,241,0.8)]" />
+      )}
     </span>
   );
 };

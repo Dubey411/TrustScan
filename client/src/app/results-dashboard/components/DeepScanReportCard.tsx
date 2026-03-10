@@ -34,24 +34,24 @@ const formatBullets = (text: string) => {
 import { TypewriterEffect } from '@/components/ui/TypewriterEffect';
 
 const ForensicReportView = ({ text }: { text: string }) => {
-  const sections = text.split(/\n(?=[A-Z ]+:)/);
+  const sections = text.split(/\n(?=[A-Z &]+:)/);
   const [activeSectionIndex, setActiveSectionIndex] = useState(0);
   
   return (
     <>
       {sections.map((section, i) => {
-        const match = section.match(/^([A-Z ]+):\s*([\s\S]*)/);
-        if (!match) return <p key={i} className="text-sm text-slate-400">{section}</p>;
+        const match = section.match(/^([A-Z &]+):\s*([\s\S]*)/);
+        if (!match) return <p key={i} className="text-sm text-slate-400 mt-2">{section}</p>;
         
         const sectionTitle = match[1].trim();
         const sectionContent = match[2].trim();
         
         const sectionIcons: Record<string, string> = {
+          'ORGANIZATION OVERVIEW': 'BuildingOffice2Icon',
           'IDENTITY ANALYSIS': 'IdentificationIcon',
-          'BEHAVIORAL PATTERNS': 'BoltIcon',
-          'FINANCIAL RISK': 'CurrencyRupeeIcon',
-          'TECHNICAL SIGNALS': 'WrenchScrewdriverIcon',
-          'INVESTIGATOR VERDICT': 'ShieldCheckIcon'
+          'BEHAVIORAL & SOCIAL PATTERNS': 'BoltIcon',
+          'FINANCIAL & TECHNICAL SIGNALS': 'CurrencyRupeeIcon',
+          'FORENSIC VERDICT': 'ShieldCheckIcon'
         };
         
         const isVerdict = sectionTitle === 'INVESTIGATOR VERDICT';
@@ -76,9 +76,20 @@ const ForensicReportView = ({ text }: { text: string }) => {
                   onComplete={() => setActiveSectionIndex(i + 1)}
                />
             ) : (
-               <p className={`text-sm leading-relaxed ${isVerdict ? 'text-indigo-200 font-medium' : 'text-slate-300'}`}>
-                 {sectionContent}
-               </p>
+               <div className={`space-y-1.5 ${isVerdict ? 'text-indigo-200 font-medium' : 'text-slate-300'}`}>
+                 {sectionContent.split('\n').map((line, idx) => {
+                   const isBullet = line.trim().startsWith('•');
+                   if (isBullet) {
+                     return (
+                       <div key={idx} className="flex items-start gap-2 text-sm pl-1">
+                         <span className="mt-1.5 w-1 h-1 rounded-full bg-current flex-shrink-0 opacity-60" />
+                         <span>{line.trim().replace(/^•\s*/, '')}</span>
+                       </div>
+                     );
+                   }
+                   return <p key={idx} className="text-sm leading-relaxed">{line}</p>;
+                 })}
+               </div>
             )}
           </div>
         );
