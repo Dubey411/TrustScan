@@ -5,6 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
 import { spawn } from 'child_process';
+import { callSarvamVision } from '../analysis/sarvamService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -243,16 +244,23 @@ export async function runDocumentPipeline(fileBuffer, mimeType, depth = 'basic')
             const isProduction = process.env.RENDER || process.env.NODE_ENV === 'production';
             const WORKER_COUNT = isProduction ? 1 : Math.min(targetPages.length, 4); 
             
-            console.log(`[Pipeline] Bullet Mode: Environment=${isProduction ? 'PROD' : 'LOCAL'}, Workers=${WORKER_COUNT}`);
+            console.log(`[Pipeline] Intelligence Mode: Environment=${isProduction ? 'PROD' : 'LOCAL'}, Max Fallback Workers=${WORKER_COUNT}`);
 
-            const scheduler = (await import('tesseract.js')).createScheduler();
-            const workers = [];
+            let scheduler = null;
+            let workers = [];
 
-            for (let i = 0; i < WORKER_COUNT; i++) {
-                const w = await createWorker('eng+hin');
-                scheduler.addWorker(w);
-                workers.push(w);
-            }
+            const getScheduler = async () => {
+                if (scheduler) return scheduler;
+                console.log("⚡ [Pipeline] Initializing Tesseract Fallback Scheduler...");
+                const tesseract = await import('tesseract.js');
+                scheduler = tesseract.createScheduler();
+                for (let i = 0; i < WORKER_COUNT; i++) {
+                    const w = await tesseract.createWorker('eng+hin');
+                    scheduler.addWorker(w);
+                    workers.push(w);
+                }
+                return scheduler;
+            };
 
             try {
                 const pagePromises = targetPages.map(async (page) => {
@@ -287,10 +295,22 @@ export async function runDocumentPipeline(fileBuffer, mimeType, depth = 'basic')
                                 pipelineResult.firstImgBuffer = imgBuffer;
                             }
 
-                            const ocr = await scheduler.addJob('recognize', imgBuffer);
-                            pageText = ocr.data.text;
-                            confidence = ocr.data.confidence;
-                            method = "FAST_OCR";
+                            // 🔥 PERFORMANCE: Try Sarvam Vision (Cloud OCR) first
+                            const sarvamResult = await callSarvamVision(imgBuffer);
+                            
+                            if (sarvamResult.success) {
+                                pageText = sarvamResult.text;
+                                confidence = sarvamResult.confidence;
+                                method = "SARVAM_VISION";
+                            } else {
+                                // 🛡️ FALLBACK: Use local Tesseract if cloud fails or is offline
+                                console.log(`[Pipeline] P${page.pageIndex} Falling back to local OCR...`);
+                                const localScheduler = await getScheduler();
+                                const ocr = await localScheduler.addJob('recognize', imgBuffer);
+                                pageText = ocr.data.text;
+                                confidence = ocr.data.confidence;
+                                method = "LOCAL_FALLBACK_OCR";
+                            }
 
                             // Identification Check on OCR text
                             const ocrFraud = await checkForFastPathFraud(pageText);
@@ -345,8 +365,10 @@ export async function runDocumentPipeline(fileBuffer, mimeType, depth = 'basic')
                 pipelineResult.pagesAnalyzed = pagesProcessed;
 
             } finally {
-                await scheduler.terminate();
-                console.log(`[Pipeline] Parallel OCR Workers terminated.`);
+                if (scheduler) {
+                    await scheduler.terminate();
+                    console.log(`[Pipeline] Fallback OCR Workers terminated.`);
+                }
             }
 
         } else if (mimeType.startsWith('image/')) {
@@ -367,24 +389,35 @@ export async function runDocumentPipeline(fileBuffer, mimeType, depth = 'basic')
                 console.warn(`[Pipeline] Jimp preprocessing failed:`, err.message);
             }
 
-            const ocr = await runMultiPassOCR(processedBuffer, worker);
+            const sarvamResult = await callSarvamVision(processedBuffer);
             
+            if (sarvamResult.success) {
+                pipelineResult.text = sarvamResult.text;
+                pipelineResult.confidence = sarvamResult.confidence;
+                pipelineResult.extractionMethod.push("IMAGE_SARVAM");
+            } else {
+                console.log(`[Pipeline] Image falling back to local OCR...`);
+                const tesseract = await import('tesseract.js');
+                const tesseractWorker = await tesseract.createWorker('eng+hin');
+                const ocr = await runMultiPassOCR(processedBuffer, tesseractWorker);
+                
+                pipelineResult.text = ocr.text;
+                pipelineResult.confidence = ocr.confidence;
+                pipelineResult.extractionMethod.push("IMAGE_LOCAL_OCR");
+                await tesseractWorker.terminate();
+            }
+
             // Flag Known Fraud but don't skip the data
-            const imgFraud = await checkForFastPathFraud(ocr.text);
-            if (imgFraud) {
-                console.log(`🎯 [Database Hit] Identified ${imgFraud.name}. Harvesting data for ML...`);
+            const finalFraud = await checkForFastPathFraud(pipelineResult.text);
+            if (finalFraud) {
+                console.log(`🎯 [Database Hit] Identified ${finalFraud.name}. Harvesting data for ML...`);
                 pipelineResult.signals.visual_anomalies.push('KNOWN_SCAM_DATABASE_HIT');
             }
 
-            pipelineResult.text = ocr.text;
-            pipelineResult.confidence = ocr.confidence;
             pipelineResult.docType = "IMAGE";
             pipelineResult.totalPages = 1;
             pipelineResult.pagesAnalyzed = 1;
-            pipelineResult.extractionMethod.push(imgFraud ? "IMAGE_OCR_HARVEST" : "IMAGE_OCR");
             pipelineResult.firstImgBuffer = processedBuffer;
-
-            await worker.terminate();
         }
 
         pipelineResult.signals.structures = extractStructures(pipelineResult.text);
