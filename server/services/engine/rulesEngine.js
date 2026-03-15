@@ -76,31 +76,23 @@ function extractFeatures(text) {
  * @param {number} analysisLayer - 1 (Basic), 2 (Standard), 3 (Deep)
  */
 export async function runRules(content, externalSignals = {}, trustSignals = {}, senderId = null, analysisLayer = 1, scanType = 'email') {
+  const startTime = Date.now();
   const reasons = [];
   const rulesFired = [];
   let translationResult = null;
   let llmClassification = null;
 
   // ===== UPGRADE 1: MULTILINGUAL INTELLIGENCE =====
-  // Detect and translate Hindi/Hinglish/Regional content BEFORE rules matching
+  // Translation MUST stay sequential — its output feeds ALL downstream services
   const langDetection = detectLanguage(content);
   if (langDetection.isNonEnglish) {
       console.log(`🌐 [Multilingual] Detected ${langDetection.detectedLang} (Confidence: ${langDetection.confidence}%)`);
       translationResult = await translateToEnglish(content, langDetection.detectedLang);
       if (translationResult.method !== 'failed' && translationResult.method !== 'none') {
           console.log(`✅ [Multilingual] Translation successful via ${translationResult.method}`);
-          // Use translated text for rules matching, but keep original for display
           content = translationResult.translatedText;
           reasons.push(`Multilingual: Content translated from ${langDetection.detectedLang.toUpperCase()} to English for analysis.`);
       }
-  }
-
-  // ===== UPGRADE 2: LLM SIGNAL CLASSIFICATION =====
-  // Run Gemini/Sarvam classification in parallel with other analysis
-  try {
-      llmClassification = await classifyWithLLM(content, scanType);
-  } catch (err) {
-      console.warn(`⚠️ [LLM Classifier] Error: ${err.message}`);
   }
 
   // Initialize Signals Vector
@@ -173,22 +165,15 @@ export async function runRules(content, externalSignals = {}, trustSignals = {},
       }
   }
 
-  // --- MISSION: NATURE OF LANGUAGE & BEHAVIORAL SIGNALS ---
-  const scriptAnalysis = analyzeScamScript(content);
-  const activityAnalysis = await analyzeLinks(content, analysisLayer);
-  
   // --- TARGETED COMPANY EXTRACTION FOR MCA VERIFIER ---
-  // Try to find the company name so we can hit the MCA API even if there's no CIN
   let potentialNameMatch = null;
-  // 1. Context-based regex
-  const contextRegex = /(?:welcome to|team|hr|joining|offer from|career at|on behalf of)\s+([A-Z][a-zA-Z0-9\s\&\.]{3,35})\b/i;
+  const contextRegex = /(?:welcome to|team|hr|joining|offer from|career at|on behalf of)\s+([A-Z][a-zA-Z0-9\s\\&\.]{3,35})\b/i;
   let match = content.match(contextRegex);
   
   if (match && match[1]) {
       potentialNameMatch = match[1];
   } else {
-      // 2. Look for common corporate suffixes or typical organization names missing from context
-      const corporateRegex = /([A-Z][a-zA-Z0-9\s\&\.]{3,40}(?:Private Limited|Pvt Ltd|Ltd|Limited|Technologies|Solutions|Corp|Corporation|Labs|Lab|Inc|LLP|Enterprise|Enterprises|Foundation|Trust))\b/i;
+      const corporateRegex = /([A-Z][a-zA-Z0-9\s\\&\.]{3,40}(?:Private Limited|Pvt Ltd|Ltd|Limited|Technologies|Solutions|Corp|Corporation|Labs|Lab|Inc|LLP|Enterprise|Enterprises|Foundation|Trust))\b/i;
       match = content.match(corporateRegex);
       if (match && match[1]) {
           potentialNameMatch = match[1];
@@ -204,8 +189,44 @@ export async function runRules(content, externalSignals = {}, trustSignals = {},
       }
   }
 
+  // ===== 🔥 PERFORMANCE: PARALLEL EXECUTION =====
+  // Fire ALL expensive async operations simultaneously instead of sequentially.
+  // Before: LLM(3s) → Links(6s) → Entities(4s) → DB(1s) = 14s
+  // After:  Promise.all([LLM, Links, Entities, DB]) = max(6s) = ~6s
+  console.log(`🚀 [RulesEngine] Firing parallel analysis pipeline...`);
+
+  const scriptAnalysis = analyzeScamScript(content); // Sync — runs instantly
+  const smsAnalysis = senderId ? analyzeSmsHeader(senderId, content) : null; // Sync
+  const hasStructuralAnomaly = detectStructuralAnomalies(content); // Sync
+
+  const [
+      llmResult,
+      activityAnalysis,
+      entityAnalysisInitial,
+      allTrustEntities
+  ] = await Promise.all([
+      // 1. LLM Classification (~2-5s)
+      classifyWithLLM(content, scanType).catch(err => {
+          console.warn(`⚠️ [LLM Classifier] Error: ${err.message}`);
+          return null;
+      }),
+      // 2. Link Analysis (~5-15s for deep scan)
+      analyzeLinks(content, analysisLayer),
+      // 3. Entity Analysis (~3-8s for deep scan with MCA API)
+      analyzeEntities(content, analysisLayer, null, metadata),
+      // 4. TrustEntity DB lookup (~1-3s)
+      TrustEntity.find({}).lean().catch(err => {
+          console.error("RulesEngine: Trust DB fetch failed", err);
+          return [];
+      })
+  ]);
+
+  llmClassification = llmResult;
+  const entityAnalysis = entityAnalysisInitial;
+
+  console.log(`⚡ [RulesEngine] Parallel pipeline complete in ${Date.now() - startTime}ms`);
+
   // --- UPGRADE: LLM FALLBACK FOR NAME EXTRACTION ---
-  // If Regex failed but LLM found a name, use the LLM's finding to hit the MCA API
   if (!metadata.potentialOrgName && llmClassification?.organizationName) {
       const llmName = llmClassification.organizationName.trim();
       const isGeneric = /^(the|your|our|all|india|private|limited|team|management|human|resources|hr|unknown|null|n\/a)$/i.test(llmName);
@@ -215,12 +236,7 @@ export async function runRules(content, externalSignals = {}, trustSignals = {},
       }
   }
 
-  // --- MISSION: HARD IDENTIFICATION (CIN, Aadhaar, PAN, GST, MCA NAME SEARCH) ---
-  const entityAnalysis = await analyzeEntities(content, analysisLayer, null, metadata);
-  const smsAnalysis = senderId ? analyzeSmsHeader(senderId, content) : null;
-  const hasStructuralAnomaly = detectStructuralAnomalies(content);
-
-  // --- MISSION: IDENTITY-BASED TRUST (Moving away from hardcoded name lists) ---
+  // --- MISSION: IDENTITY-BASED TRUST ---
   const detectedCins = entityAnalysis.metadata?.detectedEntities?.filter(e => e.type === 'CIN' && e.isValid) || [];
   const detectedGsts = entityAnalysis.metadata?.detectedEntities?.filter(e => e.type === 'GSTIN' && e.isValid) || [];
   
@@ -234,14 +250,14 @@ export async function runRules(content, externalSignals = {}, trustSignals = {},
       signals.trustedOrg = 1;
   }
 
-  // Initialize Signals Vector
+  // Merge all parallel results into signals
   const llmSignals = llmClassification ? llmToSignals(llmClassification) : {};
   
   signals = { 
       ...signals, 
       ...activityAnalysis.signals, 
       ...entityAnalysis.signals,
-      ...llmSignals,  // ===== UPGRADE: Merge LLM classification signals =====
+      ...llmSignals,
       smsSpoofRisk: smsAnalysis?.isSpoofed ? 1 : 0,
       scamFlowDetected: scriptAnalysis?.riskScore > 50 ? 1 : 0,
       structuralAnomalies: hasStructuralAnomaly ? 1 : 0,
@@ -251,13 +267,14 @@ export async function runRules(content, externalSignals = {}, trustSignals = {},
   };
 
   // --- MISSION: ENTITY RECOGNITION (RED/GREY LISTS & TRUST CASCADE) ---
+  // Uses pre-fetched allTrustEntities from the parallel pipeline above
   try {
       const lowerContent = content.toLowerCase();
       const fuzzyContent = lowerContent.replace(/[^a-z0-9]/g, '');
       const phones = metadata.phones || [];
       
-      // Fetch all entities to check both names AND associated identifiers (Trust Cascade)
-      const allEntities = await TrustEntity.find({}).lean();
+      // Use pre-fetched trust entities from the parallel pipeline (no extra await)
+      const allEntities = allTrustEntities;
       
       // 1. Check for Name Matches (Red Flag)
       const redHit = allEntities.find(b => {
@@ -529,7 +546,8 @@ export async function runRules(content, externalSignals = {}, trustSignals = {},
       maxImpliedRisk = Math.max(maxImpliedRisk, 80); // Strict penalty for CIN/Context mismatch
   }
 
-  console.log(`🧠 [RulesEngine] Result: ${reasons.length} reasons, Max Implied Risk: ${maxImpliedRisk}%, Signals:`, signals);
+  console.log(`🧠 [RulesEngine] Result: ${reasons.length} reasons, Max Implied Risk: ${maxImpliedRisk}% (Total: ${Date.now() - startTime}ms)`);
+  console.log(`📊 [RulesEngine] Active Signals:`, Object.entries(signals).filter(([k,v]) => v > 0).map(([k]) => k).join(', '));
 
   // --- 4. ADVERSARIAL DEBATE SYSTEM (Prosecution vs Defense) ---
   

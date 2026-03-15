@@ -252,9 +252,12 @@ export async function analyzeLinks(text, layer = 1) {
       }
 
       // 2. LIVE METADATA SCAN (L3 ONLY - Deep)
+      // 🔥 PERFORMANCE: Fetch metadata + RDAP in PARALLEL instead of sequential
       if (layer >= 3) {
-          const meta = await fetchMetadata(normalizedUrl);
-          const creationDate = await getDomainCreationDate(host || urlObj.hostname);
+          const [meta, creationDate] = await Promise.all([
+              fetchMetadata(normalizedUrl),
+              getDomainCreationDate(host || urlObj.hostname)
+          ]);
           
           if (meta) {
               linkAnalysis.liveMetadata = meta;

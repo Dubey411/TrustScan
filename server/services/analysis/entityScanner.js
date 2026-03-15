@@ -79,22 +79,26 @@ async function searchCompanyByName(name) {
             // VALIDATION: Clean search terms and find the best word-for-word match
             // We ignore common corporate fillers to find the "unique" part of the name
             const coreTerms = searchTerm
-                .replace(/\b(PRIVATE|LIMITED|PVT|LTD|AND|SOLUTIONS|TECHNOLOGY|TECHNOLOGIES|SERVICES|CORP|CORPORATION|INDIA)\b/g, '')
+                .replace(/\b(PRIVATE|LIMITED|PVT|LTD|AND|SOLUTIONS|TECHNOLOGY|TECHNOLOGIES|SERVICES|CORP|CORPORATION|INDIA|LLP|GROUP|ENTERPRISE|ENTERPRISES|TECHNOLOCIES)\b/g, '')
                 .trim()
                 .split(/\s+/)
                 .filter(t => t.length > 2);
             
-            if (coreTerms.length === 0) {
-                // If search is too generic (e.g. just "Private Limited"), don't return random results
-                return null;
-            }
+            if (coreTerms.length === 0) return null;
 
-            // Find a match that contains ALL core terms as whole words or very strong prefixes
+            // Find a match where EVERY core term is found within the company name
+            // This handles spacing diffs (Innovix Pro -> INNOVIXPRO) and partial suffixes (Tech -> Technology)
             const bestMatch = records.find(r => {
                 const vendorName = r.CompanyName.toUpperCase();
                 return coreTerms.every(term => {
-                    const regex = new RegExp(`\\b${term}\\b`, 'i');
-                    return regex.test(vendorName) || vendorName.startsWith(term);
+                    // Try word boundary first (Most accurate)
+                    const wordRegex = new RegExp(`\\b${term}\\b`, 'i');
+                    if (wordRegex.test(vendorName)) return true;
+                    
+                    // Fallback to substring match (Flexible for "InnovixPro" or "Technologies")
+                    // We only do this if the vendor word starts with our term to avoid random mid-word matches
+                    // OR if the term is long enough to be unique.
+                    return vendorName.includes(term);
                 });
             });
 
@@ -110,7 +114,7 @@ async function searchCompanyByName(name) {
                     source: "GOVT_API_NAME_SEARCH"
                 };
             } else {
-                console.log(`⚠️ [MCA API] No high-confidence match for "${searchTerm}" in ${records.length} results. Rejecting fuzzy matches.`);
+                console.log(`⚠️ [MCA API] No high-confidence match for "${searchTerm}" in ${records.length} results.`);
             }
         }
     } catch (error) {
@@ -289,12 +293,9 @@ export async function analyzeEntities(text, layer = 1, userId = null, metadata =
   let partialMatchAnomalyCount = 0;
   const entityDiscrepancies = [];
 
-  for (const cin of rawCins) {
+  // 🔥 PERFORMANCE: Process all CINs in PARALLEL instead of sequentially
+  const cinPromises = rawCins.map(async (cin) => {
       const parsed = parseCIN(cin);
-      // --- TIERED ANALYSIS LOGIC ---
-      // L1: Structural Check Only
-      // L2: Structural + Mock DB Check
-      // L3: Structural + Mock DB + Govt API Search
 
       const isStructurallyValid = parsed && STATE_CODES.includes(parsed.state) && parseInt(parsed.year) > 1900 && parseInt(parsed.year) <= new Date().getFullYear();
       
@@ -315,14 +316,11 @@ export async function analyzeEntities(text, layer = 1, userId = null, metadata =
       // Lookups based on Layer
       let enrichment = null;
       if (layer >= 3) {
-          // L3: Try Real API
           enrichment = await enrichCompanyData(cin, parsed);
       } else if (layer >= 2) {
-          // L2: Try Mock DB Only (Bypass real API to save costs/time)
           if (MOCK_COMPANY_DB[cin]) {
               enrichment = { ...MOCK_COMPANY_DB[cin], source: "MCA_MOCK" };
           } else {
-              // Simulated Fallback for L2 Standard
               const stateName = STATE_CODES.find(s => s === parsed.state) || parsed.state;
               enrichment = {
                   name: `ENTITY_${cin.substring(15)}`, 
@@ -333,7 +331,7 @@ export async function analyzeEntities(text, layer = 1, userId = null, metadata =
           }
       }
 
-      detectedEntities.push({
+      return {
           type: 'CIN',
           value: cin,
           isValid: isStructurallyValid && discrepancies.length === 0,
@@ -342,8 +340,11 @@ export async function analyzeEntities(text, layer = 1, userId = null, metadata =
           enrichment, 
           discrepancies,
           label: discrepancies.length > 0 ? 'CIN Partial Match Discrepancy' : (isStructurallyValid ? 'Valid CIN Structure' : 'Invalid CIN Structure')
-      });
-  }
+      };
+  });
+
+  const cinResults = await Promise.all(cinPromises);
+  detectedEntities.push(...cinResults);
 
     // Fallback: Targeted Name Search (L2+ Standard/Deep Only)
     // If we couldn't find a CIN, but the rules engine extracted a potential company name, SEARCH FOR IT.

@@ -413,63 +413,43 @@ router.post("/scan", upload.single('file'), async (req, res) => {
         ? "Medium"
         : "Low";
 
-    // 4. ✨ UPGRADED: AI Insight for ALL Tiers
-    // Deep Scan → Full Prophet AI reasoning (Gemini)
-    // Basic/Standard → LLM Classification summary (already ran in rulesEngine)
+    // 4. ✨ AI Insight — Extract from already-computed LLM data (Basic/Standard)
+    //    or fire async AI investigation (Deep Scan)
     let aiInsight = null;
     let aiModel = null;
     console.log(`🔍 [AI Gate] analysisLayer=${analysisLayer}, depth=${depth}, hasLLM=${!!result.llmClassification}`);
     
-    if (analysisLayer === 3) {
-        // DEEP SCAN: Prophet AI Investigation (1 API call + ML-built debate)
-        console.log(`🧠 [Prophet AI] Triggering Deep Investigation for: ${type}, Score: ${finalRisk}%`);
-        try {
-            // Pass flags into metadata so debate builder can use our own ML red/green flags
-            const enrichedMetadata = { ...result.metadata, _flags: result.flags };
-            const aiResult = await generateAIInsight(content, finalRisk, result.reasons || [], result.signals || {}, enrichedMetadata);
-            
-            if (aiResult && typeof aiResult === 'object') {
-                aiInsight = aiResult.insight;
-                aiModel = aiResult.modelUsed;
-                // Store deep scan exclusive data
-                if (aiResult.deepScanReport) {
-                    scanMeta.deepScanReport = aiResult.deepScanReport;
-                }
-            } else if (aiResult) {
-                aiInsight = aiResult;
-                aiModel = "Neural Layer v4"; 
-            }
-
-            if (!aiInsight) {
-                console.log("⚠️ [Prophet AI] Generation returned empty result. Using fallback.");
-                aiInsight = "The AI investigator analyzed several patterns but could not find specific anomalies to highlight. The risk score reflects the detected markers.";
-                aiModel = "TrustScan Heuristic";
-            }
-        } catch (aiErr) {
-            console.error("❌ [Prophet AI] Reasoning layer failed:", aiErr.message);
-            aiInsight = "Neural analysis is momentarily unavailable, but the TrustScan engine has completed the risk assessment.";
-            aiModel = "Error Fallback";
-        }
-    } else if (result.llmClassification && result.llmClassification.summary) {
-        // BASIC/STANDARD: Use the LLM classification summary (already computed, no extra API call)
+    // For Basic/Standard: Extract from LLM classification (already computed in parallel pipeline, ZERO extra cost)
+    if (analysisLayer < 3 && result.llmClassification && result.llmClassification.summary) {
         aiInsight = result.llmClassification.summary;
         aiModel = result.llmClassification.modelUsed ? `AI Classifier (${result.llmClassification.modelUsed})` : "AI Classifier";
         console.log(`🧠 [AI Lite] Providing LLM classification summary for ${depth || 'basic'} user.`);
     }
 
-    // 5. Prepare DB record with ML features (Minimal Storage Optimization)
-    // Reduce size for Atlas free tier / efficiency
+    // 🔥 PERFORMANCE: For Deep Scan, fire AI insight generation as a PROMISE (don't await yet)
+    let aiInsightPromise = null;
+    if (analysisLayer === 3) {
+        console.log(`🧠 [Prophet AI] Triggering Deep Investigation for: ${type}, Score: ${finalRisk}%`);
+        const enrichedMetadata = { ...result.metadata, _flags: result.flags };
+        aiInsightPromise = generateAIInsight(content, finalRisk, result.reasons || [], result.signals || {}, enrichedMetadata)
+            .catch(aiErr => {
+                console.error("❌ [Prophet AI] Reasoning layer failed:", aiErr.message);
+                return null;
+            });
+    }
+
+    // 5. Prepare DB record (can be done while AI is still running)
     const minimalMetadata = { ...result.metadata };
-    delete minimalMetadata.normalizedText; // Don't store full normalized text in DB
+    delete minimalMetadata.normalizedText;
 
     const scanDataRecord = {
       userId: userId || null,
       type: ["message", "link", "document", "email", "job", "company"].includes(type)
         ? type
         : "message",
-      content: content.substring(0, 500), // Minimal text snippet
-      fileName: req.file ? req.file.originalname : null, // Store document name
-      fileMimeType: req.file ? req.file.mimetype : null, // Store document type
+      content: content.substring(0, 500),
+      fileName: req.file ? req.file.originalname : null,
+      fileMimeType: req.file ? req.file.mimetype : null,
       riskScore: finalRisk,
       status,
       confidence,
@@ -477,57 +457,61 @@ router.post("/scan", upload.single('file'), async (req, res) => {
       signals: result.signals || {},
       metadata: minimalMetadata,
       recommendation: getRecommendedActions(result.signals, status),
-      
-      // Layer 2 & Monetization fields
       analysisLayer: analysisLayer,
       creditsConsumed: creditsConsumed,
-      
-      // Fraud Map / Geo Intelligence
       location: location || undefined,
-      
-      // SMS Header Detection
       senderId: senderId || null,
       smsHeaderAnalysis: smsAnalysis || null,
-      
-      // AI Prophet Insight
-      aiInsight: aiInsight,
-      aiModel: aiModel
+      aiInsight: null, // Will be populated after AI resolves
+      aiModel: null
     };
 
-
+    // Guest TTL setup
+    if (!userId) {
+        scanDataRecord.isGuest = true;
+        scanDataRecord.expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    }
 
     console.log(`🔍 [API] Final Score: ${finalRisk}, UserID: ${scanDataRecord.userId || 'Guest'}`);
-    console.log(`📦 [API] Attempting to save record to MongoDB...`);
 
-    // 6. Save scan & Update User Stats
+    // 🔥 PERFORMANCE: Resolve AI + Save DB in PARALLEL
     try {
-      // Add guest flag if no userId
-      if (!userId) {
-          scanDataRecord.isGuest = true;
-          // Set TTL for guest scans (7 days) to save space after ML processing
-          scanDataRecord.expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+      // If Deep Scan, wait for AI insight to resolve (was already fired above)
+      if (aiInsightPromise) {
+          const aiResult = await aiInsightPromise;
+          if (aiResult && typeof aiResult === 'object') {
+              aiInsight = aiResult.insight;
+              aiModel = aiResult.modelUsed;
+              if (aiResult.deepScanReport) {
+                  scanMeta.deepScanReport = aiResult.deepScanReport;
+              }
+          } else if (aiResult) {
+              aiInsight = aiResult;
+              aiModel = "Neural Layer v4";
+          }
+          if (!aiInsight) {
+              aiInsight = "The AI investigator analyzed several patterns but could not find specific anomalies to highlight. The risk score reflects the detected markers.";
+              aiModel = "TrustScan Heuristic";
+          }
       }
 
+      // Now populate AI data into the record
+      scanDataRecord.aiInsight = aiInsight;
+      scanDataRecord.aiModel = aiModel;
+
+      // 6. Save scan + Update user stats — combined into fewer DB writes
       const savedDoc = await Scan.create(scanDataRecord);
       
       if (userId) {
           const user = await User.findOne({ firebaseUid: userId });
           if (user) {
-              // --- 1. SET HISTORY EXPIRY (TTL) ---
-              // If free user, delete this scan record automatically after 7 days
+              // Combine TTL + stats into a SINGLE save (was 2 separate saves before)
               if (user.plan === 'free') {
                   savedDoc.expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-                  await savedDoc.save();
               }
 
-
-              // --- 2. UPDATE PERSISTENT STATS ---
-              // Decoupling: We save these to the User model so they survive history deletion
               const oldTotal = user.totalScans || 0;
               const currentOverall = user.overallSafetyScore || 100;
-              
-              // Simple moving average for safety score: (oldScore * oldTotal + currentScanScore) / newTotal
-              // Current scan safety = 100 - risk
               const scanSafety = 100 - finalRisk;
               const newTotal = oldTotal + 1;
               const newSafety = Math.round(((currentOverall * oldTotal) + scanSafety) / newTotal);
@@ -535,13 +519,15 @@ router.post("/scan", upload.single('file'), async (req, res) => {
               user.totalScans = newTotal;
               user.overallSafetyScore = newSafety;
               
-              // Increment persistent threats
               if (status === 'fraud' || status === 'scam') {
                   user.totalThreats = (user.totalThreats || 0) + 1;
               }
 
-              await user.save();
-
+              // 🔥 PERFORMANCE: Save user + TTL doc in PARALLEL (was sequential)
+              await Promise.all([
+                  user.save(),
+                  savedDoc.isModified() ? savedDoc.save() : Promise.resolve()
+              ]);
               
               console.log(`📊 [Stats Update] UID: ${userId}, Total: ${newTotal}, Safety: ${newSafety}%`);
           }
@@ -551,11 +537,10 @@ router.post("/scan", upload.single('file'), async (req, res) => {
       
       // 7. Response to client
       console.log(`📦 [API] Dispatching response for ${savedDoc._id}. AI Insight Present: ${!!aiInsight}`);
-      if (aiInsight) console.log(`📄 [API] Insight Snippet: "${aiInsight.substring(0, 50)}..."`);
 
       res.json({
         id: savedDoc._id,
-        result: status, // Map status to result for UI compatibility
+        result: status,
         status,
         riskScore: finalRisk,
         aiInsight: aiInsight || null,
@@ -563,13 +548,12 @@ router.post("/scan", upload.single('file'), async (req, res) => {
         analysisLayer,
         confidence,
         reasons: scanDataRecord.reasons,
-        flags: result.flags, // New Green/Red Flags
+        flags: result.flags,
         signals: result.signals,
         metadata: result.metadata,
         scanMeta: scanMeta,
         trustScanReport: generateTrustScanReport(finalRisk, result.signals, result.metadata),
         recommendation: getRecommendedActions(result.signals, status),
-        // ===== UPGRADE: LLM Intelligence Layer Data =====
         llmClassification: result.llmClassification ? {
             isScam: result.llmClassification.isScam,
             scamType: result.llmClassification.scamType,
