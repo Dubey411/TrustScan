@@ -6,6 +6,7 @@ import path from "path";
 import fs from "fs";
 import os from "os";
 import { fileURLToPath } from 'url';
+import https from "https";
 import connectDB from "./config/db.js";
 import scanRoute from "./routes/scan.js";
 import adminRoute from "./routes/admin.js";
@@ -51,5 +52,16 @@ const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT} [ID: ${Date.now()}]`);
+  
+  // 🔥 PERFORMANCE: Self-pinging mechanism to bypass Render's 15-min sleep timer.
+  // This ensures the server stays "warm" and eliminates the ~50s cold start.
+  const BACKEND_URL = "https://checkit-server.onrender.com/";
+  setInterval(() => {
+    https.get(BACKEND_URL, (res) => {
+      console.log(`[Self-Ping] Status: ${res.statusCode} (Keeping server warm)`);
+    }).on('error', (err) => {
+      console.error(`[Self-Ping] Error: ${err.message}`);
+    });
+  }, 14 * 60 * 1000); // Ping every 14 minutes
 });
       
