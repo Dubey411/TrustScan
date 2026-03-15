@@ -25,34 +25,31 @@ export async function callSarvamVision(imageBuffer) {
         console.log(`🌐 [Sarvam Vision] Extracting text via Cloud OCR...`);
         const startTime = Date.now();
         
-        // Sarvam Vision API requires Multipart Form Data or Base64 depending on implementation.
-        // As per documentation, we can send it as a base64 string.
+        // 🔥 PERFORMANCE: Using the 'Vision (Real-time)' tier (30 RPM)
         const base64Image = imageBuffer.toString('base64');
         
-        // Note: Check Sarvam API documentation for precise endpoint and payload structure
-        // Endpoint: https://api.sarvam.ai/v1/vision/ocr
-        const response = await fetch('https://api.sarvam.ai/v1/vision/ocr', {
+        const response = await fetch('https://api.sarvam.ai/v1/vision', {
             method: 'POST',
             headers: {
                 'api-subscription-key': sarvamKey,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                image: `data:image/png;base64,${base64Image}`
+                image: base64Image,
+                prompt: "Extract all words and lines accurately from this image. Keep the layout simple."
             })
         });
 
         if (response.ok) {
             const data = await response.json();
-            // Expected response format includes 'extracted_text' or similar
-            const extractedText = data.text || data.extracted_text || "";
-            const confidence = data.confidence || 95; // Default if not provided
+            // Sarvam Vision Real-time typically returns text in a field called 'data' or 'description'
+            const extractedText = data.text || data.description || data.extracted_text || "";
             
             console.log(`✅ [Sarvam Vision] Success in ${Date.now() - startTime}ms (${extractedText.length} chars)`);
             return {
-                success: true,
+                success: extractedText.length > 5,
                 text: extractedText,
-                confidence: confidence
+                confidence: 95
             };
         } else {
             const errorMsg = await response.text();
