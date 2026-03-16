@@ -26,6 +26,10 @@ process.on('unhandledRejection', (reason, promise) => {
 
 const app = express();
 
+// 🚀 PUBLIC PING ROUTE: Keeps the server awake and allows UptimeRobot to see a '200 OK'.
+// Placed before all middlewares to ensure it remains public and fast.
+app.get("/ping", (req, res) => res.status(200).send("pong"));
+
 // Connect to Database & Initialize Services
 await connectDB();
 initializeMLAutomation();
@@ -55,10 +59,14 @@ app.listen(PORT, () => {
   
   // 🔥 PERFORMANCE: Self-pinging mechanism to bypass Render's 15-min sleep timer.
   // This ensures the server stays "warm" and eliminates the ~50s cold start.
-  const BACKEND_URL = "https://checkit-server.onrender.com/";
+  const BACKEND_URL = "https://checkit-server.onrender.com/ping";
   setInterval(() => {
     https.get(BACKEND_URL, (res) => {
-      console.log(`[Self-Ping] Status: ${res.statusCode} (Keeping server warm)`);
+      if (res.statusCode === 200) {
+        console.log(`[Self-Ping] Success: ${res.statusCode} (Server is warm)`);
+      } else {
+        console.warn(`[Self-Ping] Warning: ${res.statusCode}`);
+      }
     }).on('error', (err) => {
       console.error(`[Self-Ping] Error: ${err.message}`);
     });
