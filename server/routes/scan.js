@@ -237,6 +237,8 @@ router.post("/scan", upload.single('file'), async (req, res) => {
     // 1. Text Extraction (OCR for Files)
     const originalType = type; // Preserve user's intended scan type (job, company, etc.)
     
+    let isNotJobDocument = false;
+
     if (req.file) {
       console.log(`📂 [API Scan] Document upload detected: ${req.file.originalname} (Depth: ${ocrDepth})`);
       const processed = await processDocument(req.file.buffer, req.file.mimetype, req.file.originalname, ocrDepth);
@@ -271,12 +273,8 @@ router.post("/scan", upload.single('file'), async (req, res) => {
           const jobKeywords = /offer\s*letter|appointment|joining|internship|job|salary|ctc|compensation|designation|probation|employment|recruitment|position|role|department|reporting|onboarding|stipend|training\s*period|hr\s*department|human\s*resource/i;
           
           if (!jobKeywords.test(extractedText)) {
-              console.log(`⚠️ [Scan] Document does not appear to be a job/internship document.`);
-              return res.status(400).json({
-                  error: "Document type mismatch",
-                  details: "This document does not appear to be a job offer letter or internship document. It may be a different type of document.",
-                  suggestion: "Please use the appropriate scan type for this document (e.g., 'Message Scan' for messages, 'Company Verifier' for company documents), or upload a valid job/internship offer letter."
-              });
+              console.log(`⚠️ [Scan] Document does not appear to be a job/internship document. Proceeding with general analysis.`);
+              isNotJobDocument = true;
           }
       }
 
@@ -321,6 +319,15 @@ router.post("/scan", upload.single('file'), async (req, res) => {
     }
 
     finalRisk = Math.min(finalRisk, 100);
+
+    if (isNotJobDocument) {
+        if (finalRisk < 30) {
+            result.reasons.unshift("Note: This document does not appear to be a job offer or internship letter. However, it looks professional and we did not find any immediate malicious intent. It is likely safe to open.");
+            scanMeta.verdictLabel = "Safe Document (Not a Job Offer)";
+        } else {
+            result.reasons.unshift("Note: This document does not appear to be a job offer or internship letter. Please be cautious, as we found suspicious findings based on general document analysis.");
+        }
+    }
 
     // --- Special Logic: Company Verifier ---
     if (type === 'company') {
