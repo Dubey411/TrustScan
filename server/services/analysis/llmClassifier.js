@@ -112,8 +112,8 @@ export async function classifyWithLLM(content, scanType = 'email') {
     const truncated = content.substring(0, 2000); // Limit tokens
     const prompt = CLASSIFICATION_PROMPT.replace('{CONTENT}', truncated);
 
-    // Try multiple models for resilience (Prioritize 1.5-flash for massive 1,500 RPD free tier quota)
-    const modelsToTry = ["gemini-1.5-flash", "gemini-1.5-flash-8b", "gemini-2.0-flash-lite"];
+    // Try multiple models for resilience (Prioritize 2.0-flash-lite for much higher free tier quota)
+    const modelsToTry = ["gemini-2.0-flash-lite", "gemini-1.5-flash-8b", "gemini-flash-latest"];
 
     for (const modelName of modelsToTry) {
         try {
@@ -124,7 +124,7 @@ export async function classifyWithLLM(content, scanType = 'email') {
                     temperature: 0.1, // Low temperature for consistent classification
                     maxOutputTokens: 400
                 }
-            }, { apiVersion: 'v1' }); // Forced stable v1 version to resolve 404 errors
+            }, { apiVersion: 'v1beta' }); 
 
             const result = await model.generateContent(prompt);
             const response = await result.response;
