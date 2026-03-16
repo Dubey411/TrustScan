@@ -22,7 +22,7 @@ export async function callSarvamVision(imageBuffer) {
         const startTime = Date.now();
         
         const genAI = new GoogleGenerativeAI(geminiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); // Fast & cost-effective vision model
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }); // Use 1.5-flash for massive 1,500 requests/day free tier quota
 
         const base64Image = imageBuffer.toString('base64');
         
