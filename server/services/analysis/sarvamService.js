@@ -1,63 +1,62 @@
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 /**
- * Sarvam Vision Intelligence Service
+ * Gemini Vision Intelligence Service 
  * 
- * Provides high-speed, India-optimized OCR using Sarvam AI.
+ * Provides high-speed OCR using Google Gemini 1.5 Flash.
  * Replaces heavy local Tesseract.js processing to reduce 
  * cloud resource usage and increase scan speed.
  */
 
-/**
- * Calls Sarvam Vision OCR API to extract text from an image.
- * 
- * @param {Buffer} imageBuffer - The image buffer to OCR
- * @returns {Promise<{text: string, confidence: number, success: boolean}>}
- */
+// We keep the old function name for backward compatibility with documentPipeline.js
 export async function callSarvamVision(imageBuffer) {
-    const sarvamKey = process.env.SARVAM_API_KEY;
+    const geminiKey = process.env.GEMINI_API_KEY;
     
-    if (!sarvamKey || sarvamKey.includes('PASTE')) {
-        console.warn("⚠️ [Sarvam Vision] API Key missing or invalid.");
+    if (!geminiKey || geminiKey.includes('PASTE')) {
+        console.warn("⚠️ [Gemini Vision] API Key missing or invalid.");
         return { success: false, text: "", confidence: 0 };
     }
 
     try {
-        console.log(`🌐 [Sarvam Vision] Extracting text via Cloud OCR...`);
+        console.log(`🌐 [Gemini Vision] Extracting text via Cloud OCR...`);
         const startTime = Date.now();
         
-        // 🔥 PERFORMANCE: Using the 'Vision (Real-time)' tier (30 RPM)
+        const genAI = new GoogleGenerativeAI(geminiKey);
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); // Fast & cost-effective vision model
+
         const base64Image = imageBuffer.toString('base64');
         
-        const response = await fetch('https://api.sarvam.ai/v1/vision', {
-            method: 'POST',
-            headers: {
-                'api-subscription-key': sarvamKey,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                image: base64Image,
-                prompt: "Extract all words and lines accurately from this image. Keep the layout simple."
-            })
-        });
+        const prompt = "Please extract all the text accurately from this image. Return ONLY the extracted text. Do not add any conversational filler, markdown formatting blocks, or comments.";
 
-        if (response.ok) {
-            const data = await response.json();
-            // Sarvam Vision Real-time typically returns text in a field called 'data' or 'description'
-            const extractedText = data.text || data.description || data.extracted_text || "";
-            
-            console.log(`✅ [Sarvam Vision] Success in ${Date.now() - startTime}ms (${extractedText.length} chars)`);
+        const result = await model.generateContent([
+            {
+                inlineData: {
+                    data: base64Image,
+                    mimeType: "image/png" // Assumes PNG fallback or generic acceptable image type
+                }
+            },
+            prompt
+        ]);
+
+        const responseText = result.response.text();
+
+        if (responseText && responseText.trim().length > 0) {
+            console.log(`✅ [Gemini Vision] Success in ${Date.now() - startTime}ms (${responseText.length} chars)`);
             return {
-                success: extractedText.length > 5,
-                text: extractedText,
+                success: responseText.length > 5,
+                text: responseText.trim(),
                 confidence: 95
             };
         } else {
-            const errorMsg = await response.text();
-            console.warn(`⚠️ [Sarvam Vision] API returned ${response.status}: ${errorMsg}`);
+            console.warn(`⚠️ [Gemini Vision] API returned empty text.`);
             return { success: false, text: "", confidence: 0 };
         }
     } catch (err) {
-        console.error(`❌ [Sarvam Vision] Request failed: ${err.message}`);
+        console.error(`❌ [Gemini Vision] Request failed: ${err.message}`);
+        // Log detailed API key errors if applicable
+        if (err.message.includes('API_KEY_INVALID')) {
+            console.error("⛔ [Gemini Vision] CRITICAL: Your GEMINI_API_KEY is invalid. Please update it in your .env file.");
+        }
         return { success: false, text: "", confidence: 0 };
     }
 }
