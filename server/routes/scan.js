@@ -235,6 +235,8 @@ router.post("/scan", upload.single('file'), async (req, res) => {
     }; 
 
     // 1. Text Extraction (OCR for Files)
+    const originalType = type; // Preserve user's intended scan type (job, company, etc.)
+    
     if (req.file) {
       console.log(`📂 [API Scan] Document upload detected: ${req.file.originalname} (Depth: ${ocrDepth})`);
       const processed = await processDocument(req.file.buffer, req.file.mimetype, req.file.originalname, ocrDepth);
@@ -249,6 +251,35 @@ router.post("/scan", upload.single('file'), async (req, res) => {
           preview: processed.text?.substring(0, 300) + (processed.text?.length > 300 ? "..." : "")
       };
       type = "document";
+
+      // --- SMART DOCUMENT VALIDATION ---
+      const extractedText = (content || "").trim();
+      const textLength = extractedText.length;
+
+      // 🛑 CHECK 1: Plain image with no text at all
+      if (textLength < 10) {
+          console.log(`⚠️ [Scan] No readable text found in uploaded file.`);
+          return res.status(400).json({
+              error: "No readable text found",
+              details: "The uploaded image/document does not contain any readable text. Please upload a document with text content (e.g., an offer letter, job posting, or company registration).",
+              suggestion: "If this is a regular photo, TrustScan cannot analyze it. Please upload a document instead."
+          });
+      }
+
+      // 🛑 CHECK 2: Wrong document type for "job" scan
+      if (originalType === 'job') {
+          const jobKeywords = /offer\s*letter|appointment|joining|internship|job|salary|ctc|compensation|designation|probation|employment|recruitment|position|role|department|reporting|onboarding|stipend|training\s*period|hr\s*department|human\s*resource/i;
+          
+          if (!jobKeywords.test(extractedText)) {
+              console.log(`⚠️ [Scan] Document does not appear to be a job/internship document.`);
+              return res.status(400).json({
+                  error: "Document type mismatch",
+                  details: "This document does not appear to be a job offer letter or internship document. It may be a different type of document.",
+                  suggestion: "Please use the appropriate scan type for this document (e.g., 'Message Scan' for messages, 'Company Verifier' for company documents), or upload a valid job/internship offer letter."
+              });
+          }
+      }
+
     } else {
        // 1b. Meta for Direct Text/Link Scans
        scanMeta.textLength = content.length;

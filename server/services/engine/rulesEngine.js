@@ -230,7 +230,7 @@ export async function runRules(content, externalSignals = {}, trustSignals = {},
   if (!metadata.potentialOrgName && llmClassification?.organizationName) {
       const llmName = llmClassification.organizationName.trim();
       const isGeneric = /^(the|your|our|all|india|private|limited|team|management|human|resources|hr|unknown|null|n\/a)$/i.test(llmName);
-      if (!isGeneric && llmName.length > 3) {
+      if (!isGeneric && llmName.length > 1) {
           metadata.potentialOrgName = llmName;
           console.log(`🎯 [RulesEngine] Targeted MCA Extraction (AI): Found name "${llmName}"`);
       }
@@ -533,7 +533,7 @@ export async function runRules(content, externalSignals = {}, trustSignals = {},
           // Filter out generic words
           const isGeneric = /^(the|your|our|all|india|private|limited|team|management)$/i.test(potentialName);
           
-          if (!isGeneric && potentialName.length > 3) {
+           if (!isGeneric && potentialName.length > 1) {
              reasons.push(`Suspicious Entity Association: Extremely high-risk indicators detected around unverified entity "${potentialName}".`);
              signals.emergingRiskSource = 1; // Mark as emerging threat
           }

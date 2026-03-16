@@ -351,7 +351,7 @@ export async function analyzeEntities(text, layer = 1, userId = null, metadata =
     let companyNameToSearch = null;
     if (metadata?.potentialOrgName) {
         companyNameToSearch = metadata.potentialOrgName;
-    } else if (text.length < 100 && text.length > 3) {
+    } else if (text.length < 100 && text.length > 1) {
         // If it's a very short text (like a manual search query), use the whole text
         companyNameToSearch = text.trim();
     }
@@ -359,7 +359,7 @@ export async function analyzeEntities(text, layer = 1, userId = null, metadata =
     if (detectedEntities.length === 0 && companyNameToSearch && layer >= 1) {
         // Clean the name of common prefixes/footnotes and special chars
         const cleanName = companyNameToSearch.replace(/[^a-zA-Z0-9\s\&]/gi, '').trim().replace(/\s+/g, ' ');
-        if (cleanName.length > 3) {
+        if (cleanName.length > 1) {
              console.log(`🔍 [Entity Scanner] Invoking MCA Name Search for cleaned name: "${cleanName}"`);
        if (!cleanName.includes('\n')) {
             // 1. Try real government API
