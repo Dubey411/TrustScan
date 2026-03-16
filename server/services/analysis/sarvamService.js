@@ -109,7 +109,7 @@ export async function callSarvamVision(imageBuffer) {
                         mimeType: "image/png"
                     }
                 },
-                prompt
+                { text: prompt }
             ]);
 
             const responseText = result.response.text();
