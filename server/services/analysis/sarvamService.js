@@ -97,8 +97,8 @@ export async function callSarvamVision(imageBuffer) {
             const startTime = Date.now();
             
             const genAI = new GoogleGenerativeAI(geminiKey);
-            const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-lite" }, { apiVersion: 'v1beta' }); 
-            // gemini-2.0-flash-lite has a much higher free tier quota than 2.5-flash
+            const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" }, { apiVersion: 'v1beta' }); 
+            // gemini-2.0-flash has 1,500 requests per day free quota vs 2.5-flash (20)
             const base64Image = imageBuffer.toString('base64');
             const prompt = "Please extract all the text accurately from this image. Return ONLY the extracted text. Do not add any conversational filler, markdown formatting blocks, or comments.";
 

@@ -112,11 +112,12 @@ export async function classifyWithLLM(content, scanType = 'email') {
     const truncated = content.substring(0, 2000); // Limit tokens
     const prompt = CLASSIFICATION_PROMPT.replace('{CONTENT}', truncated);
 
-    // Try multiple models for resilience (Prioritize 2.0-flash-lite for much higher free tier quota)
-    const modelsToTry = ["gemini-2.0-flash-lite", "gemini-1.5-flash-8b", "gemini-flash-latest"];
+    // Try multiple models for resilience (Prioritize 2.0-flash for high quota and speed)
+    const modelsToTry = ["gemini-2.0-flash"]; // Prioritize gemini-2.0-flash
 
     for (const modelName of modelsToTry) {
         try {
+            console.log(`🧠 [LLM Classifier] Attempting classification with Gemini model: ${modelName}`);
             const model = ai.getGenerativeModel({ 
                 model: modelName, 
                 safetySettings: SAFETY_SETTINGS,
