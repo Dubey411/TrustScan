@@ -124,7 +124,7 @@ export async function classifyWithLLM(content, scanType = 'email') {
                     temperature: 0.1, // Low temperature for consistent classification
                     maxOutputTokens: 400
                 }
-            }, { }); // Removed v1beta version constraint to use stable default
+            }, { apiVersion: 'v1' }); // Forced stable v1 version to resolve 404 errors
 
             const result = await model.generateContent(prompt);
             const response = await result.response;

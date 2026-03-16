@@ -27,7 +27,7 @@ export async function callSarvamVision(imageBuffer) {
             // 1. Initialise Job
             const init = await client.documentIntelligence.initialise({
                 job_parameters: {
-                    language: "auto",
+                    language: "hi-IN", // Auto is not supported, using hi-IN (English + Hindi compatible)
                     output_format: "md"
                 }
             });
@@ -97,7 +97,7 @@ export async function callSarvamVision(imageBuffer) {
             const startTime = Date.now();
             
             const genAI = new GoogleGenerativeAI(geminiKey);
-            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }); 
+            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }, { apiVersion: 'v1' }); 
 
             const base64Image = imageBuffer.toString('base64');
             const prompt = "Please extract all the text accurately from this image. Return ONLY the extracted text. Do not add any conversational filler, markdown formatting blocks, or comments.";
