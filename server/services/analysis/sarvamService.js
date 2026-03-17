@@ -27,18 +27,18 @@ export async function callSarvamVision(imageBuffer) {
             // 1. Initialise Job
             const init = await client.documentIntelligence.initialise({
                 job_parameters: {
-                    language: "hi-IN", // Auto is not supported, using hi-IN (English + Hindi compatible)
+                    language: "hi-IN",
                     output_format: "md"
                 }
             });
-            const jobId = init.job_id;
+            const jobId = init.data.job_id;
 
             // 2. Get Upload Link
             const uploadLinks = await client.documentIntelligence.getUploadLinks({
                 job_id: jobId,
                 files: ["page.png"]
             });
-            const uploadUrl = uploadLinks.upload_urls["page.png"].file_url;
+            const uploadUrl = uploadLinks.data.upload_urls["page.png"].file_url;
 
             // 3. Upload File (Azure BlockBlob)
             await axios.put(uploadUrl, imageBuffer, {
@@ -55,7 +55,9 @@ export async function callSarvamVision(imageBuffer) {
             let status;
             let success = false;
             for (let i = 0; i < 22; i++) {
-                status = await client.documentIntelligence.getStatus(jobId);
+                const statusRes = await client.documentIntelligence.getStatus(jobId);
+                status = statusRes.data;
+                
                 if (status.job_state === 'Completed' || status.job_state === 'PartiallyCompleted') {
                     success = true;
                     break;
@@ -66,25 +68,32 @@ export async function callSarvamVision(imageBuffer) {
 
             if (success) {
                 // 6. Get Download Links
-                const download = await client.documentIntelligence.getDownloadLinks(jobId);
-                const zipUrl = download.urls[0].url;
-
-                // 7. Fetch ZIP and Extract
-                const zipRes = await axios.get(zipUrl, { responseType: 'arraybuffer' });
-                const zip = await unzipper.Open.buffer(zipRes.data);
-                const mdFile = zip.files.find(f => f.path.endsWith('.md'));
+                const downloadRes = await client.documentIntelligence.getDownloadLinks(jobId);
+                const download = downloadRes.data;
                 
-                if (mdFile) {
-                    const text = (await mdFile.buffer()).toString();
-                    console.log(`✅ [Sarvam Intelligence] Success in ${Date.now() - startTime}ms (${text.length} chars)`);
-                    return {
-                        success: text.length > 5,
-                        text: text.trim(),
-                        confidence: 98
-                    };
+                // The structure for download URLs is typically an array or map
+                const zipUrl = download.upload_urls 
+                    ? Object.values(download.upload_urls)[0].file_url 
+                    : null;
+
+                if (zipUrl) {
+                    // 7. Fetch ZIP and Extract
+                    const zipRes = await axios.get(zipUrl, { responseType: 'arraybuffer' });
+                    const zip = await unzipper.Open.buffer(zipRes.data);
+                    const mdFile = zip.files.find(f => f.path.endsWith('.md'));
+                    
+                    if (mdFile) {
+                        const text = (await mdFile.buffer()).toString();
+                        console.log(`✅ [Sarvam Intelligence] Success in ${Date.now() - startTime}ms (${text.length} chars)`);
+                        return {
+                            success: text.length > 5,
+                            text: text.trim(),
+                            confidence: 98
+                        };
+                    }
                 }
             }
-            console.warn(`⚠️ [Sarvam Intelligence] Job ${jobId} did not complete successfully or no MD found.`);
+            console.warn(`⚠️ [Sarvam Intelligence] Job ${jobId} did not complete successfully or no download URL found.`);
         } catch (err) {
             console.warn(`⚠️ [Sarvam Intelligence] Flow failed: ${err.message}`);
         }
