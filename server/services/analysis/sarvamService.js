@@ -25,20 +25,24 @@ export async function callSarvamVision(imageBuffer) {
             });
 
             // 1. Initialise Job
-            const init = await client.documentIntelligence.initialise({
+            const initRes = await client.documentIntelligence.initialise({
                 job_parameters: {
                     language: "hi-IN",
                     output_format: "md"
                 }
             });
-            const jobId = init.data.job_id;
+            const init = initRes.data || initRes;
+            const jobId = init.job_id;
+
+            if (!jobId) throw new Error("Failed to get Job ID from Sarvam");
 
             // 2. Get Upload Link
-            const uploadLinks = await client.documentIntelligence.getUploadLinks({
+            const uploadRes = await client.documentIntelligence.getUploadLinks({
                 job_id: jobId,
                 files: ["page.png"]
             });
-            const uploadUrl = uploadLinks.data.upload_urls["page.png"].file_url;
+            const uploadLinks = uploadRes.data || uploadRes;
+            const uploadUrl = uploadLinks.upload_urls["page.png"].file_url;
 
             // 3. Upload File (Azure BlockBlob)
             await axios.put(uploadUrl, imageBuffer, {
@@ -52,13 +56,14 @@ export async function callSarvamVision(imageBuffer) {
             await client.documentIntelligence.start(jobId);
 
             // 5. Poll for Completion (Max 45s)
-            let status;
+            let finalStatus;
             let success = false;
             for (let i = 0; i < 22; i++) {
                 const statusRes = await client.documentIntelligence.getStatus(jobId);
-                status = statusRes.data;
+                const status = statusRes.data || statusRes;
                 
                 if (status.job_state === 'Completed' || status.job_state === 'PartiallyCompleted') {
+                    finalStatus = status;
                     success = true;
                     break;
                 }
@@ -69,12 +74,12 @@ export async function callSarvamVision(imageBuffer) {
             if (success) {
                 // 6. Get Download Links
                 const downloadRes = await client.documentIntelligence.getDownloadLinks(jobId);
-                const download = downloadRes.data;
+                const download = downloadRes.data || downloadRes;
                 
-                // The structure for download URLs is typically an array or map
-                const zipUrl = download.upload_urls 
-                    ? Object.values(download.upload_urls)[0].file_url 
-                    : null;
+                // The structure for download URLs can be urls[] or upload_urls{} depending on job type
+                const zipUrl = (download.urls && download.urls[0]?.url) || 
+                             (download.download_urls && Object.values(download.download_urls)[0]?.file_url) ||
+                             (download.upload_urls && Object.values(download.upload_urls)[0]?.file_url);
 
                 if (zipUrl) {
                     // 7. Fetch ZIP and Extract
@@ -93,7 +98,7 @@ export async function callSarvamVision(imageBuffer) {
                     }
                 }
             }
-            console.warn(`⚠️ [Sarvam Intelligence] Job ${jobId} did not complete successfully or no download URL found.`);
+            console.warn(`⚠️ [Sarvam Intelligence] Job ${jobId} failed or download unavailable.`);
         } catch (err) {
             console.warn(`⚠️ [Sarvam Intelligence] Flow failed: ${err.message}`);
         }
@@ -106,8 +111,8 @@ export async function callSarvamVision(imageBuffer) {
             const startTime = Date.now();
             
             const genAI = new GoogleGenerativeAI(geminiKey);
-            const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" }, { apiVersion: 'v1beta' }); 
-            // gemini-2.0-flash has 1,500 requests per day free quota vs 2.5-flash (20)
+            // Reverting to gemini-1.5-flash as 2.0-flash seems restricted on some keys/regions
+            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }, { apiVersion: 'v1beta' }); 
             const base64Image = imageBuffer.toString('base64');
             const prompt = "Please extract all the text accurately from this image. Return ONLY the extracted text. Do not add any conversational filler, markdown formatting blocks, or comments.";
 
