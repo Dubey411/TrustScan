@@ -13,6 +13,7 @@ import { analyzeSmsHeader } from "../services/analysis/smsHeaderScanner.js";
 import { analyzeScamScript } from "../services/analysis/scriptScanner.js";
 import { generateTrustScanReport } from "../services/processing/reportGenerator.js";
 import { checkTriggersAndTrain } from "../services/ml/mlManager.js";
+import { processPrescription } from "../services/analysis/medicalService.js";
 
 import path from "path";
 import { fileURLToPath } from 'url';
@@ -119,6 +120,45 @@ router.post("/scan", upload.single('file'), async (req, res) => {
     let creditsConsumed = 0;
     let smsAnalysis = null;
     let scriptAnalysis = null;
+
+    // --- PHASE 0: SPECIALIZED PIPELINES (Medical/Prescription) ---
+    if (type === 'prescription' && req.file) {
+        console.log(`🏥 [Scan API] Specialized Medical Pipeline triggered for: ${req.file.originalname}`);
+        try {
+            const medResult = await processPrescription(req.file.buffer);
+            
+            // Build a synthetic scan record for the medical result
+            const medRecord = await Scan.create({
+                userId: userId || null,
+                type: 'prescription',
+                content: medResult.rawText?.substring(0, 1000) || "Medical Prescription OCR",
+                riskScore: medResult.success ? 0 : 50, // Low risk if parsed successfully
+                status: medResult.success ? 'safe' : 'action_required',
+                confidence: medResult.success ? 'High' : 'Low',
+                aiInsight: medResult.success ? "Prescription successfully analyzed and translated. Check the 'Extracted Data' for medication details and side-effects." : "Failed to structure prescription data.",
+                aiModel: 'Sarvam Vision + Chat',
+                metadata: {
+                    prescriptionData: medResult.data,
+                    isMedical: true,
+                    fileName: req.file.originalname
+                }
+            });
+
+            return res.json({
+                id: medRecord._id,
+                success: medResult.success,
+                status: medRecord.status,
+                riskScore: medRecord.riskScore,
+                data: medResult.data,
+                aiInsight: medRecord.aiInsight,
+                rawText: medResult.rawText,
+                metadata: medRecord.metadata
+            });
+        } catch (medErr) {
+            console.error("❌ [Medical Pipeline] Error:", medErr.message);
+            return res.status(500).json({ error: "Medical processing failed", details: medErr.message });
+        }
+    }
 
     console.log(`Scan Request RECEIVED. UserID: ${userId || 'Guest'}, Type: ${type}, Depth: ${depth || 'basic'}${senderId ? `, Header: ${senderId}` : ''}`);
 
