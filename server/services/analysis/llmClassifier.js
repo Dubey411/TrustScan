@@ -123,7 +123,7 @@ export async function classifyWithLLM(content, scanType = 'email') {
                 safetySettings: SAFETY_SETTINGS,
                 generationConfig: {
                     temperature: 0.1, // Low temperature for consistent classification
-                    maxOutputTokens: 400
+                    maxOutputTokens: 600
                 }
             }, { apiVersion: 'v1beta' }); 
 

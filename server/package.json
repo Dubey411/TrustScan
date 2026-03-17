@@ -32,6 +32,7 @@
     "pdf-parse": "^2.4.5",
     "pdfjs-dist": "^5.4.530",
     "sarvamai": "^1.1.6",
+    "sharp": "^0.34.5",
     "tesseract.js": "^7.0.0",
     "unzipper": "^0.12.3"
   }

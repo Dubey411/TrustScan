@@ -13,7 +13,6 @@ import { analyzeSmsHeader } from "../services/analysis/smsHeaderScanner.js";
 import { analyzeScamScript } from "../services/analysis/scriptScanner.js";
 import { generateTrustScanReport } from "../services/processing/reportGenerator.js";
 import { checkTriggersAndTrain } from "../services/ml/mlManager.js";
-import { processPrescription } from "../services/analysis/medicalService.js";
 
 import path from "path";
 import { fileURLToPath } from 'url';
@@ -808,28 +807,17 @@ router.get("/results/:id", async (req, res) => {
   }
 });
 
-// 🏥 Medical Prescription Intelligence (Sharp -> Tesseract -> Sarvam)
-router.post("/prescription", upload.single('image'), async (req, res) => {
-    try {
-        if (!req.file) {
-            return res.status(400).json({ error: "No image file provided." });
-        }
+// 📜 Scan history (user-wise)
+router.get("/history/:userId", async (req, res) => {
+  try {
+    const scans = await Scan.find({ userId: req.params.userId })
+      .sort({ createdAt: -1 })
+      .limit(50);
 
-        console.log(`🏥 [Prescription Route] Starting analysis for: ${req.file.originalname}`);
-        const result = await processPrescription(req.file.buffer);
-
-        if (!result.success) {
-            return res.status(500).json({ 
-                error: result.error || "Failed to process prescription.",
-                rawText: result.rawText
-            });
-        }
-
-        res.json(result.data);
-    } catch (error) {
-        console.error("❌ [Prescription Route] Error:", error.message);
-        res.status(500).json({ error: "Internal server error during prescription analysis." });
-    }
+    res.json(scans);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch scan history" });
+  }
 });
 
 export default router;

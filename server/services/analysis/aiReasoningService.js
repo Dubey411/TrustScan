@@ -94,7 +94,7 @@ async function callGeminiWithSearch(prompt, maxTokens = 1200) {
     if (!ai) return null;
 
     // Try latest models including gemini-2.5-flash which has active quota
-    const modelsToTry = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.0-flash-lite"];
+    const modelsToTry = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-2.5-flash"];
 
     for (const modelName of modelsToTry) {
         try {
@@ -293,27 +293,20 @@ TRUSTSCAN DATA:
 - Raw Snippet: ${researchSnippet}
 
 DOCUMENT CONTENT:
-"${text.substring(0, 3500)}"
+"${text.substring(0, 5000)}"
 
 Respond ONLY in plain text (no markdown, no bold) using these EXACT headers:
 
 ORGANIZATION OVERVIEW:
-[2-3 punchy sentences summarizing who this organization is and their real-world reputation.]
+[1-2 punchy sentences about the organization's real-world reputation.]
 
-IDENTITY ANALYSIS:
-[1-2 sentences on the sender's legitimacy.]
-• [Evidence piece 1]
-• [Evidence piece 2]
-• [Evidence piece 3]
+KEY EVIDENCE:
+• [Factual point 1 - Brief]
+• [Factual point 2 - Brief]
+• [Factual point 3 - Brief]
 
-BEHAVIORAL & SOCIAL PATTERNS:
-[2-3 sentences. Is the tone professional or manipulative? Does the format match official ${metadata?.potentialOrgName || 'company'} standards?]
-
-FINANCIAL & TECHNICAL SIGNALS:
-[1-2 sentences. Are there fees? Are links safe? Mention any Google Search warnings found for this domain.]
-
-FORENSIC VERDICT:
-[State the final investigator position clearly. If it is 100% legitimate, say so. If fake, explain why in 2 sentences.]`;
+VERDICT:
+[State the final position: LEGITIMATE or SUSPICION. Give 1-2 powerful reasoning sentences.]`;
 
     const result = await callGeminiWithSearch(reportPrompt, 1200); 
     if (result?.text) {
@@ -395,8 +388,9 @@ export async function generateAIInsight(text, riskScore, reasons, signals, metad
     let modelUsed = 'TrustScan Multi-AI';
 
     if (forensicReport?.report) {
-        const verdictMatch = forensicReport.report.match(/INVESTIGATOR VERDICT:\s*([\s\S]*?)$/i);
-        mainInsight = verdictMatch?.[1]?.trim() || forensicReport.report.substring(0, 200);
+        // Try all variations of headers
+        const verdictMatch = forensicReport.report.match(/(?:VERDICT|FORENSIC VERDICT):\s*([\s\S]*?)$/i);
+        mainInsight = verdictMatch?.[1]?.trim() || forensicReport.report.substring(0, 300);
         modelUsed = `Prophet AI (${forensicReport.model})`;
     } else {
         mainInsight = generateHeuristicInsight(reasons, signals);
