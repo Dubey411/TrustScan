@@ -5,6 +5,7 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
+    "build:threat-engine": "if not exist native\\bin mkdir native\\bin && g++ -O3 -std=c++17 -o native\\bin\\threat_signature_engine.exe native\\threat_signature_engine.cpp",
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js"
   },

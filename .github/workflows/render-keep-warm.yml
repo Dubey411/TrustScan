@@ -1,0 +1,14 @@
+name: Render Keep Warm
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping-render:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping lightweight keepalive endpoint
+        run: |
+          curl --fail --silent --show-error "https://checkit-server.onrender.com/ping"

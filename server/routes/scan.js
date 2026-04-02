@@ -5,21 +5,13 @@ import { processDocument } from "../services/processing/ocrProcessor.js";
 import { getRecommendedActions } from "../services/engine/recommendationEngine.js";
 import { generateAIInsight } from "../services/analysis/aiReasoningService.js";
 import Scan from "../models/Scan.js";
-import User from "../models/User.js";
 import TrustEntity from "../models/TrustEntity.js";
 import mongoose from "mongoose";
-import fs from "fs";
 import { analyzeSmsHeader } from "../services/analysis/smsHeaderScanner.js";
 import { analyzeScamScript } from "../services/analysis/scriptScanner.js";
 import { generateTrustScanReport } from "../services/processing/reportGenerator.js";
 import { checkTriggersAndTrain } from "../services/ml/mlManager.js";
-
-import path from "path";
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const SERVER_ROOT = path.resolve(__dirname, '..');
+import { resolveUserScanAccess, syncUserProfile, updateUserScanStats } from "../services/scan/scanUserService.js";
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -50,54 +42,7 @@ router.get("/diagnose", async (req, res) => {
 // --- User Profile & Credits ---
 router.get("/me/:uid", async (req, res) => {
     try {
-        let user = await User.findOne({ firebaseUid: req.params.uid });
-        
-        // --- Self-Healing Sync: Ensure metrics match real history (Respecting User Corrections) ---
-        const actualScanCount = await Scan.countDocuments({ userId: req.params.uid });
-        const actualThreats = await Scan.countDocuments({ 
-            userId: req.params.uid, 
-            $or: [
-                { 
-                    status: { $in: ["fraud", "scam"] },
-                    userFeedback: { $ne: "incorrect_safe" } // Exclude verified safe items
-                },
-                {
-                    userFeedback: "incorrect_fraud" // Include missed fraud items
-                }
-            ]
-        });
-
-        const twoDaysInMs = 2 * 24 * 60 * 60 * 1000;
-        const now = new Date();
-
-        if (!user) {
-            user = await User.create({ 
-                firebaseUid: req.params.uid,
-                totalScans: actualScanCount,
-                totalThreats: actualThreats,
-                credits: 5, // Testing Time: Start with 5 credits
-                lastCreditRecharge: now
-            });
-            console.log(`🆕 [User] New User profile created for ${req.params.uid} with 5 credits.`);
-        } else {
-            // --- Testing Time: Recharge for existing users too ---
-            const lastRecharge = user.lastCreditRecharge || user.createdAt || now;
-            const isAdmin = user.email === 'trustscan.ai@gmail.com';
-
-            if (!isAdmin && (now - lastRecharge > twoDaysInMs || user.credits === undefined)) {
-                console.log(`🎁 [Testing] Recharging 5 credits for returning user: ${req.params.uid}`);
-                user.credits = 5;
-                user.lastCreditRecharge = now;
-            }
-
-            // Update if persistent stats are out of sync
-            if (user.totalScans !== actualScanCount || user.totalThreats !== actualThreats) {
-                user.totalScans = actualScanCount;
-                user.totalThreats = actualThreats;
-                console.log(`🛠️ [Self-Heal] Synced stats for user ${req.params.uid}`);
-            }
-            await user.save();
-        }
+        const user = await syncUserProfile(req.params.uid);
         res.json(user);
     } catch (error) {
         res.status(500).json({ error: "Failed to fetch user profile" });
@@ -141,82 +86,11 @@ router.post("/scan", upload.single('file'), async (req, res) => {
 
     // --- PRE-ENTRY: Tier & Permission Logic ---
     let ocrDepth = 'basic';
-
-    if (userId) {
-        // Use upsert pattern to ensure user always exists in DB
-        let user = await User.findOne({ firebaseUid: userId });
-        if (!user) {
-            console.log(`🆕 [User] No DB record for UID: ${userId}. Creating one on-the-fly.`);
-            try {
-                user = await User.create({
-                    firebaseUid: userId,
-                    email: userEmail || null,
-                    credits: 5,
-                    lastCreditRecharge: new Date()
-                });
-            } catch (createErr) {
-                console.error('⚠️ [User] Could not auto-create user record:', createErr.message);
-            }
-        }
-
-        if (user) {
-            // Patch missing email from request (for legacy records created without email)
-            if (!user.email && userEmail) {
-                user.email = userEmail;
-                await user.save();
-                console.log(`🔧 [User] Patched missing email for UID: ${userId} → ${userEmail}`);
-            }
-
-            // Admin check uses both DB email AND request email as fallback
-            const effectiveEmail = user.email || userEmail;
-            const isAdmin = effectiveEmail === 'trustscan.ai@gmail.com';
-            if (isAdmin) console.log(`🦸 [Admin] Admin user detected: ${effectiveEmail}`);
-
-            // --- Testing Time: Recharge 5 credits every 2 days ---
-            const twoDaysInMs = 2 * 24 * 60 * 60 * 1000;
-            const now = new Date();
-            const lastRecharge = user.lastCreditRecharge || user.createdAt || now;
-            
-            if (!isAdmin && (now - lastRecharge > twoDaysInMs || user.credits === undefined || (user.credits === 0 && !user.lastCreditRecharge))) {
-                console.log(`🎁 [Testing] Recharging 5 credits for user: ${userId}`);
-                user.credits = 5;
-                user.lastCreditRecharge = now;
-                await user.save();
-            }
-
-            if (depth === 'deep') {
-                if (isAdmin || user.credits > 0) {
-                    console.log(`💎 [Premium] Deep Scan active. Full Intelligence Enabled.`);
-                    if (!isAdmin) {
-                        user.credits -= 1;
-                        await user.save();
-                        creditsConsumed = 1;
-                    } else {
-                        console.log(`🦸 [Admin] Skipping credit deduction for: ${effectiveEmail}`);
-                    }
-                    analysisLayer = 3;
-                    ocrDepth = 'deep';
-                } else {
-                    console.log(`🔒 [Limit] No credits for Deep Scan. Scaling to Standard.`);
-                    depth = 'standard'; 
-                }
-            }
-        }
-    } else if (depth === 'deep' || depth === 'standard') {
-        console.log(`👤 [Guest] Guest cannot use ${depth}. Scaling to Basic.`);
-        depth = 'basic';
-    }
-
-    if (depth === 'standard') {
-        if (userId) {
-            console.log(`🛠️ [Standard] Logged-in User. Level 2 Intelligence Enabled.`);
-            analysisLayer = 2;
-            ocrDepth = 'standard';
-        } else {
-            console.log(`👤 [Guest] Guest cannot use Standard. Scaling to Basic.`);
-            depth = 'basic';
-        }
-    }
+    const accessContext = await resolveUserScanAccess({ userId, userEmail, depth });
+    depth = accessContext.depth;
+    analysisLayer = accessContext.analysisLayer;
+    ocrDepth = accessContext.ocrDepth;
+    creditsConsumed = accessContext.creditsConsumed;
 
     if (depth === 'basic') {
         analysisLayer = 1;
@@ -537,39 +411,9 @@ router.post("/scan", upload.single('file'), async (req, res) => {
       scanDataRecord.aiInsight = aiInsight;
       scanDataRecord.aiModel = aiModel;
 
-      // 6. Save scan + Update user stats — combined into fewer DB writes
+      // 6. Save scan + update profile metrics
       const savedDoc = await Scan.create(scanDataRecord);
-      
-      if (userId) {
-          const user = await User.findOne({ firebaseUid: userId });
-          if (user) {
-              // Combine TTL + stats into a SINGLE save (was 2 separate saves before)
-              if (user.plan === 'free') {
-                  savedDoc.expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-              }
-
-              const oldTotal = user.totalScans || 0;
-              const currentOverall = user.overallSafetyScore || 100;
-              const scanSafety = 100 - finalRisk;
-              const newTotal = oldTotal + 1;
-              const newSafety = Math.round(((currentOverall * oldTotal) + scanSafety) / newTotal);
-              
-              user.totalScans = newTotal;
-              user.overallSafetyScore = newSafety;
-              
-              if (status === 'fraud' || status === 'scam') {
-                  user.totalThreats = (user.totalThreats || 0) + 1;
-              }
-
-              // 🔥 PERFORMANCE: Save user + TTL doc in PARALLEL (was sequential)
-              await Promise.all([
-                  user.save(),
-                  savedDoc.isModified() ? savedDoc.save() : Promise.resolve()
-              ]);
-              
-              console.log(`📊 [Stats Update] UID: ${userId}, Total: ${newTotal}, Safety: ${newSafety}%`);
-          }
-      }
+      await updateUserScanStats({ userId, status, finalRisk, savedDoc });
 
       console.log(`✅ [Database] Permanent Save Successful! ID: ${savedDoc._id}`);
       

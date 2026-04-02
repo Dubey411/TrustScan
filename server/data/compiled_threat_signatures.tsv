@@ -1,0 +1,88 @@
+fear_triggers	25	illegal items
+fear_triggers	20	intercepted
+fear_triggers	30	warrant
+fear_triggers	30	narcotics
+fear_triggers	35	police custody
+fear_triggers	35	arrest
+fear_triggers	25	court summons
+fear_triggers	20	disconnection
+fear_triggers	25	electricity disconnected
+fear_triggers	15	parcel
+fear_triggers	30	accidentally reported
+fear_triggers	25	banned
+fear_triggers	25	account deletion
+fear_triggers	30	prison
+fear_triggers	25	accused
+fear_triggers	20	social stigma
+fear_triggers	15	defamation
+fear_triggers	20	thana
+fear_triggers	30	jail
+fear_triggers	15	paisa
+authority_impersonation	20	mumbai customs
+authority_impersonation	25	cbi officer
+authority_impersonation	15	electricity board
+authority_impersonation	20	eb officer
+authority_impersonation	20	police station
+authority_impersonation	20	supreme court
+authority_impersonation	15	traffic police
+authority_impersonation	25	cyber cell
+authority_impersonation	35	steam admin
+authority_impersonation	35	valve employee
+authority_impersonation	35	discord staff
+urgency_escalation	15	immediately
+urgency_escalation	20	tonight at
+urgency_escalation	25	within 2 hours
+urgency_escalation	15	emergency
+urgency_escalation	20	final notice
+urgency_escalation	20	last warning
+urgency_escalation	15	avoid blackout
+urgency_escalation	20	hurry up
+urgency_escalation	20	before the promotion ends
+urgency_escalation	15	limited time
+urgency_escalation	20	zaroori
+urgency_escalation	25	bahut zaroori
+urgency_escalation	15	abhi
+urgency_escalation	20	turant
+urgency_escalation	15	last date
+urgency_escalation	20	shadi order
+urgency_escalation	30	hospital admit
+action_requests	25	press 1
+action_requests	15	link below
+action_requests	30	transfer funds
+action_requests	25	gpay at
+action_requests	25	phonepe
+action_requests	20	settlement
+action_requests	10	call now
+action_requests	20	click to get
+action_requests	20	claim gift
+gaming_crypto_scams	30	free nitro
+gaming_crypto_scams	20	discord nitro
+gaming_crypto_scams	25	airdrop
+gaming_crypto_scams	20	csgo skin
+gaming_crypto_scams	25	steam gift
+gaming_crypto_scams	25	free skins
+gaming_crypto_scams	15	trade offer
+gaming_crypto_scams	30	cryptocurrency giveaway
+gaming_crypto_scams	35	btc doubler
+recruitment_scams	40	training fee
+recruitment_scams	35	registration fee
+recruitment_scams	30	security deposit
+recruitment_scams	25	documentation charges
+recruitment_scams	25	laptop processing
+recruitment_scams	35	internship certificate fee
+recruitment_scams	25	refundable deposit
+recruitment_scams	20	hr round booking
+domestic_emergencies	25	accident
+domestic_emergencies	30	hospital bills
+domestic_emergencies	25	medical emergency
+domestic_emergencies	30	bail out
+domestic_emergencies	30	arrested
+domestic_emergencies	40	kidnapped
+domestic_emergencies	15	son
+domestic_emergencies	15	daughter
+domestic_emergencies	10	relative
+upi_scam_patterns	40	scan qr code to receive
+upi_scam_patterns	35	receive payment scan
+upi_scam_patterns	20	request link
+upi_scam_patterns	30	check balance to receive
+upi_scam_patterns	25	forward message to get

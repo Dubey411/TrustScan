@@ -11,6 +11,7 @@ import connectDB from "./config/db.js";
 import scanRoute from "./routes/scan.js";
 import adminRoute from "./routes/admin.js";
 import { initializeMLAutomation } from "./services/ml/mlManager.js";
+import { runWarmupCycle } from "./services/warmup/warmupService.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -29,6 +30,16 @@ const app = express();
 // 🚀 PUBLIC PING ROUTE: Keeps the server awake and allows UptimeRobot to see a '200 OK'.
 // Placed before all middlewares to ensure it remains public and fast.
 app.get("/ping", (req, res) => res.status(200).send("pong"));
+app.head("/ping", (req, res) => res.sendStatus(200));
+app.get("/warmup", async (req, res) => {
+  const status = await runWarmupCycle({ includeDocumentPipeline: req.query.deep === "1" });
+  const hasErrors = Object.values(status).some((value) => typeof value === 'string' && value.startsWith('error:'));
+  res.status(hasErrors ? 500 : 200).json({
+    status: hasErrors ? 'partial_failure' : 'warm',
+    timestamp: new Date().toISOString(),
+    details: status
+  });
+});
 
 // Connect to Database & Initialize Services
 await connectDB();
@@ -39,6 +50,7 @@ const SERVER_ID = Date.now();
 app.get("/", (req, res) => {
   res.status(200).json({ status: "healthy", timestamp: new Date().toISOString(), serverId: SERVER_ID });
 });
+app.head("/", (req, res) => res.sendStatus(200));
 
 // Middlewares
 app.use(cors({
@@ -56,20 +68,24 @@ const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT} [ID: ${Date.now()}]`);
-  
-  // 🔥 PERFORMANCE: Self-pinging mechanism to bypass Render's 15-min sleep timer.
-  // This ensures the server stays "warm" and eliminates the ~50s cold start.
-  const BACKEND_URL = "https://checkit-server.onrender.com/ping";
+
+  // Warm caches and parsers while the instance is alive.
+  runWarmupCycle()
+    .then((status) => console.log(`[Warmup] Initial warm cycle complete: ${JSON.stringify(status)}`))
+    .catch((err) => console.error(`[Warmup] Initial warm cycle failed: ${err.message}`));
+
+  // This helps only while the process is already awake.
+  const BACKEND_URL = process.env.BACKEND_PUBLIC_URL || "https://checkit-server.onrender.com";
   setInterval(() => {
-    https.get(BACKEND_URL, (res) => {
+    https.get(`${BACKEND_URL}/ping`, (res) => {
       if (res.statusCode === 200) {
-        console.log(`[Self-Ping] Success: ${res.statusCode} (Server is warm)`);
+        console.log(`[Warmup Ping] Success: ${res.statusCode} (Server is warm)`);
       } else {
-        console.warn(`[Self-Ping] Warning: ${res.statusCode}`);
+        console.warn(`[Warmup Ping] Warning: ${res.statusCode}`);
       }
     }).on('error', (err) => {
-      console.error(`[Self-Ping] Error: ${err.message}`);
+      console.error(`[Warmup Ping] Error: ${err.message}`);
     });
-  }, 14 * 60 * 1000); // Ping every 14 minutes
+  }, 4 * 60 * 1000);
 });
       

@@ -26,6 +26,10 @@ async function initDependencies() {
     }
 }
 
+export async function warmDocumentPipelineDependencies() {
+    await initDependencies();
+}
+
 /**
  * Python-based PDF rendering (Fallback because PDF.js + Node-Canvas is unstable)
  */

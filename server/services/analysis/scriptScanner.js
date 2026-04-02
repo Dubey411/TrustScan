@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { isNativeThreatEngineAvailable, scanThreatSignaturesNative } from './cppThreatEngine.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -8,6 +9,30 @@ const __dirname = path.dirname(__filename);
 const PHRASES = JSON.parse(
     fs.readFileSync(path.join(__dirname, '..', '..', 'data', 'risk_weighted_phrases.json'), 'utf8')
 );
+
+const PHASE_CONFIG = {
+    fear_triggers: { phase: 'Fear Trigger', flowStage: 'fear' },
+    authority_impersonation: { phase: 'Authority Impersonation', flowStage: 'authority' },
+    urgency_escalation: { phase: 'Urgency Escalation', flowStage: 'urgency' },
+    action_requests: { phase: 'Action Request', flowStage: 'action' },
+    recruitment_scams: { phase: 'Recruitment Hook', flowStage: 'action' },
+    domestic_emergencies: { phase: 'Domestic Emergency', flowStage: 'fear' },
+    upi_scam_patterns: { phase: 'UPI Fraud Pattern', flowStage: 'action' }
+};
+
+const NATIVE_THREAT_MIN_TEXT_LENGTH = 120;
+
+function applyMatch(categoryKey, phrase, weight, matches, flowStages) {
+    const config = PHASE_CONFIG[categoryKey];
+    if (!config) return weight;
+
+    matches.push({ phase: config.phase, match: phrase });
+    if (config.flowStage) {
+        flowStages[config.flowStage] = true;
+    }
+
+    return weight;
+}
 
 /**
  * Script Intelligence Layer (SIL)
@@ -26,67 +51,63 @@ export function analyzeScamScript(text) {
         action: false
     };
 
-    // 1. Evaluate Categories
-    Object.entries(PHRASES.fear_triggers).forEach(([phrase, weight]) => {
-        if (normalized.includes(phrase)) {
-            score += weight;
-            matches.push({ phase: 'Fear Trigger', match: phrase });
-            flowStages.fear = true;
-        }
-    });
+    const nativeThreatResult = normalized.length >= NATIVE_THREAT_MIN_TEXT_LENGTH && isNativeThreatEngineAvailable()
+        ? scanThreatSignaturesNative(normalized)
+        : null;
 
-    Object.entries(PHRASES.authority_impersonation).forEach(([phrase, weight]) => {
-        if (normalized.includes(phrase)) {
-            score += weight;
-            matches.push({ phase: 'Authority Impersonation', match: phrase });
-            flowStages.authority = true;
-        }
-    });
-
-    Object.entries(PHRASES.urgency_escalation).forEach(([phrase, weight]) => {
-        if (normalized.includes(phrase)) {
-            score += weight;
-            matches.push({ phase: 'Urgency Escalation', match: phrase });
-            flowStages.urgency = true;
-        }
-    });
-
-    Object.entries(PHRASES.action_requests).forEach(([phrase, weight]) => {
-        if (normalized.includes(phrase)) {
-            score += weight;
-            matches.push({ phase: 'Action Request', match: phrase });
-            flowStages.action = true;
-        }
-    });
-    
-    if (PHRASES.recruitment_scams) {
-        Object.entries(PHRASES.recruitment_scams).forEach(([phrase, weight]) => {
+    if (nativeThreatResult) {
+        nativeThreatResult.matches.forEach(({ category, phrase, weight }) => {
+            score += applyMatch(category, phrase, weight, matches, flowStages);
+        });
+    } else {
+        // 1. Evaluate Categories
+        Object.entries(PHRASES.fear_triggers).forEach(([phrase, weight]) => {
             if (normalized.includes(phrase)) {
-                score += weight;
-                matches.push({ phase: 'Recruitment Hook', match: phrase });
-                flowStages.action = true;
+                score += applyMatch('fear_triggers', phrase, weight, matches, flowStages);
             }
         });
-    }
 
-    if (PHRASES.domestic_emergencies) {
-        Object.entries(PHRASES.domestic_emergencies).forEach(([phrase, weight]) => {
+        Object.entries(PHRASES.authority_impersonation).forEach(([phrase, weight]) => {
             if (normalized.includes(phrase)) {
-                score += weight;
-                matches.push({ phase: 'Domestic Emergency', match: phrase });
-                flowStages.fear = true;
+                score += applyMatch('authority_impersonation', phrase, weight, matches, flowStages);
             }
         });
-    }
 
-    if (PHRASES.upi_scam_patterns) {
-        Object.entries(PHRASES.upi_scam_patterns).forEach(([phrase, weight]) => {
+        Object.entries(PHRASES.urgency_escalation).forEach(([phrase, weight]) => {
             if (normalized.includes(phrase)) {
-                score += weight;
-                matches.push({ phase: 'UPI Fraud Pattern', match: phrase });
-                flowStages.action = true;
+                score += applyMatch('urgency_escalation', phrase, weight, matches, flowStages);
             }
         });
+
+        Object.entries(PHRASES.action_requests).forEach(([phrase, weight]) => {
+            if (normalized.includes(phrase)) {
+                score += applyMatch('action_requests', phrase, weight, matches, flowStages);
+            }
+        });
+
+        if (PHRASES.recruitment_scams) {
+            Object.entries(PHRASES.recruitment_scams).forEach(([phrase, weight]) => {
+                if (normalized.includes(phrase)) {
+                    score += applyMatch('recruitment_scams', phrase, weight, matches, flowStages);
+                }
+            });
+        }
+
+        if (PHRASES.domestic_emergencies) {
+            Object.entries(PHRASES.domestic_emergencies).forEach(([phrase, weight]) => {
+                if (normalized.includes(phrase)) {
+                    score += applyMatch('domestic_emergencies', phrase, weight, matches, flowStages);
+                }
+            });
+        }
+
+        if (PHRASES.upi_scam_patterns) {
+            Object.entries(PHRASES.upi_scam_patterns).forEach(([phrase, weight]) => {
+                if (normalized.includes(phrase)) {
+                    score += applyMatch('upi_scam_patterns', phrase, weight, matches, flowStages);
+                }
+            });
+        }
     }
 
     // 2. Behavioral Combo Scoring (The "Script Logic" boost)

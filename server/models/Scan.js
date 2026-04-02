@@ -8,7 +8,7 @@ const scanSchema = new mongoose.Schema({
   type: {
     type: String,
     required: true,
-    enum: ["message", "link", "document", "email", "job", "transaction", "company", "prescription"]
+    enum: ["message", "link", "document", "email", "job", "transaction", "company"]
   },
   content: {
     type: String,
