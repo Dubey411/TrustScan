@@ -82,7 +82,7 @@ async function searchCompanyByName(name) {
                 .replace(/\b(PRIVATE|LIMITED|PVT|LTD|AND|SOLUTIONS|TECHNOLOGY|TECHNOLOGIES|SERVICES|CORP|CORPORATION|INDIA|LLP|GROUP|ENTERPRISE|ENTERPRISES|TECHNOLOCIES)\b/g, '')
                 .trim()
                 .split(/\s+/)
-                .filter(t => t.length > 2);
+                .filter(t => t.length > 1);
             
             if (coreTerms.length === 0) return null;
 
@@ -367,10 +367,15 @@ export async function analyzeEntities(text, layer = 1, userId = null, metadata =
             
             // 2. Fallback to Mock Database if API failed or no result
             if (!nameResult) {
-                const mockEntry = Object.entries(MOCK_COMPANY_DB).find(([cin, data]) => 
-                    data.name.includes(cleanName.toUpperCase()) || 
-                    cleanName.toUpperCase().includes(data.name)
-                );
+                const searchTokens = cleanName.toUpperCase().split(/\s+/).filter(Boolean);
+                const mockEntry = Object.entries(MOCK_COMPANY_DB).find(([cin, data]) => {
+                    const companyName = data.name.toUpperCase();
+                    return (
+                        companyName.includes(cleanName.toUpperCase()) ||
+                        cleanName.toUpperCase().includes(companyName) ||
+                        searchTokens.every((token) => companyName.includes(token))
+                    );
+                });
                 if (mockEntry) {
                     nameResult = { ...mockEntry[1], cin: mockEntry[0] };
                 }

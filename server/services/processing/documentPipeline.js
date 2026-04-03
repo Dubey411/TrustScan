@@ -1,6 +1,5 @@
 
 import '../globals.js'; // MUST BE FIRST
-import { createWorker } from 'tesseract.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
@@ -14,6 +13,29 @@ import TrustEntity from '../../models/TrustEntity.js';
 
 let getDocument;
 let Jimp;
+
+function isProductionRuntime() {
+    return Boolean(process.env.RENDER || process.env.NODE_ENV === 'production');
+}
+
+function getPageBudget(docType, depth) {
+    if (isProductionRuntime()) {
+        if (depth === 'deep') return docType === 'SCANNED' ? 6 : 8;
+        if (depth === 'standard') return docType === 'SCANNED' ? 4 : 5;
+        return docType === 'SCANNED' ? 2 : 3;
+    }
+
+    if (depth === 'deep') return docType === 'SCANNED' ? 15 : 25;
+    if (depth === 'standard') return docType === 'SCANNED' ? 5 : 10;
+    return docType === 'SCANNED' ? 3 : 5;
+}
+
+function getPdfRenderScale(totalPages) {
+    if (isProductionRuntime()) {
+        return totalPages > 3 ? 1.15 : 1.25;
+    }
+    return totalPages > 5 ? 1.5 : 2.0;
+}
 
 async function initDependencies() {
     if (!getDocument) {
@@ -229,23 +251,13 @@ export async function runDocumentPipeline(fileBuffer, mimeType, depth = 'basic')
             pipelineResult.docType = pdfData.docType;
             pipelineResult.totalPages = pdfData.pages.length;
 
-            // ADAPTIVE DEPTH: Toggle between Basic, Standard and Deep limits
-            let MAX_PAGES = 3; 
-            
-            if (depth === 'deep') {
-                MAX_PAGES = pdfData.docType === 'SCANNED' ? 15 : 25;
-            } else if (depth === 'standard') {
-                MAX_PAGES = pdfData.docType === 'SCANNED' ? 5 : 10;
-            } else {
-                // Basic
-                MAX_PAGES = pdfData.docType === 'SCANNED' ? 3 : 5;
-            }
+            const MAX_PAGES = getPageBudget(pdfData.docType, depth);
 
             const targetPages = pdfData.pages.slice(0, MAX_PAGES);
             
             // ADAPTIVE CONCURRENCY: Render Free Tier has limited CPU/RAM. 
             // 4 workers will cause "Thrashing" (swapping memory) which makes it 10x slower.
-            const isProduction = process.env.RENDER || process.env.NODE_ENV === 'production';
+            const isProduction = isProductionRuntime();
             const WORKER_COUNT = isProduction ? 1 : Math.min(targetPages.length, 4); 
             
             console.log(`[Pipeline] Intelligence Mode: Environment=${isProduction ? 'PROD' : 'LOCAL'}, Max Fallback Workers=${WORKER_COUNT}`);
@@ -267,7 +279,7 @@ export async function runDocumentPipeline(fileBuffer, mimeType, depth = 'basic')
             };
 
             try {
-                const pagePromises = targetPages.map(async (page) => {
+                const processPage = async (page) => {
                     let pageText = page.text || "";
                     let method = "DIGITAL_PARSE";
                     let confidence = 100;
@@ -291,8 +303,7 @@ export async function runDocumentPipeline(fileBuffer, mimeType, depth = 'basic')
 
                     if (shouldOcr) {
                         try {
-                            const isProduction = process.env.RENDER || process.env.NODE_ENV === 'production';
-                            const scale = isProduction ? 1.5 : (pdfData.totalPages > 5 ? 1.5 : 2.0); 
+                            const scale = getPdfRenderScale(pdfData.totalPages);
                             const imgBuffer = await renderPdfPageViaPython(fileBuffer, page.pageIndex, scale);
                             
                             if (!pipelineResult.firstImgBuffer && page.pageIndex === 1) {
@@ -306,8 +317,10 @@ export async function runDocumentPipeline(fileBuffer, mimeType, depth = 'basic')
                                 pageText = sarvamResult.text;
                                 confidence = sarvamResult.confidence;
                                 method = "SARVAM_VISION";
+                            } else if (isProduction && depth !== 'deep') {
+                                method = "SARVAM_FAILED";
+                                confidence = 0;
                             } else {
-                                // 🛡️ FALLBACK: Use local Tesseract if cloud fails or is offline
                                 console.log(`[Pipeline] P${page.pageIndex} Falling back to local OCR...`);
                                 const localScheduler = await getScheduler();
                                 const ocr = await localScheduler.addJob('recognize', imgBuffer);
@@ -315,7 +328,6 @@ export async function runDocumentPipeline(fileBuffer, mimeType, depth = 'basic')
                                 confidence = ocr.data.confidence;
                                 method = "LOCAL_FALLBACK_OCR";
                             }
-
                             // Identification Check on OCR text
                             const ocrFraud = await checkForFastPathFraud(pageText);
                             if (ocrFraud) {
@@ -330,9 +342,12 @@ export async function runDocumentPipeline(fileBuffer, mimeType, depth = 'basic')
                     }
 
                     return { index: page.pageIndex, text: pageText, method, confidence, isFraud: isFraudMatch, fraudMatch: fraudMatchReason };
-                });
+                };
 
-                const results = await Promise.all(pagePromises);
+                const results = [];
+                for (const page of targetPages) {
+                    results.push(await processPage(page));
+                }
 
                 // IDENTIFICATION: Check if any part of the document hit our blacklist or greylist
                 const fraudTrigger = results.find(r => r.isFraud);
@@ -377,11 +392,12 @@ export async function runDocumentPipeline(fileBuffer, mimeType, depth = 'basic')
 
         } else if (mimeType.startsWith('image/')) {
             console.log(`[Pipeline] Processing Image...`);
-            let worker = await createWorker('eng+hin');
-            
             let processedBuffer = fileBuffer;
             try {
                 const image = await Jimp.read(processedBuffer);
+                if (isProductionRuntime() && (image.bitmap.width > 1800 || image.bitmap.height > 1800)) {
+                    image.scaleToFit(1800, 1800);
+                }
                 if (typeof image.greyscale === 'function') {
                     image.greyscale().contrast(0.2).normalize();
                     processedBuffer = await image.getBuffer('image/png');
@@ -439,3 +455,4 @@ export async function runDocumentPipeline(fileBuffer, mimeType, depth = 'basic')
 
     return pipelineResult;
 }
+

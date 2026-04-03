@@ -26,6 +26,27 @@ const SUSPICIOUS_TLDS = [
   '.cc', '.ws', '.to', '.click', '.link', '.today', '.zip', '.mov'
 ];
 
+const SUSPICIOUS_URL_KEYWORDS = [
+  'login', 'verify', 'update', 'secure', 'account', 'signin', 'wallet',
+  'kyc', 'bank', 'otp', 'password', 'payment', 'refund', 'gift', 'bonus',
+  'free', 'claim', 'reward', 'invoice', 'suspended', 'unlock'
+];
+
+const TRUSTED_BRAND_KEYWORDS = [
+  'google', 'microsoft', 'apple', 'amazon', 'netflix', 'facebook', 'instagram',
+  'whatsapp', 'telegram', 'linkedin', 'paypal', 'paytm', 'phonepe', 'gpay',
+  'hdfc', 'icici', 'sbi', 'axis', 'airtel', 'jio'
+];
+
+function normalizeHost(host) {
+  return (host || '').toLowerCase().replace(/^www\./, '');
+}
+
+function countSuspiciousKeywordHits(input) {
+  const lower = (input || '').toLowerCase();
+  return SUSPICIOUS_URL_KEYWORDS.filter((keyword) => lower.includes(keyword)).length;
+}
+
 /**
  * Live Link Metadata Scraper
  * Extracts Title and Meta Tags to verify site content context.
@@ -196,10 +217,12 @@ export async function analyzeLinks(text, layer = 1) {
     punycodeHomograph: 0,
     subdomainAbuse: 0,
     pathObfuscation: 0,
-    pathObfuscation: 0,
     contentMismatch: 0, // New Signal
     knownScamLink: 0,    // New Signal (Blacklist)
-    suspiciousAge: 0    // New Signal (RDAP Age)
+    suspiciousAge: 0,    // New Signal (RDAP Age)
+    deceptiveBranding: 0,
+    suspiciousQueryParams: 0,
+    suspiciousUrlKeywords: 0
   };
 
   const detectedLinks = [];
@@ -210,7 +233,7 @@ export async function analyzeLinks(text, layer = 1) {
       if (!normalizedUrl.startsWith('http')) normalizedUrl = 'http://' + normalizedUrl;
       
       const urlObj = new URL(normalizedUrl);
-      const host = urlObj.hostname;
+      const host = normalizeHost(urlObj.hostname);
       
       const getBrandName = (h) => {
           const p = h.split('.');
@@ -231,7 +254,8 @@ export async function analyzeLinks(text, layer = 1) {
           flags: [],
           redirectChain: null,
           finalDestination: null,
-          liveMetadata: null
+          liveMetadata: null,
+          keywordHits: 0
       };
 
       // --- TIERED ANALYSIS LOGIC ---
@@ -249,6 +273,19 @@ export async function analyzeLinks(text, layer = 1) {
       if (SCAM_LINKS.includes(host) || SCAM_LINKS.some(sl => host.endsWith('.' + sl))) {
           signals.knownScamLink = 1;
           linkAnalysis.flags.push('KNOWN_SCAM_DATABASE');
+      }
+
+      const brandMentions = TRUSTED_BRAND_KEYWORDS.filter((brand) => host.includes(brand));
+      if (brandMentions.length > 0) {
+          const trustedBrandMatch = TRUSTED_DOMAINS.find((domainEntry) => {
+              const trustedHost = normalizeHost(domainEntry.domain);
+              return brandMentions.some((brand) => trustedHost.includes(brand));
+          });
+
+          if (trustedBrandMatch && host !== normalizeHost(trustedBrandMatch.domain) && !host.endsWith('.' + normalizeHost(trustedBrandMatch.domain))) {
+              signals.deceptiveBranding = 1;
+              linkAnalysis.flags.push('DECEPTIVE_BRAND_DOMAIN');
+          }
       }
 
       // 2. LIVE METADATA SCAN (L3 ONLY - Deep)
@@ -298,9 +335,26 @@ export async function analyzeLinks(text, layer = 1) {
           signals.pathObfuscation = 1;
           linkAnalysis.flags.push('CREDENTIAL_OR_PATH_OBFUSCATION');
       }
+      if (/%40|%2e|%2f|%5c|\\x/i.test(normalizedUrl) || /\.\.\//.test(normalizedUrl)) {
+          signals.pathObfuscation = 1;
+          linkAnalysis.flags.push('ENCODED_PATH_OBFUSCATION');
+      }
       if (SUSPICIOUS_TLDS.some(tld => host.endsWith(tld))) {
         signals.suspiciousTld = 1;
         linkAnalysis.flags.push('SUSPICIOUS_TLD');
+      }
+
+      const queryParamCount = Array.from(urlObj.searchParams.keys()).length;
+      if (queryParamCount >= 5) {
+          signals.suspiciousQueryParams = 1;
+          linkAnalysis.flags.push('EXCESSIVE_QUERY_PARAMS');
+      }
+
+      const keywordHits = countSuspiciousKeywordHits(`${host}${urlObj.pathname}${urlObj.search}`);
+      linkAnalysis.keywordHits = keywordHits;
+      if (keywordHits >= 2) {
+          signals.suspiciousUrlKeywords = 1;
+          linkAnalysis.flags.push('SUSPICIOUS_URL_KEYWORDS');
       }
 
       TRUSTED_DOMAINS.forEach(trusted => {

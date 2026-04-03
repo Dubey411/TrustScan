@@ -135,6 +135,9 @@ export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfa
     
     switch (currentScanType.inputType) {
       case 'text':
+        if (selectedScanType === 'company') {
+          return textInput.trim().length > 1;
+        }
         return textInput.trim().length > 10;
       case 'link':
         return linkInput.trim().length > 0 && isLinkValid;
