@@ -75,7 +75,7 @@ app.listen(PORT, () => {
     .catch((err) => console.error(`[Warmup] Initial warm cycle failed: ${err.message}`));
 
   // This helps only while the process is already awake.
-  const BACKEND_URL = process.env.BACKEND_PUBLIC_URL || "https://checkit-server.onrender.com";
+  const BACKEND_URL = process.env.BACKEND_PUBLIC_URL || "https://trustscan.onrender.com";
   setInterval(() => {
     https.get(`${BACKEND_URL}/ping`, (res) => {
       if (res.statusCode === 200) {

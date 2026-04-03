@@ -11,4 +11,4 @@ jobs:
     steps:
       - name: Ping lightweight keepalive endpoint
         run: |
-          curl --fail --silent --show-error "https://checkit-server.onrender.com/ping"
+          curl --fail --silent --show-error "https://trustscan.onrender.com/ping"
