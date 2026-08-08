@@ -45,6 +45,8 @@ test_results.log
 # server/data/ is now allowed for engine critical assets
 
 # Personal Files
-RE-SHUBHAM-DUBEY.html
+RE-SHUBHAM-DUBEY*.html
+Shubham_Dubey_*.html
 *.pdf
 *resume*
+*Resume*
