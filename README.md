@@ -35,8 +35,12 @@
 ### 2. Multi-Format Fraud & Document Scanner Interface
 ![TrustScan Scanner Interface](docs/images/scanner_interface.png)
 
-### 3. Asynchronous Pipeline & Feature Architecture
+### 3. Real-Time Scan Results & AI Risk Analysis Dashboard
+![TrustScan Scan Result Dashboard](docs/images/Result.png)
+
+### 4. Asynchronous Pipeline & Feature Architecture
 ![TrustScan Architecture & Workflow](docs/images/architecture_workflow.png)
+
 
 ---
 
