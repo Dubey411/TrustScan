@@ -50,3 +50,7 @@ Shubham_Dubey_*.html
 *.pdf
 *resume*
 *Resume*
+.chrome-pdf-profile/
+.edge-pdf-profile/
+s.py
+
