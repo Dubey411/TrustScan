@@ -11,12 +11,19 @@ yarn-error.log*
 out/
 build/
 
-# Environment Variables
+# Environment Variables & GCP Credentials
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+*.json.key
+trustscan-*.json
+server/trustscan-*.json
+google-credentials.json
+*.pem
+*.key
+
 
 # OS Files
 .DS_Store
