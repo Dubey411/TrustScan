@@ -2,12 +2,12 @@ import type { Metadata } from 'next';
 import HomepageInteractive from './homepage/components/HomepageInteractive';
 
 export const metadata: Metadata = {
-  title: 'TrustScan AI | Fake Job Offer Check & Link Safety Verifier',
-  description: 'Instantly check fake job offers, verify if this link is safe, and detect UPI fraud messages. India\'s most trusted online fraudulent checker.',
+  title: 'TrustScan AI | Universal Document, Government ID & Entity Verification',
+  description: 'Instantly verify Government IDs (Aadhaar, PAN, DL), Company Registrations (GSTIN, CIN), Offer Letters, Certificates, and Invoices. India\'s trusted AI document verifier.',
   alternates: {
     canonical: '/',
   },
-  keywords: ['fake job offer check', 'is this link safe', 'UPI fraud message', 'CIN verification online', 'fake job checker India', 'link verifier', 'scam detector tool'],
+  keywords: ['document verification online', 'Aadhaar card verifier', 'PAN card check online', 'GSTIN verification', 'CIN checker India', 'offer letter verifier', 'invoice audit tool', 'fake document detector'],
 };
 
 export default function Home() {
