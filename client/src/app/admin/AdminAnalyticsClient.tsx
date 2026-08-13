@@ -79,7 +79,8 @@ const AdminAnalyticsClient = () => {
   useEffect(() => {
     if (loading) return;
 
-    if (!user || user.email !== 'trustscan.ai@gmail.com') {
+    const ALLOWED_ADMIN_EMAILS = ['trustscan.ai@gmail.com', 'shubh6949@gmail.com'];
+    if (!user || !user.email || !ALLOWED_ADMIN_EMAILS.includes(user.email)) {
         router.replace('/user-dashboard');
         return;
     }
