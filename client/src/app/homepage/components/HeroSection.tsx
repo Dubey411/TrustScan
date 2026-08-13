@@ -29,30 +29,30 @@ const HeroSection = ({ onScanClick }: HeroSectionProps) => {
           <div className="space-y-8">
             <div className="inline-flex items-center space-x-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full">
               <Icon name="ShieldCheckIcon" size={20} variant="solid" className="text-success-green" />
-              <span className="text-sm font-medium">India's First Job Fraud Detection Platform</span>
+              <span className="text-sm font-medium">Universal AI Document & Entity Verification Engine</span>
             </div>
 
             <h1 className="text-4xl lg:text-6xl font-headline font-bold leading-tight">
-              Check Offer Letters & <br />
-              <span className="text-success-green">Verify Company CIN</span> 
+              Verify Government IDs, <br />
+              <span className="text-success-green">Company Docs & Certificates</span> 
             </h1>
 
             <p className="text-lg lg:text-xl text-primary-foreground/90 leading-relaxed">
-              Instantly perform a <strong>fake job offer check</strong>, verify company legitimacy, and ensure a link is safe or not harmful. India's smartest AI-powered shield for your career.
+              Instantly audit <strong>Aadhaar, PAN, GSTIN, CIN, Offer Letters, Invoices & Bank Statements</strong>. India's smartest AI verification platform for citizens, businesses, and professionals.
             </p>
 
             {/* Stats */}
             <div className="grid grid-cols-3 gap-6 pt-4">
               <div className="text-center lg:text-left">
+                <div className="text-3xl lg:text-4xl font-headline font-bold text-success-green">100K+</div>
+                <div className="text-sm text-primary-foreground/80 mt-1">Docs Verified</div>
+              </div>
+              <div className="text-center lg:text-left">
                 <div className="text-3xl lg:text-4xl font-headline font-bold text-success-green">50K+</div>
-                <div className="text-sm text-primary-foreground/80 mt-1">Scams Detected</div>
+                <div className="text-sm text-primary-foreground/80 mt-1">Entities Checked</div>
               </div>
               <div className="text-center lg:text-left">
-                <div className="text-3xl lg:text-4xl font-headline font-bold text-success-green">1L+</div>
-                <div className="text-sm text-primary-foreground/80 mt-1">Users Protected</div>
-              </div>
-              <div className="text-center lg:text-left">
-                <div className="text-3xl lg:text-4xl font-headline font-bold text-success-green">98%</div>
+                <div className="text-3xl lg:text-4xl font-headline font-bold text-success-green">99.2%</div>
                 <div className="text-sm text-primary-foreground/80 mt-1">Accuracy Rate</div>
               </div>
             </div>
