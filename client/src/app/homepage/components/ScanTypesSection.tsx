@@ -4,31 +4,31 @@ import Link from 'next/link';
 const ScanTypesSection = () => {
   const scanTypes = [
     {
-      icon: 'BriefcaseIcon',
-      title: 'Job Offer Verification',
-      description: 'Verify legitimacy of job offers with company validation, salary analysis, and requirement authenticity checks.',
-      features: ['Company verification', 'Salary range analysis', 'Job description validation', 'Contact detail verification'],
+      icon: 'IdentificationIcon',
+      title: 'Government ID Verification',
+      description: 'Audit official Government identifiers including Aadhaar Verhoeff checksums, PAN format & entity status, Driving License, and Passport MRZ logic.',
+      features: ['Aadhaar Verhoeff checksum validation', 'PAN entity & structure check (Individual/Company)', 'Driving License format mapping', 'Masked Aadhaar compliance check'],
       color: 'primary',
     },
     {
-      icon: 'AcademicCapIcon',
-      title: 'Internship Screening',
-      description: 'Protect yourself from fake internship programs with comprehensive screening of stipend, duration, and company credentials.',
-      features: ['Stipend verification', 'Duration analysis', 'Certificate validation', 'Company background check'],
+      icon: 'BuildingOffice2Icon',
+      title: 'Company & Business Registration',
+      description: 'Verify corporate legitimacy using official MCA Corporate Identity Numbers (CIN), GSTIN 15-digit state mappings, and Business Invoices.',
+      features: ['CIN 21-digit MCA structure audit', 'GSTIN state & checksum validation', 'Business invoice tax calculations', 'Active registration status verification'],
       color: 'secondary',
     },
     {
-      icon: 'LinkIcon',
-      title: 'Phishing Link Detection',
-      description: 'Identify malicious URLs and phishing attempts before clicking with real-time threat intelligence and pattern recognition.',
-      features: ['URL reputation check', 'Domain age analysis', 'SSL certificate validation', 'Blacklist cross-reference'],
+      icon: 'DocumentCheckIcon',
+      title: 'Career & Academic Credentials',
+      description: 'Audit employment offer letters, experience certificates, and academic marksheets for digital edits, font tampering, and domain validity.',
+      features: ['AI digital edit & Photoshop trace detection', 'Company domain & address verification', 'Salary/stipend range benchmark check', 'Font consistency & alignment audit'],
       color: 'accent',
     },
     {
-      icon: 'ChatBubbleLeftRightIcon',
-      title: 'Message Analysis',
-      description: 'Scan WhatsApp and email messages for scam indicators, urgency tactics, and fraudulent communication patterns.',
-      features: ['Language pattern analysis', 'Urgency detection', 'Contact verification', 'Scam keyword identification'],
+      icon: 'CreditCardIcon',
+      title: 'Financial & Bank Statements',
+      description: 'Perform mathematical & structural integrity audits on salary slips, bank statements, UPI payment receipts, and billing invoices.',
+      features: ['Net vs Gross pay balance audit', 'Tax deduction & TDS verification', 'Bank statement alignment check', 'UPI payment receipt fraud detection'],
       color: 'success-green',
     },
   ];
@@ -38,10 +38,10 @@ const ScanTypesSection = () => {
       <div className="container mx-auto px-4">
         <div className="text-center max-w-3xl mx-auto mb-16">
           <h2 className="text-3xl lg:text-4xl font-headline font-bold text-foreground mb-4">
-            Comprehensive Fraud Detection
+            Universal AI Verification Engine
           </h2>
           <p className="text-lg text-muted-foreground">
-            Multiple scan types to protect you from every angle of job market fraud
+            Multi-modal verification for Government IDs, Corporate Records, Employment Credentials, and Invoices
           </p>
         </div>
 
