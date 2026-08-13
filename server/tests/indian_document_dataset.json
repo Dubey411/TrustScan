@@ -1,0 +1,98 @@
+[
+  {
+    "name": "Legitimate Aadhaar Card",
+    "category": "gov_id",
+    "documentType": "Aadhaar",
+    "content": "GOVERNMENT OF INDIA. Unique Identification Authority of India. Name: Rajesh Kumar. DOB: 15/08/1995. Aadhaar No: 9999 9900 0005. Address: Flat 402, Green Acres, Andheri East, Mumbai 400069.",
+    "expectedStatus": "legitimate",
+    "reason": "Valid Aadhaar format passing Verhoeff checksum math and UIDAI signatures."
+  },
+  {
+    "name": "Fake Aadhaar Card (Invalid Verhoeff Checksum)",
+    "category": "gov_id",
+    "documentType": "Aadhaar",
+    "content": "GOVERNMENT OF INDIA. Unique Identification Authority of India. Name: Suresh Sharma. DOB: 01/01/1990. Aadhaar No: 9999 9900 0004. Address: MG Road, Bengaluru 560001.",
+    "expectedStatus": "fraud",
+    "reason": "Invalid 12-digit number failing Verhoeff checksum algorithm."
+  },
+  {
+    "name": "Legitimate Individual PAN Card",
+    "category": "gov_id",
+    "documentType": "PAN",
+    "content": "INCOME TAX DEPARTMENT. GOVT. OF INDIA. Name: VIKRAM ADITYA. Father Name: RAMESH ADITYA. DOB: 12/04/1992. Permanent Account Number: ABCPV1234F.",
+    "expectedStatus": "legitimate",
+    "reason": "Valid 10-character PAN structure with 'P' designating Individual status."
+  },
+  {
+    "name": "Fake PAN Card (Invalid Format & Structure)",
+    "category": "gov_id",
+    "documentType": "PAN",
+    "content": "INCOME TAX DEPARTMENT. GOVT. OF INDIA. Name: AMIT KUMAR. Permanent Account Number: 12345ABCDE.",
+    "expectedStatus": "fraud",
+    "reason": "Numeric digits placed first violating standard ABCDE1234F PAN structure."
+  },
+  {
+    "name": "Legitimate Company GSTIN Invoice",
+    "category": "company_doc",
+    "documentType": "Invoice",
+    "content": "TAX INVOICE. TechSolutions Pvt Ltd. GSTIN: 27AAAAA0000A1Z5. State Code: 27 (Maharashtra). Invoice No: INV-2026-089. Total Amount: ₹50,000. CGST (9%): ₹4,500. SGST (9%): ₹4,500. Grand Total: ₹59,000.",
+    "expectedStatus": "legitimate",
+    "reason": "Valid 15-character GSTIN structure, matching Maharashtra state code 27, and correct 18% GST calculation math."
+  },
+  {
+    "name": "Fraudulent GSTIN Invoice (Tax Math Error & Fake GSTIN)",
+    "category": "company_doc",
+    "documentType": "Invoice",
+    "content": "TAX INVOICE. Global Services Ltd. GSTIN: 99XXXXX9999X9Z9. Total Amount: ₹10,000. GST: ₹5,000. Total Due: ₹25,000.",
+    "expectedStatus": "fraud",
+    "reason": "Invalid GSTIN state code 99 and inconsistent tax addition math."
+  },
+  {
+    "name": "Legitimate Corporate Registration (CIN)",
+    "category": "company_doc",
+    "documentType": "CorporateCIN",
+    "content": "MINISTRY OF CORPORATE AFFAIRS. Certificate of Incorporation. Corporate Identity Number (CIN): U72900MH2020PTC123456. Registered Office: Bandra Kurla Complex, Mumbai, Maharashtra 400051.",
+    "expectedStatus": "legitimate",
+    "reason": "Valid 21-character CIN structure (U = Unlisted, 72900 = Industry code, MH = State, 2020 = Year, PTC = Private Limited, 123456 = Reg No)."
+  },
+  {
+    "name": "Fake Company Registration (Invalid CIN Length & Structure)",
+    "category": "company_doc",
+    "documentType": "CorporateCIN",
+    "content": "MINISTRY OF CORPORATE AFFAIRS. Registration Certificate. CIN: CIN123456789.",
+    "expectedStatus": "fraud",
+    "reason": "Short length violating 21-character MCA CIN standard."
+  },
+  {
+    "name": "Legitimate Offer Letter",
+    "category": "career_credential",
+    "documentType": "OfferLetter",
+    "content": "OFFER OF EMPLOYMENT. Infosys Limited. Corporate Office: Electronics City, Bengaluru 560100. Designation: Systems Engineer. Annual CTC: ₹6,50,000. Official Portal: https://www.infosys.com/careers.",
+    "expectedStatus": "legitimate",
+    "reason": "Official corporate domain, valid address, and standard industry compensation structure."
+  },
+  {
+    "name": "Fraudulent Offer Letter (Photoshop & Canva Tampering Traces)",
+    "category": "career_credential",
+    "documentType": "OfferLetter",
+    "content": "CONFIDENTIAL OFFER LETTER. TechGiant Global. Annual CTC: ₹25,00,000. Registration Fee: ₹5,000 via GPay. Created using Canva Software / Adobe Photoshop CC 2024.",
+    "expectedStatus": "fraud",
+    "reason": "Demanding registration fees and containing image manipulation software metadata traces."
+  },
+  {
+    "name": "Legitimate Salary Slip",
+    "category": "financial_invoice",
+    "documentType": "SalarySlip",
+    "content": "SALARY SLIP FOR JULY 2026. Employee Name: Ananya Sen. Employee ID: EMP9821. Basic Pay: ₹35,000. HRA: ₹15,000. Special Allowance: ₹10,000. Gross Salary: ₹60,000. Provident Fund (PF): ₹1,800. Professional Tax: ₹200. Net Salary: ₹58,000.",
+    "expectedStatus": "legitimate",
+    "reason": "Perfect mathematical balance: Gross (60,000) - Deductions (2,000) = Net (58,000)."
+  },
+  {
+    "name": "Fraudulent Salary Slip (Mathematical Discrepancy)",
+    "category": "financial_invoice",
+    "documentType": "SalarySlip",
+    "content": "PAYSLIP JULY 2026. Basic Pay: ₹20,000. HRA: ₹5,000. Gross Salary: ₹95,000. Net Salary: ₹95,000.",
+    "expectedStatus": "fraud",
+    "reason": "Mathematical impossibility: Basic (20k) + HRA (5k) = 25k, but Gross is listed as 95k."
+  }
+]
