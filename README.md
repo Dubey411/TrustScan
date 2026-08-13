@@ -9,8 +9,8 @@
 [![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white)](https://www.mongodb.com/)
 [![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
 
-**Production-Grade AI Fraud Intelligence & Document Verification Engine**  
-*Built for multi-source data extraction, mathematical identity validation, OCR processing, and high-throughput background processing.*
+**Universal AI Document, Government ID & Entity Verification Platform**  
+*Multi-modal verification engine auditing Government IDs (Aadhaar, PAN, DL), Corporate Registrations (GSTIN, CIN), Employment Credentials, and Financial Invoices.*
 
 </div>
 
