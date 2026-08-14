@@ -12,6 +12,9 @@ import ShareResults from './ShareResults';
 import DownloadReport from './DownloadReport';
 import LinkAnalysisCard from './LinkAnalysisCard';
 import { BusinessVerificationCard } from './BusinessVerificationCard';
+import GovIdVerificationCard from './GovIdVerificationCard';
+import PaymentReceiptCard from './PaymentReceiptCard';
+import CareerDocumentCard from './CareerDocumentCard';
 import ProphetInsightCard from './ProphetInsightCard';
 import DeepScanReportCard from './DeepScanReportCard'; // Premium UI
 import { DatabaseHitCard } from './DatabaseHitCard';
@@ -243,9 +246,12 @@ const ResultsInteractive = ({ scanData, showFeedback = true }: ResultsInteractiv
       }
   ]);
 
+  const isGovId = (activeScanData as any)?.scanType === 'gov_id' || activeScanData?.target?.toLowerCase().includes('aadhaar') || activeScanData?.target?.toLowerCase().includes('pan');
+  const isPayment = (activeScanData as any)?.scanType === 'payment' || (activeScanData as any)?.scanType === 'transaction' || activeScanData?.target?.toLowerCase().includes('upi') || activeScanData?.target?.toLowerCase().includes('gpay');
+  const isCompany = activeScanData?.scanType === 'company';
+  const isCareer = (activeScanData as any)?.scanType === 'document' || activeScanData?.target?.toLowerCase().includes('offer') || activeScanData?.target?.toLowerCase().includes('internship');
   const isDocument = (activeScanData as any)?.scanType === 'document' || !!activeScanData?.scanMeta;
   const isLink = (activeScanData as any)?.scanType === 'link' || (!!activeScanData?.metadata?.detectedLinks && activeScanData.metadata.detectedLinks.length > 0);
-  const isCompany = activeScanData?.scanType === 'company';
   
   const getSignalScore = (key: string, mockDefault: number) => {
     const signalValue = (scanData?.signals as any)?.[key] || 0;
@@ -445,7 +451,34 @@ const ResultsInteractive = ({ scanData, showFeedback = true }: ResultsInteractiv
             <DatabaseHitCard hits={activeScanData.metadata.databaseHits} />
           )}
 
-          {/* Company Verification Result - Replaces Red Flags/Threats for "company" scan */}
+          {/* 🏛️ 1. Government ID Specialized Verification Card */}
+          {isGovId && (
+            <GovIdVerificationCard 
+              idType={activeScanData?.target?.toLowerCase().includes('pan') ? 'PAN Card (Income Tax Dept)' : 'Aadhaar Card (UIDAI)'} 
+              idNumber={activeScanData?.metadata?.detectedEntities?.find((e: any) => e.type === 'AADHAAR' || e.type === 'PAN')?.value || 'XXXX XXXX 0005'}
+              verhoeffValid={!activeScanData?.reasons?.some((r: any) => r.toLowerCase().includes('verhoeff'))}
+              forensicTamperScore={activeScanData?.scanMeta?.forensicTamperScore || 0}
+            />
+          )}
+
+          {/* 💳 2. Payment & UPI Receipt Specialized Card */}
+          {isPayment && (
+            <PaymentReceiptCard 
+              transactionId={activeScanData?.metadata?.upiRef || '328901928392'}
+              isFakeApkDetected={activeScanData?.reasons?.some((r: any) => r.toLowerCase().includes('fake') || r.toLowerCase().includes('apk'))}
+            />
+          )}
+
+          {/* 💼 3. Career & Offer Letter Credential Card */}
+          {isCareer && (
+            <CareerDocumentCard 
+              companyName={activeScanData?.metadata?.detectedEntities?.find((e: any) => e.type === 'COMPANY')?.value || 'Corporate Entity'}
+              hasMcaRegistration={activeScanData?.metadata?.detectedEntities?.some((e: any) => e.type === 'CIN' && e.isValid)}
+              mathBalanceValid={!activeScanData?.reasons?.some((r: any) => r.toLowerCase().includes('math') || r.toLowerCase().includes('salary'))}
+            />
+          )}
+
+          {/* 🏢 4. Company & CIN Verification Card */}
           {(isCompany || (activeScanData?.metadata?.detectedEntities && activeScanData.metadata.detectedEntities.length > 0)) && (
             <BusinessVerificationCard 
                 entities={activeScanData?.metadata?.detectedEntities || []} 
