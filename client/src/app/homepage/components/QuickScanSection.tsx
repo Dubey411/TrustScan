@@ -9,7 +9,7 @@ interface QuickScanSectionProps {
 }
 
 const QuickScanSection = ({ isVisible, onClose }: QuickScanSectionProps) => {
-  const [scanType, setScanType] = useState<'job' | 'link' | 'message'>('job');
+  const [scanType, setScanType] = useState<'company' | 'document' | 'gov_id' | 'payment'>('company');
   const [inputValue, setInputValue] = useState('');
   const [isScanning, setIsScanning] = useState(false);
 
@@ -21,8 +21,8 @@ const QuickScanSection = ({ isVisible, onClose }: QuickScanSectionProps) => {
     // Simulate scan process
     setTimeout(() => {
       setIsScanning(false);
-      window.location.href = '/results-dashboard';
-    }, 2000);
+      window.location.href = '/scan-interface';
+    }, 1500);
   };
 
   if (!isVisible) return null;
@@ -32,7 +32,7 @@ const QuickScanSection = ({ isVisible, onClose }: QuickScanSectionProps) => {
       <div className="bg-card rounded-xl shadow-brand-elevated max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-border">
-          <h2 className="text-2xl font-headline font-bold text-foreground">Quick Scan</h2>
+          <h2 className="text-2xl font-headline font-bold text-foreground">Quick Document & Entity Scan</h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-muted rounded-lg transition-colors duration-300"
@@ -44,69 +44,86 @@ const QuickScanSection = ({ isVisible, onClose }: QuickScanSectionProps) => {
 
         {/* Scan Type Selection */}
         <div className="p-6 space-y-6">
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <button
-              onClick={() => setScanType('job')}
-              className={`flex flex-col items-center space-y-2 p-4 rounded-lg border-2 transition-all duration-300 ${
-                scanType === 'job' ?'border-primary bg-primary/5' :'border-border hover:border-muted-foreground'
+              onClick={() => setScanType('company')}
+              className={`flex flex-col items-center space-y-2 p-3 rounded-lg border-2 transition-all duration-300 ${
+                scanType === 'company' ? 'border-primary bg-primary/5' : 'border-border hover:border-muted-foreground'
               }`}
             >
               <Icon
-                name="BriefcaseIcon"
-                size={32}
-                variant={scanType === 'job' ? 'solid' : 'outline'}
-                className={scanType === 'job' ? 'text-primary' : 'text-muted-foreground'}
+                name="BuildingOffice2Icon"
+                size={28}
+                variant={scanType === 'company' ? 'solid' : 'outline'}
+                className={scanType === 'company' ? 'text-primary' : 'text-muted-foreground'}
               />
-              <span className="text-sm font-medium text-foreground">Check Offer Letter</span>
+              <span className="text-xs font-semibold text-foreground text-center">Company / CIN</span>
             </button>
 
             <button
-              onClick={() => setScanType('link')}
-              className={`flex flex-col items-center space-y-2 p-4 rounded-lg border-2 transition-all duration-300 ${
-                scanType === 'link' ?'border-primary bg-primary/5' :'border-border hover:border-muted-foreground'
+              onClick={() => setScanType('document')}
+              className={`flex flex-col items-center space-y-2 p-3 rounded-lg border-2 transition-all duration-300 ${
+                scanType === 'document' ? 'border-primary bg-primary/5' : 'border-border hover:border-muted-foreground'
               }`}
             >
               <Icon
-                name="LinkIcon"
-                size={32}
-                variant={scanType === 'link' ? 'solid' : 'outline'}
-                className={scanType === 'link' ? 'text-primary' : 'text-muted-foreground'}
+                name="DocumentCheckIcon"
+                size={28}
+                variant={scanType === 'document' ? 'solid' : 'outline'}
+                className={scanType === 'document' ? 'text-primary' : 'text-muted-foreground'}
               />
-              <span className="text-sm font-medium text-foreground">Check Link Safety</span>
+              <span className="text-xs font-semibold text-foreground text-center">Offer / Cert</span>
             </button>
 
             <button
-              onClick={() => setScanType('message')}
-              className={`flex flex-col items-center space-y-2 p-4 rounded-lg border-2 transition-all duration-300 ${
-                scanType === 'message' ?'border-primary bg-primary/5' :'border-border hover:border-muted-foreground'
+              onClick={() => setScanType('gov_id')}
+              className={`flex flex-col items-center space-y-2 p-3 rounded-lg border-2 transition-all duration-300 ${
+                scanType === 'gov_id' ? 'border-primary bg-primary/5' : 'border-border hover:border-muted-foreground'
               }`}
             >
               <Icon
-                name="ChatBubbleLeftRightIcon"
-                size={32}
-                variant={scanType === 'message' ? 'solid' : 'outline'}
-                className={scanType === 'message' ? 'text-primary' : 'text-muted-foreground'}
+                name="IdentificationIcon"
+                size={28}
+                variant={scanType === 'gov_id' ? 'solid' : 'outline'}
+                className={scanType === 'gov_id' ? 'text-primary' : 'text-muted-foreground'}
               />
-              <span className="text-sm font-medium text-foreground">Check Message</span>
+              <span className="text-xs font-semibold text-foreground text-center">Govt ID (PAN/UID)</span>
+            </button>
+
+            <button
+              onClick={() => setScanType('payment')}
+              className={`flex flex-col items-center space-y-2 p-3 rounded-lg border-2 transition-all duration-300 ${
+                scanType === 'payment' ? 'border-primary bg-primary/5' : 'border-border hover:border-muted-foreground'
+              }`}
+            >
+              <Icon
+                name="CreditCardIcon"
+                size={28}
+                variant={scanType === 'payment' ? 'solid' : 'outline'}
+                className={scanType === 'payment' ? 'text-primary' : 'text-muted-foreground'}
+              />
+              <span className="text-xs font-semibold text-foreground text-center">UPI / Receipt</span>
             </button>
           </div>
 
           {/* Input Area */}
           <div className="space-y-4">
             <label className="block text-sm font-medium text-foreground">
-              {scanType === 'job' && 'Paste job offer details or description'}
-              {scanType === 'link' && 'Enter suspicious link or URL'}
-              {scanType === 'message' && 'Paste WhatsApp/Email message content'}
+              {scanType === 'company' && 'Enter Company Name, 21-digit MCA CIN, or GSTIN'}
+              {scanType === 'document' && 'Paste offer letter text, contract excerpt, or credentials'}
+              {scanType === 'gov_id' && 'Enter Masked Aadhaar or 10-character PAN details'}
+              {scanType === 'payment' && 'Paste UPI UTR reference number or payment description'}
             </label>
             <textarea
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               placeholder={
-                scanType === 'job' ?'Example: We are hiring for Software Developer position with ₹50,000 salary...'
-                  : scanType === 'link' ?'Example: https://suspicious-job-portal.com/apply'
-                  : 'Example: Congratulations! You have been selected for...'
+                scanType === 'company' ? 'Example: Tata Consultancy Services, U72900MH2020PTC123456, or 27AAAAA0000A1Z5...'
+                  : scanType === 'document' ? 'Example: Paste offer letter joining dates, CTC compensation, HR signature info...'
+                  : scanType === 'gov_id' ? 'Example: PAN: ABCDE1234F, Aadhaar: XXXX XXXX 0005...'
+                  : 'Example: UPI UTR Ref: 328901928392, Amount: ₹50,000, Handle: user@okhdfcbank...'
               }
-              className="w-full h-40 px-4 py-3 bg-background border border-input rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+              className="w-full h-36 px-4 py-3 bg-background border border-input rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
             />
           </div>
 
