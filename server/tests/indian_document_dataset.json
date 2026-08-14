@@ -16,6 +16,14 @@
     "reason": "Invalid 12-digit number failing Verhoeff checksum algorithm."
   },
   {
+    "name": "Adversarial Aadhaar: Valid Verhoeff but Stripped EXIF & Mismatched Name",
+    "category": "gov_id",
+    "documentType": "Aadhaar",
+    "content": "GOVERNMENT OF INDIA. Unique Identification Authority of India. Name: X1 Y2 Z3. DOB: 31/02/1999. Aadhaar No: 9999 9900 0005. Address: Unknown City 000000.",
+    "expectedStatus": "fraud",
+    "reason": "Valid Verhoeff number but impossible DOB (Feb 31) and suspicious name tokens."
+  },
+  {
     "name": "Legitimate Individual PAN Card",
     "category": "gov_id",
     "documentType": "PAN",
@@ -32,6 +40,14 @@
     "reason": "Numeric digits placed first violating standard ABCDE1234F PAN structure."
   },
   {
+    "name": "Adversarial PAN: Corporate Entity Mismatch on Individual Resume",
+    "category": "gov_id",
+    "documentType": "PAN",
+    "content": "INCOME TAX DEPARTMENT. GOVT. OF INDIA. Name: Rahul Verma. DOB: 10/10/1996. Permanent Account Number: ABCCV1234F.",
+    "expectedStatus": "fraud",
+    "reason": "4th character is 'C' (Company), which contradicts an individual personal ID claim."
+  },
+  {
     "name": "Legitimate Company GSTIN Invoice",
     "category": "company_doc",
     "documentType": "Invoice",
@@ -46,6 +62,14 @@
     "content": "TAX INVOICE. Global Services Ltd. GSTIN: 99XXXXX9999X9Z9. Total Amount: ₹10,000. GST: ₹5,000. Total Due: ₹25,000.",
     "expectedStatus": "fraud",
     "reason": "Invalid GSTIN state code 99 and inconsistent tax addition math."
+  },
+  {
+    "name": "Adversarial GSTIN: Valid State Code but State Name Mismatch",
+    "category": "company_doc",
+    "documentType": "Invoice",
+    "content": "TAX INVOICE. Zenith Logistics. GSTIN: 07AAAAA0000A1Z5. Address: Bangalore, Karnataka 560001.",
+    "expectedStatus": "fraud",
+    "reason": "GSTIN prefix 07 represents Delhi, but document claims business address is in Karnataka (State Code 29)."
   },
   {
     "name": "Legitimate Corporate Registration (CIN)",
@@ -80,6 +104,14 @@
     "reason": "Demanding registration fees and containing image manipulation software metadata traces."
   },
   {
+    "name": "Adversarial Offer Letter: Stripped EXIF Metadata but High Salary Anomaly & Fee Demand",
+    "category": "career_credential",
+    "documentType": "OfferLetter",
+    "content": "OFFER LETTER. Freshers Tech. Role: Software Trainee. Stipend: ₹1,50,000/month. Security Deposit Required: ₹10,000 to user@upi before joining. No EXIF Metadata.",
+    "expectedStatus": "fraud",
+    "reason": "Fee demand and extreme fresher salary anomaly despite stripped EXIF metadata."
+  },
+  {
     "name": "Legitimate Salary Slip",
     "category": "financial_invoice",
     "documentType": "SalarySlip",
@@ -94,5 +126,13 @@
     "content": "PAYSLIP JULY 2026. Basic Pay: ₹20,000. HRA: ₹5,000. Gross Salary: ₹95,000. Net Salary: ₹95,000.",
     "expectedStatus": "fraud",
     "reason": "Mathematical impossibility: Basic (20k) + HRA (5k) = 25k, but Gross is listed as 95k."
+  },
+  {
+    "name": "Unsupported Document Type (Adversarial File Upload)",
+    "category": "unsupported",
+    "documentType": "Unknown",
+    "content": "Random raw text or corrupt binary payload without any government, corporate, or financial structure.",
+    "expectedStatus": "unsupported",
+    "reason": "Unsupported document rejection path."
   }
 ]
