@@ -119,18 +119,31 @@ npm install
 npm start
 ```
 
-### 4. MLOps & Model Management
-To retrain or manage the Layer-1 classifier model:
-```bash
-# Retrain Layer-1 Classifier
-python server/scripts/train_layer1.py
+## 📚 Developer & Architecture Documentation
 
-# Rollback Model Version
-python server/scripts/rollback.py
+For complete technical specifications, dataflow diagrams, and open-source contribution guidelines:
+
+- 🏛️ **[Full Architecture Specification (ARCHITECTURE.md)](ARCHITECTURE.md)**: Deep dive into our 7-stage multi-modal pipeline, Sarvam Vision 3B integration, Verhoeff checksums, and ELA pixel forensics.
+- 🤝 **[Contributor Onboarding Guide (CONTRIBUTING.md)](CONTRIBUTING.md)**: Quickstart instructions, Good First Issues, and PR submission guidelines for Indian developers.
+
+---
+
+## 🇮🇳 Open Source for India — Developer Ecosystem
+
+TrustScan is designed to empower every Indian engineer, student, and researcher to contribute to a national fraud-prevention engine:
+
 ```
+┌───────────────────────────┐    ┌───────────────────────────┐    ┌───────────────────────────┐
+│ 🏛️ 1. GOVT ID AUDITING    │    │ 🔬 2. IMAGE FORENSICS     │    │ 🧠 3. ML FRAUD MODELS     │
+│ Aadhaar Verhoeff, PAN,    │ ──►│ Error Level Analysis ELA, │ ──►│ Roboflow Dataset Training,│
+│ Passport MRZ, Driving Lic.│    │ Noise & EXIF Splicing     │    │ Multi-Modal Score Fusion  │
+└───────────────────────────┘    └───────────────────────────┘    └───────────────────────────┘
+```
+
+Interested in building adapters for new state registries, improving forensic heatmaps, or refining our ML classifiers? Check out our **[Contribution Guide](CONTRIBUTING.md)** and pick up a task!
 
 ---
 
 ## 📜 License & Copyright
 © 2026 **TrustScan AI**. All Rights Reserved.  
-*Designed & engineered by Shubham Dubey.* 🛡️💎✨
+*Designed & engineered with ❤️ by Shubham Dubey.* 🛡️💎✨
