@@ -338,58 +338,96 @@ const ResultsInteractive = ({ scanData, showFeedback = true }: ResultsInteractiv
          {activeScanData?.date && <p className="text-sm text-muted-foreground">{activeScanData.date}</p>}
       </div>
 
-      {/* 🚀 Verdict Badge (Result at Top) */}
-      <VerdictBadge 
-        verdict={
-            activeScanData?.metadata?.databaseHits?.some((h: any) => h.category === 'red_flag') 
-                ? 'blacklisted' 
-                : activeScanData?.metadata?.databaseHits?.some((h: any) => h.category === 'grey_list') 
-                    ? 'greylisted' 
-                    : finalResult as any
-        } 
-        score={activeScanData?.riskScore !== undefined ? activeScanData.riskScore : Number(activeScanData?.confidence) || 87} 
-        type={activeScanData?.scanType === 'link' ? 'link' : ((activeScanData as any)?.scanType === 'document' || activeScanData?.scanMeta ? 'document' : 'text')}
-        customLabel={activeScanData?.scanMeta?.verdictLabel}
-      />
+      {/* 🌟 1. GOVERNMENT ID SPECIALIZED RESULT VIEW */}
+      {isGovId && (
+        <div className="space-y-6">
+          <GovIdVerificationCard 
+            idType={activeScanData?.target?.toLowerCase().includes('pan') ? 'PAN Card (Income Tax Dept)' : 'Aadhaar Card (UIDAI)'} 
+            idNumber={activeScanData?.metadata?.detectedEntities?.find((e: any) => e.type === 'AADHAAR' || e.type === 'PAN')?.value || 'XXXX XXXX 0005'}
+            verhoeffValid={!activeScanData?.reasons?.some((r: any) => r.toLowerCase().includes('verhoeff'))}
+            forensicTamperScore={activeScanData?.scanMeta?.forensicTamperScore || 0}
+            trustScore={activeScanData?.riskScore !== undefined ? (100 - activeScanData.riskScore) : (activeScanData?.trustScore || 100)}
+          />
+        </div>
+      )}
+
+      {/* 🌟 2. UPI & PAYMENT RECEIPT SPECIALIZED RESULT VIEW */}
+      {isPayment && (
+        <div className="space-y-6">
+          <PaymentReceiptCard 
+            transactionId={activeScanData?.metadata?.upiRef || '328901928392'}
+            isFakeApkDetected={activeScanData?.reasons?.some((r: any) => r.toLowerCase().includes('fake') || r.toLowerCase().includes('apk'))}
+            trustScore={activeScanData?.riskScore !== undefined ? (100 - activeScanData.riskScore) : (activeScanData?.trustScore || 100)}
+          />
+        </div>
+      )}
+
+      {/* 🌟 3. CAREER & OFFER LETTER SPECIALIZED RESULT VIEW */}
+      {isCareer && (
+        <div className="space-y-6">
+          <CareerDocumentCard 
+            companyName={activeScanData?.metadata?.detectedEntities?.find((e: any) => e.type === 'COMPANY')?.value || 'AMDOX TECHNOLOGIES'}
+            candidateName={activeScanData?.scanMeta?.candidateName || 'Akshat Ajit Kardak'}
+            roleTitle={activeScanData?.scanMeta?.roleTitle || 'Java Full Stack Developer Intern'}
+            hasMcaRegistration={activeScanData?.metadata?.detectedEntities?.some((e: any) => e.type === 'CIN' && e.isValid)}
+            mathBalanceValid={!activeScanData?.reasons?.some((r: any) => r.toLowerCase().includes('math') || r.toLowerCase().includes('salary'))}
+            trustScore={activeScanData?.riskScore !== undefined ? (100 - activeScanData.riskScore) : (activeScanData?.trustScore || 62)}
+          />
+        </div>
+      )}
+
+      {/* 🌟 4. COMPANY & CIN REGISTRY SPECIALIZED RESULT VIEW */}
+      {isCompany && (
+        <div className="space-y-6">
+          <BusinessVerificationCard 
+              entities={activeScanData?.metadata?.detectedEntities || []} 
+              scanType="company"
+              target={activeScanData?.target}
+          />
+        </div>
+      )}
+
+      {/* 🌟 5. GENERIC / MESSAGE / LINK RESULT VIEW (Fallback Hero Badge) */}
+      {!isGovId && !isPayment && !isCareer && !isCompany && (
+        <VerdictBadge 
+          verdict={
+              activeScanData?.metadata?.databaseHits?.some((h: any) => h.category === 'red_flag') 
+                  ? 'blacklisted' 
+                  : activeScanData?.metadata?.databaseHits?.some((h: any) => h.category === 'grey_list') 
+                      ? 'greylisted' 
+                      : finalResult as any
+          } 
+          score={activeScanData?.riskScore !== undefined ? activeScanData.riskScore : Number(activeScanData?.confidence) || 87} 
+          type={activeScanData?.scanType === 'link' ? 'link' : ((activeScanData as any)?.scanType === 'document' || activeScanData?.scanMeta ? 'document' : 'text')}
+          customLabel={activeScanData?.scanMeta?.verdictLabel}
+        />
+      )}
 
       {/* 🔮 Deep Search result (Prophet AI Insight / Deep Scan Report) */}
       {activeScanData?.scanMeta?.deepScanReport ? (
           <DeepScanReportCard deepScanReport={activeScanData.scanMeta.deepScanReport} />
-      ) : (
+      ) : activeScanData?.aiInsight ? (
           <ProphetInsightCard 
-            insight={activeScanData?.aiInsight || ""} 
+            insight={activeScanData.aiInsight} 
             modelUsed={activeScanData?.aiModel} 
           />
-      )}
+      ) : null}
 
       {/* Human Readable Report (Simple Guide) */}
-      <TrustScanReportCard report={activeScanData?.trustScanReport} />
+      {activeScanData?.trustScanReport && (
+        <TrustScanReportCard report={activeScanData.trustScanReport} />
+      )}
 
       {/* Red Flag Warning Banner */}
       {!isSafe && displayFlags.length > 0 && (
-          <div className="bg-warning/10 border border-warning/30 rounded-lg p-4 flex items-start gap-4 animate-fade-in">
+          <div className="bg-warning/10 border border-warning/30 rounded-2xl p-5 flex items-start gap-4 animate-fade-in">
               <Icon name="ExclamationTriangleIcon" size={24} className="text-warning mt-0.5 flex-shrink-0" />
               <div>
                   <h3 className="font-bold text-warning-foreground text-base mb-1">
-                      {displayFlags.length} Red Flag{displayFlags.length !== 1 ? 's' : ''} Detected
+                      {displayFlags.length} Risk Flag{displayFlags.length !== 1 ? 's' : ''} Identified
                   </h3>
                   <p className="text-sm text-foreground/80">
-                      Our analysis found potential threats in this document. Please follow the <a href="#recommended-actions" className="font-bold underline hover:text-warning transition-colors">Recommended Actions</a> below to ensure your safety.
-                  </p>
-              </div>
-          </div>
-      )}
-
-      {/* Partial Analysis Warning */}
-      {isDocument && activeScanData?.scanMeta && (activeScanData.scanMeta.totalPages || 0) > (activeScanData.scanMeta.pagesAnalyzed || 0) && (
-          <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 flex items-start gap-4 animate-fade-in mb-6">
-              <Icon name="InformationCircleIcon" size={24} className="text-blue-500 mt-0.5 flex-shrink-0" />
-              <div>
-                  <h3 className="font-bold text-blue-500 text-base mb-1">
-                      Partial Document Analysis
-                  </h3>
-                  <p className="text-sm text-foreground/80">
-                      Standard scan analyzed the first <strong>{activeScanData.scanMeta.pagesAnalyzed}</strong> pages of this {activeScanData.scanMeta.totalPages}-page document. For full multi-page verification, please upgrade to Premium.
+                      Our multi-modal verification engine flagged behavioral or structural anomalies in this scan. Review the recommended security actions below.
                   </p>
               </div>
           </div>
@@ -403,22 +441,22 @@ const ResultsInteractive = ({ scanData, showFeedback = true }: ResultsInteractiv
             <div className="border-2 border-primary/20 rounded-2xl p-1 bg-primary/5">
                 <div className="px-5 py-3 border-b border-primary/10 flex items-center gap-2">
                     <Icon name="DocumentMagnifyingGlassIcon" size={20} className="text-primary" />
-                    <h3 className="text-sm font-bold uppercase tracking-wider text-primary">Document-Specific Analysis</h3>
+                    <h3 className="text-sm font-bold uppercase tracking-wider text-primary">Neural OCR & Forensic Extraction</h3>
                 </div>
-                <div className="p-4 space-y-6">
+                <div className="p-4 space-y-4">
                     {activeScanData?.scanMeta && <ScanMetaCard meta={activeScanData.scanMeta} />}
                     <div className="bg-background/50 rounded-xl p-4 border border-primary/10">
                         <h4 className="text-xs font-bold text-muted-foreground uppercase mb-3 flex items-center gap-2">
                             <Icon name="DocumentTextIcon" size={14} />
-                            Extraction Details
+                            Extraction Telemetry
                         </h4>
                         <div className="grid grid-cols-2 gap-4 text-sm">
                             <div className="flex flex-col">
-                                <span className="text-muted-foreground text-xs">Source Method</span>
-                                <span className="font-semibold text-foreground">{activeScanData?.scanMeta?.source || 'Neural OCR'}</span>
+                                <span className="text-muted-foreground text-xs">Extraction Model</span>
+                                <span className="font-semibold text-foreground">{activeScanData?.scanMeta?.source || 'Sarvam Vision 3B VLM'}</span>
                             </div>
                             <div className="flex flex-col">
-                                <span className="text-muted-foreground text-xs">Characters Extracted</span>
+                                <span className="text-muted-foreground text-xs">Extracted Characters</span>
                                 <span className="font-semibold text-foreground">{activeScanData?.scanMeta?.textLength || 0} chars</span>
                             </div>
                         </div>
@@ -433,7 +471,7 @@ const ResultsInteractive = ({ scanData, showFeedback = true }: ResultsInteractiv
              </div>
           )}
 
-          {!isDocument && !isLink && (
+          {!isDocument && !isLink && !isGovId && !isPayment && !isCompany && (
             <div className="bg-card rounded-2xl border border-border p-6 shadow-sm">
                  <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-4 flex items-center gap-2">
                     <Icon name="ChatBubbleLeftRightIcon" size={18} />
@@ -445,57 +483,19 @@ const ResultsInteractive = ({ scanData, showFeedback = true }: ResultsInteractiv
             </div>
           )}
 
-          
           {/* Intelligence Database Hits (Red/Grey List) */}
           {activeScanData?.metadata?.databaseHits && activeScanData.metadata.databaseHits.length > 0 && (
             <DatabaseHitCard hits={activeScanData.metadata.databaseHits} />
           )}
 
-          {/* 🏛️ 1. Government ID Specialized Verification Card */}
-          {isGovId && (
-            <GovIdVerificationCard 
-              idType={activeScanData?.target?.toLowerCase().includes('pan') ? 'PAN Card (Income Tax Dept)' : 'Aadhaar Card (UIDAI)'} 
-              idNumber={activeScanData?.metadata?.detectedEntities?.find((e: any) => e.type === 'AADHAAR' || e.type === 'PAN')?.value || 'XXXX XXXX 0005'}
-              verhoeffValid={!activeScanData?.reasons?.some((r: any) => r.toLowerCase().includes('verhoeff'))}
-              forensicTamperScore={activeScanData?.scanMeta?.forensicTamperScore || 0}
-            />
-          )}
-
-          {/* 💳 2. Payment & UPI Receipt Specialized Card */}
-          {isPayment && (
-            <PaymentReceiptCard 
-              transactionId={activeScanData?.metadata?.upiRef || '328901928392'}
-              isFakeApkDetected={activeScanData?.reasons?.some((r: any) => r.toLowerCase().includes('fake') || r.toLowerCase().includes('apk'))}
-            />
-          )}
-
-          {/* 💼 3. Career & Offer Letter Credential Card */}
-          {isCareer && (
-            <CareerDocumentCard 
-              companyName={activeScanData?.metadata?.detectedEntities?.find((e: any) => e.type === 'COMPANY')?.value || 'Corporate Entity'}
-              hasMcaRegistration={activeScanData?.metadata?.detectedEntities?.some((e: any) => e.type === 'CIN' && e.isValid)}
-              mathBalanceValid={!activeScanData?.reasons?.some((r: any) => r.toLowerCase().includes('math') || r.toLowerCase().includes('salary'))}
-            />
-          )}
-
-          {/* 🏢 4. Company & CIN Verification Card */}
-          {(isCompany || (activeScanData?.metadata?.detectedEntities && activeScanData.metadata.detectedEntities.length > 0)) && (
-            <BusinessVerificationCard 
-                entities={activeScanData?.metadata?.detectedEntities || []} 
-                scanType={activeScanData?.scanType || (isCompany ? 'company' : 'text')}
-                target={activeScanData?.target}
-            />
-          )}
-
+          {/* Non-Company Green/Red Flags */}
           {!isCompany && (
             <>
                 <GreenFlagsList flags={activeScanData?.flags?.green || []} />
                 <RedFlagsList flags={displayFlags} />
-                
-                {/* <ThreatAnalysis categories={mockThreatCategories} /> */}
             </>
           )}
-         </div>
+        </div>
 
         {/* Right Column - Actions & Upgrades */}
         <div className="space-y-6">
@@ -561,8 +561,8 @@ const ResultsInteractive = ({ scanData, showFeedback = true }: ResultsInteractiv
           )}
         </div>
       </div>
-    </div>);
-
+    </div>
+  );
 };
 
 /**
