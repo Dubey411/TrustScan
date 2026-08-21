@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TrustScan AI — Master Architecture & Operations Guide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card-bg: #111827;
+      --card-border: #1f2937;
+      --text: #f3f4f6;
+      --text-muted: #9ca3af;
+      --primary: #3b82f6;
+      --primary-light: #60a5fa;
+      --accent: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --code-bg: #1e293b;
+    }
+    @media print {
+      body {
+        background: #ffffff !important;
+        color: #111827 !important;
+      }
+      .no-print { display: none !important; }
+      .card {
+        background: #ffffff !important;
+        border: 1px solid #e5e7eb !important;
+        color: #111827 !important;
+        box-shadow: none !important;
+        page-break-inside: avoid;
+      }
+      pre, code {
+        background: #f3f4f6 !important;
+        color: #111827 !important;
+      }
+      .gradient-text {
+        background: none !important;
+        color: #1d4ed8 !important;
+        -webkit-text-fill-color: initial !important;
+      }
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      padding: 40px 20px;
+    }
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 50px;
+      padding-bottom: 30px;
+      border-bottom: 1px solid var(--card-border);
+    }
+    .badge {
+      display: inline-block;
+      padding: 6px 14px;
+      background: rgba(59, 130, 246, 0.15);
+      color: var(--primary-light);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 15px;
+    }
+    h1 {
+      font-size: 36px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 12px;
+    }
+    .gradient-text {
+      background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 50%, #10b981 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .subtitle {
+      font-size: 17px;
+      color: var(--text-muted);
+      max-width: 750px;
+      margin: 0 auto 20px auto;
+    }
+    .actions-bar {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin-top: 25px;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+      border: none;
+    }
+    .btn-primary:hover {
+      background: #2563eb;
+    }
+    .section-title {
+      font-size: 24px;
+      font-weight: 700;
+      margin: 40px 0 20px 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 2px solid rgba(59, 130, 246, 0.3);
+      padding-bottom: 8px;
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+    }
+    h3 {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: var(--primary-light);
+    }
+    p {
+      color: #d1d5db;
+      margin-bottom: 14px;
+    }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 20px;
+    }
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+    }
+    .stat-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      padding: 16px;
+      text-align: center;
+    }
+    .stat-val {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--primary-light);
+    }
+    .stat-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-weight: 600;
+      margin-top: 4px;
+    }
+    pre {
+      background: var(--code-bg);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      padding: 16px;
+      overflow-x: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      color: #e2e8f0;
+      margin-bottom: 16px;
+      line-height: 1.5;
+    }
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 13px;
+      color: #93c5fd;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+      margin-bottom: 20px;
+      font-size: 14px;
+    }
+    th, td {
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--card-border);
+    }
+    th {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--primary-light);
+      font-weight: 600;
+    }
+    .formula-box {
+      background: rgba(59, 130, 246, 0.08);
+      border-left: 4px solid var(--primary);
+      padding: 14px 18px;
+      border-radius: 0 8px 8px 0;
+      margin: 16px 0;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+    }
+    ul {
+      margin-left: 20px;
+      margin-bottom: 15px;
+      color: #d1d5db;
+    }
+    li {
+      margin-bottom: 6px;
+    }
+    .footer {
+      text-align: center;
+      margin-top: 60px;
+      padding-top: 25px;
+      border-top: 1px solid var(--card-border);
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="badge">Production Architecture Reference v2.0</div>
+    <h1><span class="gradient-text">TrustScan AI</span> Master Architecture</h1>
+    <p class="subtitle">
+      A comprehensive strategic and engineering guide covering all business and technical aspects of India's multi-modal fraud intelligence & document verification engine.
+    </p>
+    <div class="actions-bar no-print">
+      <button class="btn btn-primary" onclick="window.print()">
+        🖨️ Download / Print as PDF
+      </button>
+    </div>
+  </div>
+
+  <!-- PART 1: STRATEGIC & BUSINESS ARCHITECTURE -->
+  <h2 class="section-title">🌐 Part 1: Strategic & Non-Technical Aspects</h2>
+
+  <div class="grid-2">
+    <div class="card">
+      <h3>🎯 1. The Indian Fraud Landscape</h3>
+      <p>TrustScan AI was engineered specifically to address the massive digital forgery and financial fraud epidemic in India:</p>
+      <ul>
+        <li><strong>Fake Job & Internship Offers:</strong> Fraudulent agencies issuing fake offer letters demanding upfront training or security deposits.</li>
+        <li><strong>Identity Document Forgery:</strong> Altered Aadhaar & PAN cards utilized for unauthorized KYC and financial fraud.</li>
+        <li><strong>Fake UPI Screen Generators:</strong> Malicious Android APKs generating fake Google Pay, PhonePe, and Paytm receipts.</li>
+        <li><strong>Shell Company Impersonation:</strong> Fictitious companies misrepresenting legal corporate status without MCA/GST registrations.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3>📈 2. Real Production Telemetry</h3>
+      <p>Analysis of <strong>19,339 live user scans</strong> on the production cluster reveals clear market demand:</p>
+      <div class="grid-2" style="margin-top: 15px;">
+        <div class="stat-card">
+          <div class="stat-val">61.0%</div>
+          <div class="stat-label">Messages (11.7k)</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val">37.5%</div>
+          <div class="stat-label">UPI Receipts (7.2k)</div>
+        </div>
+      </div>
+      <p style="font-size: 12px; color: var(--text-muted); margin-top: 12px; text-align: center;">
+        Google Search Ranking: <strong>#5.1 Avg Position</strong> | 8.2k+ Impressions | 7.5% CTR
+      </p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>🏛️ 3. The 4 Specialized Verification Portals</h3>
+    <div class="grid-4" style="margin-top: 15px;">
+      <div class="stat-card" style="text-align: left;">
+        <div style="font-size: 20px; margin-bottom: 4px;">🏢</div>
+        <div style="font-weight: 700; color: #fff; font-size: 14px;">Company & CIN</div>
+        <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">21-digit MCA CIN breakdown & active GSTIN verification.</div>
+      </div>
+      <div class="stat-card" style="text-align: left;">
+        <div style="font-size: 20px; margin-bottom: 4px;">🏛️</div>
+        <div style="font-weight: 700; color: #fff; font-size: 14px;">Government ID</div>
+        <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Aadhaar Verhoeff Dihedral D5 math & PAN entity structure.</div>
+      </div>
+      <div class="stat-card" style="text-align: left;">
+        <div style="font-size: 20px; margin-bottom: 4px;">💼</div>
+        <div style="font-weight: 700; color: #fff; font-size: 14px;">Career Credentials</div>
+        <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">CTC compensation arithmetic audit & HR domain checks.</div>
+      </div>
+      <div class="stat-card" style="text-align: left;">
+        <div style="font-size: 20px; margin-bottom: 4px;">💳</div>
+        <div style="font-weight: 700; color: #fff; font-size: 14px;">UPI & Banking</div>
+        <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">12-digit UTR validation, IFSC lookup & font splicing detection.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PART 2: TECHNICAL & ENGINEERING ARCHITECTURE -->
+  <h2 class="section-title">⚙️ Part 2: Technical & Engineering Architecture</h2>
+
+  <div class="card">
+    <h3>⚡ The 7-Stage Multi-Modal Pipeline</h3>
+    <pre>
+┌───────────────────────────────┐
+│ 1. Multi-Format Ingestion     │ ──► Uploaded PDFs, JPEGs, PNGs rendered at 2.0x scale via PyMuPDF
+└──────────────┬────────────────┘
+               ▼
+┌───────────────────────────────┐
+│ 2. Indic OCR (Sarvam 3B VLM)  │ ──► 23 Indian languages + Markdown table layout preservation
+└──────────────┬────────────────┘
+               ▼
+┌───────────────────────────────┐
+│ 3. Deterministic Checksums    │ ──► Aadhaar Verhoeff D5, PAN Entity Type, GSTIN State Math
+└──────────────┬────────────────┘
+               ├─────────────────────────────────────────┐
+               ▼                                         ▼
+┌───────────────────────────────┐         ┌───────────────────────────────┐
+│ 3.5 Deep Pixel Forensics      │         │ 4. 11-Feature ML Classifier   │
+│ Error Level Analysis (ELA)    │         │ Trained Logistic Regression   │
+└──────────────┬────────────────┘         └──────────────┬────────────────┘
+               └────────────────────┬────────────────────┘
+                                    ▼
+┌─────────────────────────────────────────────────────────┐
+│ 5. Risk-Tiered LLM Routing (Sarvam 30B vs 105B)         │
+└───────────────────────────┬─────────────────────────────┘
+                            ▼
+┌─────────────────────────────────────────────────────────┐
+│ 6. Multi-Modal Score Fusion & Deterministic Override    │
+└───────────────────────────┬─────────────────────────────┘
+                            ▼
+┌─────────────────────────────────────────────────────────┐
+│ 6.5 Authenticated Verification Bridge (MCA / GST / IFSC)│
+└───────────────────────────┬─────────────────────────────┘
+                            ▼
+┌─────────────────────────────────────────────────────────┐
+│ 7. Domain-Specific Interactive Result Dashboards        │
+└─────────────────────────────────────────────────────────┘
+    </pre>
+  </div>
+
+  <div class="card">
+    <h3>📐 Indian Deterministic Mathematical Rules (Zero Hallucination)</h3>
+    
+    <div class="formula-box">
+      <strong>1. Aadhaar Dihedral Group D5 Verhoeff Formula:</strong><br>
+      c = ∑ p(i mod 8, d_i) = 0  (Validated using non-commutative D5 multiplication)
+    </div>
+
+    <div class="formula-box">
+      <strong>2. PAN 10-Character Structural Syntax:</strong><br>
+      [A-Z]{3} + [P/C/H/F/A/T] + [A-Z] + [0-9]{4} + [A-Z]<br>
+      (Character 4 strictly validates individual vs corporate entity)
+    </div>
+
+    <div class="formula-box">
+      <strong>3. MCA 21-Digit Corporate Identity Number (CIN):</strong><br>
+      [L/U] + [5-digit Industry] + [2-char State] + [4-digit Year] + [PTC/PLC] + [6-digit RoC]
+    </div>
+
+    <div class="formula-box">
+      <strong>4. Image Error Level Analysis (ELA) Tamper Formula:</strong><br>
+      Δ_ELA = | I_original - I_recompressed@90% | × 10
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>🗄️ System Specs & Technology Stack</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Subsystem</th>
+          <th>Technologies</th>
+          <th>Engineering Purpose</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Frontend</strong></td>
+          <td>Next.js 16 (Turbopack), React 19, Tailwind CSS</td>
+          <td>Sub-second render, dynamic domain result cards</td>
+        </tr>
+        <tr>
+          <td><strong>Backend API</strong></td>
+          <td>Node.js, Express.js, WebSockets</td>
+          <td>High-throughput non-blocking request orchestration</td>
+        </tr>
+        <tr>
+          <td><strong>AI & Computer Vision</strong></td>
+          <td>Sarvam Vision 3B, Sarvam 30B/105B, OpenCV, PyTorch</td>
+          <td>Indic language OCR, forensics & tiered reasoning</td>
+        </tr>
+        <tr>
+          <td><strong>Databases</strong></td>
+          <td>MongoDB Atlas (Unstructured) + PostgreSQL (Relational)</td>
+          <td>Dual-DB telemetry, OCR cache & user auth storage</td>
+        </tr>
+        <tr>
+          <td><strong>Forensics</strong></td>
+          <td>Python 3.10, Pillow, NumPy, SciPy</td>
+          <td>Pixel variance, noise analysis, EXIF tampering</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3>🔒 Privacy, Zero PII Retention & Compliance</h3>
+    <p>TrustScan enforces strict cryptographic data sanitization:</p>
+    <ul>
+      <li><strong>In-Memory Processing:</strong> Scanned documents are never persisted to disk or permanent databases.</li>
+      <li><strong>Aadhaar Masking:</strong> First 8 digits are masked in UI and logs (<code>XXXX XXXX 1234</code>) in full compliance with UIDAI regulations.</li>
+      <li><strong>Stateless Compute:</strong> Document buffers are garbage-collected immediately after score generation.</li>
+    </ul>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <p>© 2026 <strong>TrustScan AI</strong>. All Rights Reserved. Engineered with ❤️ by Shubham Dubey.</p>
+    <p style="font-size: 11px; margin-top: 4px;">Confidential Architecture & Operations Specification</p>
+  </div>
+
+</div>
+
+</body>
+</html>
