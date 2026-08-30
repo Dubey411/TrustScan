@@ -36,7 +36,7 @@ export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfa
   const { user } = useAuth();
   const [isHydrated, setIsHydrated] = useState(false);
 
-  const [selectedScanType, setSelectedScanType] = useState<string>('company');
+  const [selectedScanType, setSelectedScanType] = useState<string>('document');
   const [textInput, setTextInput] = useState('');
   const [linkInput, setLinkInput] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -70,44 +70,44 @@ export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfa
 
   const scanTypes: ScanType[] = [
     {
-      id: 'company',
-      icon: 'BuildingOffice2Icon',
-      title: 'Verify Company / CIN',
-      description: 'Check 21-digit MCA CIN record and 15-digit GSTIN to verify corporate registration',
-      inputType: 'text',
-      placeholder: 'Enter Company Name, 21-digit MCA CIN (e.g. U72900MH2020PTC123456), or GSTIN...',
-      maxLength: 500,
-      buttonText: 'Verify Company & CIN'
-    },
-    {
       id: 'document',
       icon: 'DocumentCheckIcon',
-      title: 'Offer Letters & Credentials',
-      description: 'Audit employment offer letters, experience certificates, and academic marksheets',
+      title: 'Fake Offer Letter Check',
+      description: 'Detect fake HR emails, forged company seals, CTC math, and fee scams',
       inputType: 'file',
       acceptedFormats: ['.pdf', '.doc', '.docx', '.jpg', '.jpeg', '.png', '.webp'],
       maxSize: 15 * 1024 * 1024,
-      buttonText: 'Scan Document for Tampering'
+      buttonText: 'Scan Offer Letter for Fraud'
     },
     {
-      id: 'gov_id',
-      icon: 'IdentificationIcon',
-      title: 'Government ID Verifier',
-      description: 'Audit Aadhaar (Verhoeff checksum), PAN (Entity structure), and Driving Licenses',
+      id: 'academic',
+      icon: 'AcademicCapIcon',
+      title: 'Degree & Marksheet',
+      description: 'Detect fake universities, altered CGPA, and tampered marks',
       inputType: 'file',
       acceptedFormats: ['.pdf', '.jpg', '.jpeg', '.png', '.webp'],
-      maxSize: 10 * 1024 * 1024,
-      buttonText: 'Verify Government ID'
+      maxSize: 15 * 1024 * 1024,
+      buttonText: 'Verify Degree / Marksheet'
     },
     {
       id: 'payment',
-      icon: 'CreditCardIcon',
-      title: 'UPI & Payment Receipts',
-      description: 'Audit UPI screenshots (GPay, PhonePe, Paytm), bank receipts, and salary slips',
+      icon: 'PhotoIcon',
+      title: 'AI Image & Payment Forensics',
+      description: 'Detect fake UPI receipts, payment APKs, and AI-manipulated images',
       inputType: 'file',
       acceptedFormats: ['.pdf', '.jpg', '.jpeg', '.png', '.webp'],
       maxSize: 10 * 1024 * 1024,
-      buttonText: 'Verify Payment Receipt'
+      buttonText: 'Scan Image / Payment Slip'
+    },
+    {
+      id: 'company',
+      icon: 'BuildingOffice2Icon',
+      title: 'Company & CIN',
+      description: 'Verify MCA corporate records, 21-digit CIN, and active GSTIN',
+      inputType: 'text',
+      placeholder: 'Enter Company Name, 21-digit MCA CIN (e.g. U72900MH2020PTC123456), or GSTIN...',
+      maxLength: 500,
+      buttonText: 'Verify Company'
     },
   ];
 
@@ -219,10 +219,10 @@ export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfa
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-10">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-headline font-bold text-foreground mb-6 leading-tight">
-              Universal AI <span className="text-primary italic">Document & Entity</span> Verifier
+              AI <span className="text-primary italic">Offer Letter & Fraud</span> Scanner
             </h1>
-            <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-              Verify <strong>Company Registrations (CIN/GSTIN)</strong>, audit <strong>Offer Letters & Credentials</strong>, validate <strong>Government IDs (Aadhaar/PAN)</strong>, and scan <strong>UPI Payment Receipts</strong> with 99.2% accuracy.
+            <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+              Check <strong>Fake Offer Letters</strong>, audit <strong>Academic Degrees</strong>, inspect <strong>AI Images & Payment Slips</strong>, and verify <strong>Companies</strong>.
             </p>
             {error && (
               <div className="mt-4 p-3 bg-red-100 border border-red-200 text-red-700 rounded-lg max-w-md mx-auto">
