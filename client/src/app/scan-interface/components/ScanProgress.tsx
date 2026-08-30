@@ -4,6 +4,14 @@ import { useState, useEffect, useRef } from 'react';
 import Icon from '@/components/ui/AppIcon';
 import ScanGame from './ScanGame';
 
+/**
+ * ScanProgress Component
+ * 
+ * Multi-stage pipeline progress indicator for TrustScan scans:
+ * - Real-time terminal log stream simulating pipeline execution stages
+ * - Integrated wait-screen security mini-game (ScanGame) to maximize engagement
+ * - Dynamically adapts execution duration and steps to analysis depth (basic, standard, deep)
+ */
 interface ScanProgressProps {
   isScanning: boolean;
   onComplete: () => void;
