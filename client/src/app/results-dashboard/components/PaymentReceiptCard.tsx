@@ -11,6 +11,8 @@ interface PaymentReceiptProps {
   ifscCode?: string;
   bankName?: string;
   isFakeApkDetected?: boolean;
+  forensicTamperScore?: number;
+  isAiGenerated?: boolean;
   trustScore?: number;
 }
 
@@ -22,30 +24,32 @@ export default function PaymentReceiptCard({
   ifscCode = 'HDFC0000123',
   bankName = 'HDFC Bank Ltd',
   isFakeApkDetected = false,
+  forensicTamperScore = 14,
+  isAiGenerated = false,
   trustScore = 100
 }: PaymentReceiptProps) {
   return (
     <div className="bg-card rounded-3xl border-2 border-emerald-500/20 shadow-2xl overflow-hidden mb-8 transition-all duration-300 hover:border-emerald-500/40">
-      {/* 🌟 Bespoke Payment & UPI Header */}
+      {/* 🌟 Bespoke Payment & AI Image Forensics Header */}
       <div className="bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-blue-500/10 p-6 md:p-8 border-b border-border flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center flex-shrink-0 text-emerald-400 shadow-inner">
-            <Icon name="CreditCardIcon" size={36} variant="solid" />
+            <Icon name="PhotoIcon" size={36} variant="solid" />
           </div>
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="text-[11px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                NPCI Banking & UPI Audit
+                AI Image & Payment Forensics
               </span>
               <span className="text-xs text-muted-foreground font-mono">
-                Real-Time Settlement Spec
+                Error Level Analysis (ELA) Spec
               </span>
             </div>
             <h2 className="font-headline font-black text-2xl md:text-3xl text-foreground">
-              💳 UPI Payment & Banking Transaction Audit
+              💳 AI Image & UPI Payment Forensics
             </h2>
             <p className="text-sm text-muted-foreground mt-0.5">
-              12-digit UTR reference validation, fake APK font integrity & banking IFSC resolver
+              Pixel tampering (ELA), fake payment APK generators, 12-digit UTR validation & banking IFSC resolver
             </p>
           </div>
         </div>
@@ -66,7 +70,7 @@ export default function PaymentReceiptCard({
 
       {/* 📊 Core Inspection Grid */}
       <div className="p-6 md:p-8 space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           
           {/* Card 1: 12-Digit UTR Ref */}
           <div className="bg-muted/30 hover:bg-muted/40 transition-colors rounded-2xl p-5 border border-border flex flex-col justify-between">
@@ -80,7 +84,7 @@ export default function PaymentReceiptCard({
                   NPCI FORMAT
                 </span>
               </div>
-              <div className="text-xl font-mono font-black text-foreground tracking-wider">
+              <div className="text-xl font-mono font-black text-foreground tracking-wider truncate">
                 {transactionId}
               </div>
               <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
@@ -89,7 +93,7 @@ export default function PaymentReceiptCard({
             </div>
             <div className="mt-4 pt-3 border-t border-border/50 text-[11px] font-mono text-emerald-400 flex items-center gap-1">
               <Icon name="CheckCircleIcon" size={14} />
-              Valid 12-Digit Numerical Syntax
+              Valid Numerical Syntax
             </div>
           </div>
 
@@ -106,17 +110,17 @@ export default function PaymentReceiptCard({
                 </span>
               </div>
               <div className="text-base font-bold text-foreground">
-                {!isFakeApkDetected ? 'Consistent Typography & Baseline' : 'Fake Payment Generator Trace'}
+                {!isFakeApkDetected ? 'Consistent Typography' : 'Fake APK Trace'}
               </div>
               <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
                 {!isFakeApkDetected 
                   ? `Rendered using original ${appDetected} UI styles without font weight or kerning anomalies.` 
-                  : 'Amount font size does not match application template standard. Likely generated via fake APK.'}
+                  : 'Amount font size does not match application template standard. Likely fake APK.'}
               </p>
             </div>
             <div className="mt-4 pt-3 border-t border-border/50 text-[11px] font-mono text-emerald-400 flex items-center gap-1">
               <Icon name="DevicePhoneMobileIcon" size={14} />
-              App Interface: {appDetected}
+              App UI: {appDetected}
             </div>
           </div>
 
@@ -132,7 +136,7 @@ export default function PaymentReceiptCard({
                   RBI DIRECTORY
                 </span>
               </div>
-              <div className="text-base font-bold text-foreground">
+              <div className="text-base font-bold text-foreground truncate">
                 {bankName}
               </div>
               <p className="text-xs font-mono text-muted-foreground mt-2 leading-relaxed">
@@ -144,6 +148,34 @@ export default function PaymentReceiptCard({
               Verified Banking Institution
             </div>
           </div>
+
+          {/* Card 4: AI Image & ELA Pixel Forensics */}
+          <div className="bg-muted/30 hover:bg-muted/40 transition-colors rounded-2xl p-5 border border-border flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <Icon name="PhotoIcon" size={16} className="text-purple-400" />
+                  AI Image & ELA Forensics
+                </span>
+                <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${forensicTamperScore <= 35 ? 'bg-success/10 text-success border border-success/20' : 'bg-destructive/10 text-destructive border border-destructive/20'}`}>
+                  {forensicTamperScore <= 35 ? 'CLEAN PIXELS' : 'TAMPERED'}
+                </span>
+              </div>
+              <div className={`text-xl font-mono font-black ${forensicTamperScore > 35 ? 'text-destructive' : 'text-foreground'}`}>
+                {forensicTamperScore}% Variance
+              </div>
+              <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
+                {forensicTamperScore > 35 
+                  ? 'High JPEG error level variance detected. Localized editing or spliced text suspected.' 
+                  : 'Uniform pixel compression levels. No signs of Photoshop, Canva, or splicing.'}
+              </p>
+            </div>
+            <div className="mt-4 pt-3 border-t border-border/50 text-[11px] font-mono text-purple-400 flex items-center gap-1">
+              <Icon name="SparklesIcon" size={14} />
+              Error Level Analysis (ELA) Passed
+            </div>
+          </div>
+
         </div>
 
         {/* 💳 Payment Details Summary Bar */}
