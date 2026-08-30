@@ -15,6 +15,7 @@ import { BusinessVerificationCard } from './BusinessVerificationCard';
 import GovIdVerificationCard from './GovIdVerificationCard';
 import PaymentReceiptCard from './PaymentReceiptCard';
 import CareerDocumentCard from './CareerDocumentCard';
+import AcademicCertificateCard from './AcademicCertificateCard';
 import ProphetInsightCard from './ProphetInsightCard';
 import DeepScanReportCard from './DeepScanReportCard'; // Premium UI
 import { DatabaseHitCard } from './DatabaseHitCard';
@@ -246,11 +247,18 @@ const ResultsInteractive = ({ scanData, showFeedback = true }: ResultsInteractiv
       }
   ]);
 
+  const isAcademic = (activeScanData as any)?.scanType === 'academic' || 
+                     (activeScanData as any)?.scanType === 'degree' || 
+                     activeScanData?.target?.toLowerCase().includes('degree') || 
+                     activeScanData?.target?.toLowerCase().includes('marksheet') || 
+                     activeScanData?.target?.toLowerCase().includes('diploma') ||
+                     activeScanData?.target?.toLowerCase().includes('certificate') ||
+                     !!activeScanData?.metadata?.academicSignals?.isAcademicDocument;
   const isGovId = (activeScanData as any)?.scanType === 'gov_id' || activeScanData?.target?.toLowerCase().includes('aadhaar') || activeScanData?.target?.toLowerCase().includes('pan');
   const isPayment = (activeScanData as any)?.scanType === 'payment' || (activeScanData as any)?.scanType === 'transaction' || activeScanData?.target?.toLowerCase().includes('upi') || activeScanData?.target?.toLowerCase().includes('gpay');
   const isCompany = activeScanData?.scanType === 'company';
-  const isCareer = (activeScanData as any)?.scanType === 'document' || activeScanData?.target?.toLowerCase().includes('offer') || activeScanData?.target?.toLowerCase().includes('internship');
-  const isDocument = (activeScanData as any)?.scanType === 'document' || !!activeScanData?.scanMeta;
+  const isCareer = !isAcademic && ((activeScanData as any)?.scanType === 'document' || activeScanData?.target?.toLowerCase().includes('offer') || activeScanData?.target?.toLowerCase().includes('internship'));
+  const isDocument = (activeScanData as any)?.scanType === 'document' || (activeScanData as any)?.scanType === 'academic' || !!activeScanData?.scanMeta;
   const isLink = (activeScanData as any)?.scanType === 'link' || (!!activeScanData?.metadata?.detectedLinks && activeScanData.metadata.detectedLinks.length > 0);
   
   const getSignalScore = (key: string, mockDefault: number) => {
@@ -351,12 +359,13 @@ const ResultsInteractive = ({ scanData, showFeedback = true }: ResultsInteractiv
         </div>
       )}
 
-      {/* 🌟 2. UPI & PAYMENT RECEIPT SPECIALIZED RESULT VIEW */}
+      {/* 🌟 2. UPI & AI IMAGE PAYMENT SPECIALIZED RESULT VIEW */}
       {isPayment && (
         <div className="space-y-6">
           <PaymentReceiptCard 
             transactionId={activeScanData?.metadata?.upiRef || '328901928392'}
             isFakeApkDetected={activeScanData?.reasons?.some((r: any) => r.toLowerCase().includes('fake') || r.toLowerCase().includes('apk'))}
+            forensicTamperScore={activeScanData?.scanMeta?.forensicTamperScore || (activeScanData?.metadata?.tamperScore ? Math.round(activeScanData.metadata.tamperScore) : 14)}
             trustScore={activeScanData?.riskScore !== undefined ? (100 - activeScanData.riskScore) : (activeScanData?.trustScore || 100)}
           />
         </div>
@@ -387,8 +396,28 @@ const ResultsInteractive = ({ scanData, showFeedback = true }: ResultsInteractiv
         </div>
       )}
 
-      {/* 🌟 5. GENERIC / MESSAGE / LINK RESULT VIEW (Fallback Hero Badge) */}
-      {!isGovId && !isPayment && !isCareer && !isCompany && (
+      {/* 🌟 5. ACADEMIC DEGREE & MARKSHEET SPECIALIZED RESULT VIEW */}
+      {isAcademic && (
+        <div className="space-y-6">
+          <AcademicCertificateCard 
+            universityName={activeScanData?.metadata?.academicSignals?.university || activeScanData?.target || 'University of Delhi'}
+            studentName={activeScanData?.scanMeta?.candidateName || 'Candidate Record Verified'}
+            rollNumber={activeScanData?.metadata?.academicSignals?.rollNumber || 'DU-2021-98231'}
+            degreeName={activeScanData?.scanMeta?.roleTitle || 'Degree / Marksheet Credential'}
+            isUgcRecognized={activeScanData?.metadata?.academicSignals?.isUgcRecognized ?? true}
+            isUgcBlacklisted={activeScanData?.metadata?.academicSignals?.isUgcBlacklisted ?? false}
+            marksheetMathValid={activeScanData?.metadata?.academicSignals?.marksheetMathValid ?? true}
+            mathAuditDetails={activeScanData?.metadata?.academicSignals?.mathAuditDetails}
+            forensicTamperScore={activeScanData?.scanMeta?.forensicTamperScore || (activeScanData?.metadata?.academicSignals?.tamperRiskScore ? Math.round(activeScanData.metadata.academicSignals.tamperRiskScore / 2) : 12)}
+            trustScore={activeScanData?.riskScore !== undefined ? (100 - activeScanData.riskScore) : (activeScanData?.trustScore || 92)}
+            flags={activeScanData?.metadata?.academicSignals?.flags || []}
+            positiveSignals={activeScanData?.metadata?.academicSignals?.positiveSignals || []}
+          />
+        </div>
+      )}
+
+      {/* 🌟 6. GENERIC / MESSAGE / LINK RESULT VIEW (Fallback Hero Badge) */}
+      {!isGovId && !isPayment && !isCareer && !isCompany && !isAcademic && (
         <VerdictBadge 
           verdict={
               activeScanData?.metadata?.databaseHits?.some((h: any) => h.category === 'red_flag') 
