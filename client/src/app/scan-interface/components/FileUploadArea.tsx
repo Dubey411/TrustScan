@@ -3,6 +3,14 @@
 import { useState, useRef } from 'react';
 import Icon from '@/components/ui/AppIcon';
 
+/**
+ * FileUploadArea Component
+ * 
+ * Accessible drag-and-drop file upload target:
+ * - Validates file extension against allowed format whitelist
+ * - Enforces client-side size boundaries (up to 15MB)
+ * - Displays active file details, size formatting, and instant clear trigger
+ */
 interface FileUploadAreaProps {
   onFileSelect: (file: File | null) => void;
   acceptedFormats: string[];
