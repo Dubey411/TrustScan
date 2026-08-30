@@ -3,6 +3,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import Icon from '@/components/ui/AppIcon';
 
+/**
+ * ScanGame Component
+ * 
+ * Interactive cyber defense mini-game played during scan wait times:
+ * - 4x2 interactive grid where users click to squash emerging security threats
+ * - Dynamic combo counter and score tracking to boost user retention during deep audits
+ */
 export default function ScanGame() {
   const [score, setScore] = useState(0);
   const [grid, setGrid] = useState<number[]>(new Array(8).fill(0)); // 8 slots (4x2)
