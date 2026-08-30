@@ -3,6 +3,14 @@
 import { useState } from 'react';
 import Icon from '@/components/ui/AppIcon';
 
+/**
+ * LinkInputArea Component
+ * 
+ * URL inspection input component:
+ * - Real-time client-side URL protocol validation (http/https)
+ * - Auto-prefixing and malformed URI warning indicator
+ * - Keyboard shortcut triggers for immediate scanning
+ */
 interface LinkInputAreaProps {
   value: string;
   onChange: (value: string) => void;
