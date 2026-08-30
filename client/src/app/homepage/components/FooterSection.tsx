@@ -4,6 +4,14 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Icon from '@/components/ui/AppIcon'; // ✅ alias FIX
 
+/**
+ * FooterSection Component
+ * 
+ * Global footer navigation and compliance footer:
+ * - Direct links to specialized verification engines (Job Offer, Degree, Company, Payment)
+ * - Legal, privacy, and terms compliance documentation
+ * - Dynamic hydration-safe copyright year rendering
+ */
 const FooterSection = () => {
   const [isHydrated, setIsHydrated] = useState(false);
   const [currentYear, setCurrentYear] = useState(2026);
