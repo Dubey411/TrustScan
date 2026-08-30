@@ -4,31 +4,31 @@ import Link from 'next/link';
 const ScanTypesSection = () => {
   const scanTypes = [
     {
-      icon: 'IdentificationIcon',
-      title: 'Government ID Verification',
-      description: 'Audit official Government identifiers including Aadhaar Verhoeff checksums, PAN format & entity status, Driving License, and Passport MRZ logic.',
-      features: ['Aadhaar Verhoeff checksum validation', 'PAN entity & structure check (Individual/Company)', 'Driving License format mapping', 'Masked Aadhaar compliance check'],
+      icon: 'AcademicCapIcon',
+      title: 'Degree & Marksheet Audit',
+      description: 'Audit university degrees, semester marksheets, and diplomas for fake institutions, altered CGPA, and font tampering.',
+      features: ['UGC recognized vs fake university check', 'CGPA & marksheet math validation', 'Roll / PRN format pattern check', 'Pixel-level ELA tampering detection'],
       color: 'primary',
     },
     {
       icon: 'BuildingOffice2Icon',
-      title: 'Company & Business Registration',
-      description: 'Verify corporate legitimacy using official MCA Corporate Identity Numbers (CIN), GSTIN 15-digit state mappings, and Business Invoices.',
-      features: ['CIN 21-digit MCA structure audit', 'GSTIN state & checksum validation', 'Business invoice tax calculations', 'Active registration status verification'],
+      title: 'Company & CIN Verification',
+      description: 'Verify corporate legitimacy using official MCA Corporate Identity Numbers (CIN), 15-digit GSTIN, and active company filings.',
+      features: ['CIN 21-digit MCA structure audit', 'GSTIN state & checksum validation', 'Active registration status check', 'Official MCA corporate registry lookup'],
       color: 'secondary',
     },
     {
       icon: 'DocumentCheckIcon',
-      title: 'Career & Academic Credentials',
-      description: 'Audit employment offer letters, experience certificates, and academic marksheets for digital edits, font tampering, and domain validity.',
-      features: ['AI digital edit & Photoshop trace detection', 'Company domain & address verification', 'Salary/stipend range benchmark check', 'Font consistency & alignment audit'],
+      title: 'Offer Letter & CTC Audit',
+      description: 'Audit employment offer letters and experience certificates for forged letterheads, salary math, and fake HR domains.',
+      features: ['Salary/stipend range benchmark check', 'HR email domain & address verification', 'Font consistency & alignment audit', 'AI digital edit & Photoshop trace detection'],
       color: 'accent',
     },
     {
       icon: 'CreditCardIcon',
-      title: 'Financial & Bank Statements',
-      description: 'Perform mathematical & structural integrity audits on salary slips, bank statements, UPI payment receipts, and billing invoices.',
-      features: ['Net vs Gross pay balance audit', 'Tax deduction & TDS verification', 'Bank statement alignment check', 'UPI payment receipt fraud detection'],
+      title: 'UPI & Payment Receipts',
+      description: 'Detect fake payment generator APKs, invalid 12-digit UTR numbers, and manipulated bank screenshots.',
+      features: ['Fake Paytm / PhonePe / GPay APK detection', '12-digit NPCI UTR reference audit', 'Timestamp & font alignment inspection', 'Bank statement & salary slip check'],
       color: 'success-green',
     },
   ];
@@ -38,10 +38,10 @@ const ScanTypesSection = () => {
       <div className="container mx-auto px-4">
         <div className="text-center max-w-3xl mx-auto mb-16">
           <h2 className="text-3xl lg:text-4xl font-headline font-bold text-foreground mb-4">
-            Universal AI Verification Engine
+            AI Fraud & Credential Verification
           </h2>
           <p className="text-lg text-muted-foreground">
-            Multi-modal verification for Government IDs, Corporate Records, Employment Credentials, and Invoices
+            Multi-modal verification for Academic Degrees, Corporate Records, Employment Offers, and UPI Payments
           </p>
         </div>
 
