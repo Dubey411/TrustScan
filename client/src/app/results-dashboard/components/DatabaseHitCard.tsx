@@ -2,6 +2,13 @@
 import React from 'react';
 import Icon from '@/components/ui/AppIcon';
 
+/**
+ * DatabaseHitCard Component
+ * 
+ * Displays intelligence matches against known fraud registries:
+ * - Red Flag: Confirmed fraud operations and fake recruitment networks
+ * - Grey List: Emerging entities with reported behavioral anomalies
+ */
 interface DatabaseHit {
   name: string;
   category: 'red_flag' | 'grey_list';
