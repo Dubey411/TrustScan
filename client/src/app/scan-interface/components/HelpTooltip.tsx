@@ -3,6 +3,13 @@
 import { useState } from 'react';
 import Icon from '@/components/ui/AppIcon';
 
+/**
+ * HelpTooltip Component
+ * 
+ * Contextual popover tooltip for form inputs:
+ * - Position-aware arrow alignment (top, bottom, left, right)
+ * - Accessible hover and focus event handling for screen readers
+ */
 interface HelpTooltipProps {
   content: string;
   position?: 'top' | 'bottom' | 'left' | 'right';
