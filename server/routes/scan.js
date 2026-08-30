@@ -161,7 +161,7 @@ router.post("/scan", upload.single('file'), async (req, res) => {
 
 
     // 2. Run Unified India Fraud Confidence Engine (Intelligence Layering + LLM)
-    const result = await runRules(content, externalSignals, trustSignals, senderId, analysisLayer, type);
+    const result = await runRules(content, externalSignals, trustSignals, senderId, analysisLayer, originalType || type);
 
     let finalRisk = result.riskScore || 0;
     
@@ -316,6 +316,16 @@ router.post("/scan", upload.single('file'), async (req, res) => {
         scanMeta.verdictLabel = "⚠️ Suspicious Content";
     }
 
+    if (result.metadata?.academicSignals?.isAcademicDocument || originalType === 'academic') {
+        if (result.metadata?.academicSignals?.isUgcBlacklisted) {
+            scanMeta.verdictLabel = "🚫 FAKE / UNACCREDITED DEGREE";
+        } else if (result.metadata?.academicSignals?.isUgcRecognized && finalRisk < 35) {
+            scanMeta.verdictLabel = "✅ Accredited University Credential";
+        } else if (result.metadata?.academicSignals?.flags?.length > 0) {
+            scanMeta.verdictLabel = "⚠️ Suspicious Academic Document";
+        }
+    }
+
     const confidence =
       finalRisk >= 85
         ? "Very High"
@@ -356,9 +366,9 @@ router.post("/scan", upload.single('file'), async (req, res) => {
 
     const scanDataRecord = {
       userId: userId || null,
-      type: ["message", "link", "document", "email", "job", "company"].includes(type)
-        ? type
-        : "message",
+      type: ["message", "link", "document", "email", "job", "company", "academic", "degree", "payment", "gov_id"].includes(originalType || type)
+        ? (originalType || type)
+        : "document",
       content: content.substring(0, 500),
       fileName: req.file ? req.file.originalname : null,
       fileMimeType: req.file ? req.file.mimetype : null,
