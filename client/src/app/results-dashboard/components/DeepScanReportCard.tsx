@@ -3,6 +3,14 @@
 import React, { useState } from 'react';
 import Icon from '@/components/ui/AppIcon';
 
+/**
+ * DeepScanReportCard Component
+ * 
+ * Displays in-depth forensic investigation findings:
+ * - Adversarial AI debate (prosecution vs defense analysis)
+ * - Timeline consistency evaluation and anomaly mapping
+ * - Entity cross-referencing and confidence scoring
+ */
 interface DeepScanReportProps {
   deepScanReport?: {
     crossVerification?: any; // Removed — too expensive
