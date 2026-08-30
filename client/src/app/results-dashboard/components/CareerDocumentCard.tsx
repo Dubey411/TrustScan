@@ -3,6 +3,15 @@
 import React from 'react';
 import Icon from '@/components/ui/AppIcon';
 
+/**
+ * CareerDocumentCard Component
+ * 
+ * Renders employment offer letter audit results:
+ * - CTC compensation breakdown and arithmetic validity
+ * - Company registration match against MCA records
+ * - Official HR email domain verification and anti-spoofing
+ * - Design software metadata and letterhead splicing detection
+ */
 interface CareerDocumentProps {
   companyName?: string;
   candidateName?: string;
