@@ -1,6 +1,14 @@
 import React from 'react';
 import Icon from '@/components/ui/AppIcon';
 
+/**
+ * VerdictBadge Component
+ * 
+ * High-visibility verdict indicator:
+ * - Maps confidence score (0-100) and risk verdict into color-coded gradients
+ * - Context-aware icons and glowing backdrop for immediate citizen clarity
+ * - Supports custom domain overrides (e.g. FAKE DEGREE, VERIFIED CREDENTIAL)
+ */
 interface VerdictBadgeProps {
   verdict: 'safe' | 'risky' | 'scam' | 'fraud' | 'suspicious' | 'action_required' | 'greylisted' | 'blacklisted';
   score: number;
