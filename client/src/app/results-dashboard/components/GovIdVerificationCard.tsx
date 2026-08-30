@@ -3,6 +3,14 @@
 import React from 'react';
 import Icon from '@/components/ui/AppIcon';
 
+/**
+ * GovIdVerificationCard Component
+ * 
+ * Renders Government Identity audit results:
+ * - Aadhaar 12-digit Verhoeff dihedral group D5 checksum validation
+ * - PAN 10-character structure and 4th character entity mapping (P, C, H, F, A, T, B, L, J, G)
+ * - Visual landmark detection for government emblems, QR codes, photo regions, and signatures
+ */
 interface GovIdProps {
   idType?: string;
   idNumber?: string;
