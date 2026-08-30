@@ -3,6 +3,14 @@
 import { useState, useEffect } from 'react';
 import Icon from '@/components/ui/AppIcon';
 
+/**
+ * TextInputArea Component
+ * 
+ * Multi-line textual payload input for suspicious SMS, email, or CIN entries:
+ * - Live dynamic character counter with warning thresholds
+ * - Keyboard shortcut support (Ctrl+Enter / Cmd+Enter to scan)
+ * - Clear button for rapid input resets
+ */
 interface TextInputAreaProps {
   value: string;
   onChange: (value: string) => void;
