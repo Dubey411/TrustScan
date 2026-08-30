@@ -1,6 +1,14 @@
 import React from 'react';
 import Icon from '@/components/ui/AppIcon';
 
+/**
+ * RecommendedActions Component
+ * 
+ * Interactive checklist providing guided next steps for citizens:
+ * - Critical: Immediate incident response (e.g. reporting to 1930 / cybercrime.gov.in)
+ * - Important: Precautionary measures (e.g. blocking sender, contacting bank)
+ * - Recommended: Best practices for verification and digital safety
+ */
 interface Action {
   id: number;
   title: string;
