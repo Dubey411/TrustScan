@@ -29,16 +29,16 @@ const HeroSection = ({ onScanClick }: HeroSectionProps) => {
           <div className="space-y-8">
             <div className="inline-flex items-center space-x-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full">
               <Icon name="ShieldCheckIcon" size={20} variant="solid" className="text-success-green" />
-              <span className="text-sm font-medium">Universal AI Document & Entity Verification Engine</span>
+              <span className="text-sm font-medium">India's Smartest AI Fraud & Credential Engine</span>
             </div>
 
             <h1 className="text-4xl lg:text-6xl font-headline font-bold leading-tight">
-              Verify Government IDs, <br />
-              <span className="text-success-green">Company Docs & Certificates</span> 
+              Verify Degrees, Offers, <br />
+              <span className="text-success-green">Companies & Payments</span> 
             </h1>
 
             <p className="text-lg lg:text-xl text-primary-foreground/90 leading-relaxed">
-              Instantly audit <strong>Aadhaar, PAN, GSTIN, CIN, Offer Letters, Invoices & Bank Statements</strong>. India's smartest AI verification platform for citizens, businesses, and professionals.
+              Instantly audit <strong>Academic Degrees, Offer Letters, Company CIN/GSTIN, and UPI Payments</strong> with deep forensic AI. Protect yourself from fake credentials and fraudulent transactions.
             </p>
 
             {/* Stats */}
