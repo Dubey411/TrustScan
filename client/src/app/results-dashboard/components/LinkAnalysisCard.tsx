@@ -3,6 +3,14 @@
 import React from 'react';
 import Icon from '@/components/ui/AppIcon';
 
+/**
+ * LinkAnalysisCard Component
+ * 
+ * Inspects URLs and embedded links for phishing and spoofing:
+ * - Unshortens redirect chains (Bitly, TinyURL, WhatsApp redirects)
+ * - Domain similarity and lookalike typo-squatting detection
+ * - Live HTTP status code and header inspection
+ */
 interface DetectedLink {
   url: string;
   host: string;
