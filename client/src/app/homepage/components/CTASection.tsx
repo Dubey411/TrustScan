@@ -10,7 +10,7 @@ const CTASection = () => {
             Start Protecting Your Career Today
           </h2>
           <p className="text-xl text-primary-foreground/90 mb-8 leading-relaxed">
-            Join 1 lakh+ students who trust SafeJobIndia to verify job offers and protect themselves from scams. Your first scan is completely free!
+            Join 1 lakh+ users who trust TrustScan to verify credentials, detect fraud, and protect themselves from scams. Your first scan is completely free!
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
