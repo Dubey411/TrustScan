@@ -3,6 +3,14 @@
 import React from 'react';
 import Icon from '@/components/ui/AppIcon';
 
+/**
+ * BusinessVerificationCard Component
+ * 
+ * Renders corporate legitimacy audit for Indian entities:
+ * - 21-Digit Ministry of Corporate Affairs (MCA) Corporate Identity Number (CIN)
+ * - 15-Digit Goods and Services Tax Identification Number (GSTIN)
+ * - Direct deep links to official government verification portals
+ */
 interface BusinessEntity {
   type: string;
   value: string;
