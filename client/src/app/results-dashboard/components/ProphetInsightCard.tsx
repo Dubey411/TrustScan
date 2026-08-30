@@ -1,6 +1,13 @@
 import React from 'react';
 import Icon from '@/components/ui/AppIcon';
 
+/**
+ * ProphetInsightCard Component
+ * 
+ * Displays deep synthesis from TrustScan's Prophet AI intelligence layer:
+ * - Multi-stage forensic reasoning distilled into actionable citizen guidance
+ * - Model cascade transparency indicating analysis depth
+ */
 interface ProphetInsightCardProps {
   insight: string;
   modelUsed?: string;
