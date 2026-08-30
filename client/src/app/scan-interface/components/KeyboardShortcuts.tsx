@@ -3,6 +3,13 @@
 import { useState, useEffect } from 'react';
 import Icon from '@/components/ui/AppIcon';
 
+/**
+ * KeyboardShortcuts Component
+ * 
+ * Accessible keyboard navigation system:
+ * - Hotkeys for rapid portal operation: Ctrl/Cmd+Enter (Scan), Esc (Clear), ? (Help dialog)
+ * - Visual key badge helper modal for pro power users
+ */
 interface KeyboardShortcutsProps {
   onScan: () => void;
   onClear: () => void;
