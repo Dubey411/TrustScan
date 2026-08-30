@@ -1,6 +1,14 @@
 import React, { useState } from 'react';
 import Icon from '@/components/ui/AppIcon';
 
+/**
+ * ScanMetaCard Component
+ * 
+ * Technical forensic metadata inspection panel:
+ * - Document MIME type, character payload, and timestamp
+ * - PDF Producer / Creator software fingerprinting (Canva, Photoshop, LibreOffice)
+ * - Raw payload inspector for expert debugging
+ */
 interface ScanMetaProps {
   meta?: {
     source: string;
