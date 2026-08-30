@@ -2,12 +2,24 @@ import type { Metadata } from 'next';
 import HomepageInteractive from './homepage/components/HomepageInteractive';
 
 export const metadata: Metadata = {
-  title: 'TrustScan AI | Universal Document, Government ID & Entity Verification',
-  description: 'Instantly verify Government IDs (Aadhaar, PAN, DL), Company Registrations (GSTIN, CIN), Offer Letters, Certificates, and Invoices. India\'s trusted AI document verifier.',
+  title: 'TrustScan AI | Fake Offer Letter Check Online & AI Fraud Detection',
+  description: 'Free online tool to check fake offer letters, verify job offers, audit academic degrees, detect manipulated UPI screenshots, and verify MCA CIN companies with deep AI forensics.',
   alternates: {
     canonical: '/',
   },
-  keywords: ['document verification online', 'Aadhaar card verifier', 'PAN card check online', 'GSTIN verification', 'CIN checker India', 'offer letter verifier', 'invoice audit tool', 'fake document detector'],
+  keywords: [
+    'offer letter check online',
+    'fake offer letter check online free',
+    'fake offer letter detection',
+    'fake offer letter detection pdf',
+    'job offer letter check online free',
+    'check offer letter online',
+    'fake upi payment screenshot check',
+    'ai image detection online',
+    'degree marksheet verification',
+    'company cin verification',
+    'TrustScan AI'
+  ],
 };
 
 export default function Home() {
