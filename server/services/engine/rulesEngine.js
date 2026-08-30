@@ -8,6 +8,7 @@ import { analyzeSmsHeader } from '../analysis/smsHeaderScanner.js';
 import { analyzeScamScript } from '../analysis/scriptScanner.js';
 import { classifyWithLLM, llmToSignals } from '../analysis/llmClassifier.js';
 import { detectLanguage, translateToEnglish } from '../analysis/translationService.js';
+import { analyzeAcademicCertificate } from '../analysis/academicValidator.js';
 import TrustEntity from '../../models/TrustEntity.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -366,6 +367,28 @@ export async function runRules(content, externalSignals = {}, trustSignals = {},
           indiaConfidenceRisk = Math.max(indiaConfidenceRisk, 85);
           const ageReason = signals.suspiciousAge ? "Domain is less than 1 year old" : (signals.suspiciousTld ? "Using a suspicious TLD" : "Using throwaway/instant infrastructure");
           reasons.push(`Temporal Paradox: Entity registered in ${mainCin.parsed.year} but ${ageReason} detected for official business.`);
+      }
+  }
+
+  // 1d. Evidence: Academic Degree & Marksheet Verification
+  const academicFindings = analyzeAcademicCertificate(content, externalSignals);
+  if (academicFindings.isAcademicDocument || scanType === 'academic' || scanType === 'degree') {
+      metadata.academicSignals = academicFindings;
+      if (academicFindings.isUgcBlacklisted) {
+          indiaConfidenceRisk = Math.max(indiaConfidenceRisk, 95);
+          signals.unaccreditedInstitution = 1;
+          reasons.unshift(...academicFindings.flags.map(f => f.message));
+      } else if (academicFindings.flags.length > 0) {
+          if (!academicFindings.marksheetMathValid) {
+              indiaConfidenceRisk = Math.max(indiaConfidenceRisk, 80);
+              signals.mathInconsistency = 1;
+          } else {
+              indiaConfidenceRisk = Math.max(indiaConfidenceRisk, academicFindings.tamperRiskScore || 65);
+          }
+          reasons.push(...academicFindings.flags.map(f => f.message));
+      } else if (academicFindings.isUgcRecognized) {
+          signals.recognizedUniversity = 1;
+          reasons.push(...academicFindings.positiveSignals);
       }
   }
 
