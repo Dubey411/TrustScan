@@ -9,7 +9,7 @@ interface QuickScanSectionProps {
 }
 
 const QuickScanSection = ({ isVisible, onClose }: QuickScanSectionProps) => {
-  const [scanType, setScanType] = useState<'company' | 'document' | 'gov_id' | 'payment'>('company');
+  const [scanType, setScanType] = useState<'document' | 'academic' | 'payment' | 'company'>('document');
   const [inputValue, setInputValue] = useState('');
   const [isScanning, setIsScanning] = useState(false);
 
@@ -32,7 +32,7 @@ const QuickScanSection = ({ isVisible, onClose }: QuickScanSectionProps) => {
       <div className="bg-card rounded-xl shadow-brand-elevated max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-border">
-          <h2 className="text-2xl font-headline font-bold text-foreground">Quick Document & Entity Scan</h2>
+          <h2 className="text-2xl font-headline font-bold text-foreground">Quick Document & Fraud Scan</h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-muted rounded-lg transition-colors duration-300"
@@ -46,21 +46,6 @@ const QuickScanSection = ({ isVisible, onClose }: QuickScanSectionProps) => {
         <div className="p-6 space-y-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <button
-              onClick={() => setScanType('company')}
-              className={`flex flex-col items-center space-y-2 p-3 rounded-lg border-2 transition-all duration-300 ${
-                scanType === 'company' ? 'border-primary bg-primary/5' : 'border-border hover:border-muted-foreground'
-              }`}
-            >
-              <Icon
-                name="BuildingOffice2Icon"
-                size={28}
-                variant={scanType === 'company' ? 'solid' : 'outline'}
-                className={scanType === 'company' ? 'text-primary' : 'text-muted-foreground'}
-              />
-              <span className="text-xs font-semibold text-foreground text-center">Company / CIN</span>
-            </button>
-
-            <button
               onClick={() => setScanType('document')}
               className={`flex flex-col items-center space-y-2 p-3 rounded-lg border-2 transition-all duration-300 ${
                 scanType === 'document' ? 'border-primary bg-primary/5' : 'border-border hover:border-muted-foreground'
@@ -72,22 +57,22 @@ const QuickScanSection = ({ isVisible, onClose }: QuickScanSectionProps) => {
                 variant={scanType === 'document' ? 'solid' : 'outline'}
                 className={scanType === 'document' ? 'text-primary' : 'text-muted-foreground'}
               />
-              <span className="text-xs font-semibold text-foreground text-center">Offer / Cert</span>
+              <span className="text-xs font-semibold text-foreground text-center">Offer Letter</span>
             </button>
 
             <button
-              onClick={() => setScanType('gov_id')}
+              onClick={() => setScanType('academic')}
               className={`flex flex-col items-center space-y-2 p-3 rounded-lg border-2 transition-all duration-300 ${
-                scanType === 'gov_id' ? 'border-primary bg-primary/5' : 'border-border hover:border-muted-foreground'
+                scanType === 'academic' ? 'border-primary bg-primary/5' : 'border-border hover:border-muted-foreground'
               }`}
             >
               <Icon
-                name="IdentificationIcon"
+                name="AcademicCapIcon"
                 size={28}
-                variant={scanType === 'gov_id' ? 'solid' : 'outline'}
-                className={scanType === 'gov_id' ? 'text-primary' : 'text-muted-foreground'}
+                variant={scanType === 'academic' ? 'solid' : 'outline'}
+                className={scanType === 'academic' ? 'text-primary' : 'text-muted-foreground'}
               />
-              <span className="text-xs font-semibold text-foreground text-center">Govt ID (PAN/UID)</span>
+              <span className="text-xs font-semibold text-foreground text-center">Degree & Marksheet</span>
             </button>
 
             <button
@@ -97,12 +82,27 @@ const QuickScanSection = ({ isVisible, onClose }: QuickScanSectionProps) => {
               }`}
             >
               <Icon
-                name="CreditCardIcon"
+                name="PhotoIcon"
                 size={28}
                 variant={scanType === 'payment' ? 'solid' : 'outline'}
                 className={scanType === 'payment' ? 'text-primary' : 'text-muted-foreground'}
               />
-              <span className="text-xs font-semibold text-foreground text-center">UPI / Receipt</span>
+              <span className="text-xs font-semibold text-foreground text-center">AI Image & UPI</span>
+            </button>
+
+            <button
+              onClick={() => setScanType('company')}
+              className={`flex flex-col items-center space-y-2 p-3 rounded-lg border-2 transition-all duration-300 ${
+                scanType === 'company' ? 'border-primary bg-primary/5' : 'border-border hover:border-muted-foreground'
+              }`}
+            >
+              <Icon
+                name="BuildingOffice2Icon"
+                size={28}
+                variant={scanType === 'company' ? 'solid' : 'outline'}
+                className={scanType === 'company' ? 'text-primary' : 'text-muted-foreground'}
+              />
+              <span className="text-xs font-semibold text-foreground text-center">Company & CIN</span>
             </button>
           </div>
 
@@ -111,7 +111,7 @@ const QuickScanSection = ({ isVisible, onClose }: QuickScanSectionProps) => {
             <label className="block text-sm font-medium text-foreground">
               {scanType === 'company' && 'Enter Company Name, 21-digit MCA CIN, or GSTIN'}
               {scanType === 'document' && 'Paste offer letter text, contract excerpt, or credentials'}
-              {scanType === 'gov_id' && 'Enter Masked Aadhaar or 10-character PAN details'}
+              {scanType === 'academic' && 'Enter University Name, Roll / Registration Number, or Degree details'}
               {scanType === 'payment' && 'Paste UPI UTR reference number or payment description'}
             </label>
             <textarea
@@ -120,7 +120,7 @@ const QuickScanSection = ({ isVisible, onClose }: QuickScanSectionProps) => {
               placeholder={
                 scanType === 'company' ? 'Example: Tata Consultancy Services, U72900MH2020PTC123456, or 27AAAAA0000A1Z5...'
                   : scanType === 'document' ? 'Example: Paste offer letter joining dates, CTC compensation, HR signature info...'
-                  : scanType === 'gov_id' ? 'Example: PAN: ABCDE1234F, Aadhaar: XXXX XXXX 0005...'
+                  : scanType === 'academic' ? 'Example: University of Delhi, Roll: 190456, Degree: B.Tech Computer Science, CGPA: 8.4...'
                   : 'Example: UPI UTR Ref: 328901928392, Amount: ₹50,000, Handle: user@okhdfcbank...'
               }
               className="w-full h-36 px-4 py-3 bg-background border border-input rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
