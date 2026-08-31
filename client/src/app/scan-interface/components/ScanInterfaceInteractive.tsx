@@ -90,14 +90,14 @@ export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfa
       buttonText: 'Verify Degree / Marksheet'
     },
     {
-      id: 'payment',
+      id: 'image',
       icon: 'PhotoIcon',
-      title: 'AI Image & Payment Forensics',
-      description: 'Detect fake UPI receipts, payment APKs, and AI-manipulated images',
+      title: 'AI Image Detection & Forensics',
+      description: 'Detect AI-generated images (Stable Diffusion, Midjourney, DALL-E, FLUX) and pixel tampering',
       inputType: 'file',
-      acceptedFormats: ['.pdf', '.jpg', '.jpeg', '.png', '.webp'],
-      maxSize: 10 * 1024 * 1024,
-      buttonText: 'Scan Image / Payment Slip'
+      acceptedFormats: ['.jpg', '.jpeg', '.png', '.webp'],
+      maxSize: 15 * 1024 * 1024,
+      buttonText: 'Scan Image for AI Generation'
     },
     {
       id: 'company',

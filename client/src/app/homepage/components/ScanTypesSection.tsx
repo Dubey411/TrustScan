@@ -25,10 +25,10 @@ const ScanTypesSection = () => {
       color: 'accent',
     },
     {
-      icon: 'CreditCardIcon',
-      title: 'UPI & Payment Receipts',
-      description: 'Detect fake payment generator APKs, invalid 12-digit UTR numbers, and manipulated bank screenshots.',
-      features: ['Fake Paytm / PhonePe / GPay APK detection', '12-digit NPCI UTR reference audit', 'Timestamp & font alignment inspection', 'Bank statement & salary slip check'],
+      icon: 'PhotoIcon',
+      title: 'AI Image Detection & Forensics',
+      description: 'Detect AI-generated images (Stable Diffusion, Midjourney, DALL-E, FLUX) and pixel-level tampering.',
+      features: ['2D FFT spectral fingerprinting', 'Stable Diffusion & Midjourney prompt metadata scan', 'Error Level Analysis (ELA) pixel tampering', 'DCT AC coefficient distribution kurtosis'],
       color: 'success-green',
     },
   ];

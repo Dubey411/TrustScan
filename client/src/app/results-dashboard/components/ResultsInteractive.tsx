@@ -255,12 +255,12 @@ const ResultsInteractive = ({ scanData, showFeedback = true }: ResultsInteractiv
                      activeScanData?.target?.toLowerCase().includes('certificate') ||
                      !!activeScanData?.metadata?.academicSignals?.isAcademicDocument;
   const isGovId = (activeScanData as any)?.scanType === 'gov_id' || activeScanData?.target?.toLowerCase().includes('aadhaar') || activeScanData?.target?.toLowerCase().includes('pan');
-  const hasImageForensics = !!activeScanData?.metadata?.imageForensics || !!activeScanData?.scanMeta?.forensicVerdict;
-  const isVerifiedPaymentReceipt = activeScanData?.metadata?.isPaymentReceipt === true || 
-    (hasImageForensics && (activeScanData?.metadata?.upiRef || activeScanData?.reasons?.some((r: any) => r.toLowerCase().includes('upi') || r.toLowerCase().includes('utr'))));
+  const isImageScan = (activeScanData as any)?.scanType === 'image';
+  const hasImageForensics = !!activeScanData?.metadata?.imageForensics || !!activeScanData?.scanMeta?.forensicVerdict || isImageScan;
+  const isVerifiedPaymentReceipt = activeScanData?.metadata?.isPaymentReceipt === true && !isImageScan;
 
-  const isImageForensics = hasImageForensics && !isVerifiedPaymentReceipt;
-  const isPayment = !isImageForensics && (isVerifiedPaymentReceipt || (activeScanData as any)?.scanType === 'payment' && !hasImageForensics);
+  const isImageForensics = isImageScan || (hasImageForensics && !isVerifiedPaymentReceipt);
+  const isPayment = !isImageForensics && isVerifiedPaymentReceipt;
   const isCompany = activeScanData?.scanType === 'company';
   const isCareer = !isAcademic && ((activeScanData as any)?.scanType === 'document' || activeScanData?.target?.toLowerCase().includes('offer') || activeScanData?.target?.toLowerCase().includes('internship'));
   const isDocument = (activeScanData as any)?.scanType === 'document' || (activeScanData as any)?.scanType === 'academic' || !!activeScanData?.scanMeta;
