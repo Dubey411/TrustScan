@@ -267,7 +267,7 @@ router.post("/scan", upload.single('file'), async (req, res) => {
 
         scanMeta.forensicTamperScore = tamperPct;
         scanMeta.forensicAiScore = aiPct;
-        scanMeta.forensicVerdict = imageForensicsData.forensicVerdict || (aiPct >= 40 ? 'AI_GENERATED' : tamperPct >= 35 ? 'TAMPERED_REAL_IMAGE' : 'CLEAN');
+        scanMeta.forensicVerdict = imageForensicsData.forensicVerdict || (aiPct >= 50 ? 'AI_GENERATED' : aiPct >= 32 ? 'UNCERTAIN' : tamperPct >= 40 ? 'TAMPERED_REAL_IMAGE' : 'CLEAN');
         scanMeta.generatorFamilyHint = imageForensicsData.generatorFamilyHint;
 
         if (!result.metadata) result.metadata = {};
@@ -278,13 +278,19 @@ router.post("/scan", upload.single('file'), async (req, res) => {
         };
         result.metadata.isPaymentReceipt = isPaymentReceipt;
 
-        if (imageForensicsData.isAiGenerated || aiPct >= 40) {
+        if (imageForensicsData.isAiGenerated || aiPct >= 50) {
             finalRisk = Math.max(finalRisk, Math.max(aiPct, 65));
             scanMeta.verdictLabel = "🤖 AI-Generated Image Detected";
             if (!result.reasons.some(r => r.includes('AI-generated'))) {
                 result.reasons.unshift(`🤖 AI-Generated Image Detected (${aiPct}% confidence). Generator: ${imageForensicsData.generatorFamilyHint || 'Latent Diffusion Model'}.`);
             }
-        } else if (imageForensicsData.isTampered || tamperPct >= 35) {
+        } else if (imageForensicsData.forensicVerdict === 'UNCERTAIN' || (aiPct >= 32 && aiPct < 50)) {
+            finalRisk = 45;
+            scanMeta.verdictLabel = "❓ Uncertain / Inconclusive AI Signal";
+            if (!result.reasons.some(r => r.includes('Inconclusive') || r.includes('Uncertain'))) {
+                result.reasons.unshift(`❓ Inconclusive AI Signature (${aiPct}% score). Multi-signal fusion detected ambiguous synthetic artifacts.`);
+            }
+        } else if (imageForensicsData.isTampered || tamperPct >= 40) {
             finalRisk = Math.max(finalRisk, Math.max(tamperPct, 60));
             scanMeta.verdictLabel = "✂️ Tampered Image Detected";
             if (!result.reasons.some(r => r.includes('tampering'))) {

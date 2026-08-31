@@ -385,26 +385,29 @@ const ResultsInteractive = ({ scanData, showFeedback = true }: ResultsInteractiv
           ? Math.round(forensics.tamperingConfidence * 100)
           : 0;
 
-        const verdict: string = scanMeta.forensicVerdict || forensics.forensicVerdict || (aiScore >= 40 ? 'AI_GENERATED' : tamperScore >= 35 ? 'TAMPERED_REAL_IMAGE' : 'CLEAN');
-        const isAI: boolean = Boolean(forensics.isAiGenerated) || verdict === 'AI_GENERATED' || verdict === 'AI_GENERATED_AND_EDITED' || aiScore >= 40;
-        const isTampered: boolean = Boolean(forensics.isTampered) || verdict === 'TAMPERED_REAL_IMAGE' || verdict === 'AI_GENERATED_AND_EDITED' || tamperScore >= 35;
+        const verdict: string = scanMeta.forensicVerdict || forensics.forensicVerdict || (aiScore >= 50 ? 'AI_GENERATED' : aiScore >= 32 ? 'UNCERTAIN' : tamperScore >= 40 ? 'TAMPERED_REAL_IMAGE' : 'CLEAN');
+        const isAI: boolean = Boolean(forensics.isAiGenerated) || verdict === 'AI_GENERATED' || verdict === 'AI_GENERATED_AND_EDITED' || aiScore >= 50;
+        const isUncertain: boolean = !isAI && (verdict === 'UNCERTAIN' || Boolean(forensics.isUncertain) || (aiScore >= 32 && aiScore < 50));
+        const isTampered: boolean = !isAI && !isUncertain && (Boolean(forensics.isTampered) || verdict === 'TAMPERED_REAL_IMAGE' || tamperScore >= 40);
         const hint: string | null = scanMeta.generatorFamilyHint || forensics.generatorFamilyHint || (isAI ? 'Latent Diffusion Model (SD / Midjourney / DALL-E / FLUX)' : null);
         const sdPrompt: string | null = forensics.sdPromptPreview || null;
-        const trustScore = isAI ? (100 - aiScore) : isTampered ? (100 - tamperScore) : (activeScanData?.riskScore !== undefined ? (100 - activeScanData.riskScore) : 95);
+        const trustScore = isAI ? (100 - aiScore) : isUncertain ? 55 : isTampered ? (100 - tamperScore) : (activeScanData?.riskScore !== undefined ? (100 - activeScanData.riskScore) : 95);
 
         return (
           <div className={`rounded-3xl border-2 shadow-2xl overflow-hidden mb-8 transition-all duration-300 ${
-            isAI ? 'border-purple-500/40 bg-card' : isTampered ? 'border-destructive/40 bg-card' : 'border-emerald-500/20 bg-card'
+            isAI ? 'border-purple-500/40 bg-card' : isUncertain ? 'border-amber-500/40 bg-card' : isTampered ? 'border-destructive/40 bg-card' : 'border-emerald-500/20 bg-card'
           }`}>
             {/* Header */}
             <div className={`p-6 md:p-8 border-b border-border flex flex-col md:flex-row items-start md:items-center justify-between gap-6 ${
               isAI ? 'bg-gradient-to-r from-purple-500/10 via-violet-500/10 to-blue-500/10'
+                   : isUncertain ? 'bg-gradient-to-r from-amber-500/10 via-yellow-500/10 to-orange-500/10'
                    : isTampered ? 'bg-gradient-to-r from-destructive/10 via-orange-500/10 to-amber-500/10'
                    : 'bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-blue-500/10'
             }`}>
               <div className="flex items-center gap-4">
                 <div className={`w-16 h-16 rounded-2xl border flex items-center justify-center flex-shrink-0 shadow-inner ${
                   isAI ? 'bg-purple-500/20 border-purple-500/30 text-purple-400'
+                       : isUncertain ? 'bg-amber-500/20 border-amber-500/30 text-amber-400'
                        : isTampered ? 'bg-destructive/20 border-destructive/30 text-destructive'
                        : 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400'
                 }`}>
@@ -414,18 +417,19 @@ const ResultsInteractive = ({ scanData, showFeedback = true }: ResultsInteractiv
                   <div className="flex items-center gap-2 mb-1">
                     <span className={`text-[11px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full border ${
                       isAI ? 'bg-purple-500/20 text-purple-400 border-purple-500/30'
+                           : isUncertain ? 'bg-amber-500/20 text-amber-400 border-amber-500/30'
                            : isTampered ? 'bg-destructive/20 text-destructive border-destructive/30'
                            : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
                     }`}>
                       AI Image Forensics
                     </span>
-                    <span className="text-xs text-muted-foreground font-mono">FFT Spectral + ELA + DCT</span>
+                    <span className="text-xs text-muted-foreground font-mono">Multi-Signal Fusion (ML + FFT + ELA + DCT)</span>
                   </div>
                   <h2 className="font-headline font-black text-2xl md:text-3xl text-foreground">
-                    {isAI ? '🤖 AI-Generated Image Detected' : isTampered ? '✂️ Tampered Image Detected' : '✅ Authentic Image'}
+                    {isAI ? '🤖 AI-Generated Image Detected' : isUncertain ? '❓ Inconclusive / Uncertain AI Signal' : isTampered ? '✂️ Tampered Image Detected' : '✅ Authentic Image'}
                   </h2>
                   <p className="text-sm text-muted-foreground mt-0.5">
-                    {hint ? `Spectral fingerprint: ${hint}` : 'Multi-stage forensic analysis: frequency domain, pixel tampering, and metadata scan'}
+                    {hint ? `Signal attribution: ${hint}` : 'Multi-stage forensic analysis: frequency domain, pixel tampering, and metadata scan'}
                   </p>
                 </div>
               </div>

@@ -1,4 +1,4 @@
-﻿import sys
+import sys
 import os
 import io
 import json
@@ -6,7 +6,7 @@ import math
 import numpy as np
 from PIL import Image, ImageChops, ImageEnhance
 
-# Try importing local Organika/sdxl-detector ML predictor
+# Import Pretrained Vision Ensemble
 try:
     from sdxl_detector import predict_sdxl_detector
 except ImportError:
@@ -15,9 +15,13 @@ except ImportError:
         from sdxl_detector import predict_sdxl_detector
     except ImportError:
         def predict_sdxl_detector(img):
-            return {"score": 0.0, "is_ai": False, "method": "none"}
+            return {"score": 0.0, "is_ai": False, "method": "none", "models_evaluated": {}}
 
 def analyze_ela(image_path_or_bytes, quality=90, scale=15):
+    """
+    Stage 2: Error Level Analysis (ELA)
+    Analyzes JPEG recompression delta and high-frequency pixel editing variance.
+    """
     try:
         if isinstance(image_path_or_bytes, str):
             orig = Image.open(image_path_or_bytes).convert('RGB')
@@ -43,6 +47,9 @@ def analyze_ela(image_path_or_bytes, quality=90, scale=15):
         return {"error": str(e), "confidence": 0.0, "is_tampered": False}
 
 def analyze_noise_inconsistency(image_path_or_bytes, grid_size=8):
+    """
+    Analyzes multi-patch local noise variance to spot spliced or pasted elements.
+    """
     try:
         if isinstance(image_path_or_bytes, str):
             img = Image.open(image_path_or_bytes).convert('L')
@@ -70,6 +77,10 @@ def analyze_noise_inconsistency(image_path_or_bytes, grid_size=8):
         return {"error": str(e), "has_noise_anomaly": False}
 
 def scan_exif_metadata(image_path_or_bytes):
+    """
+    Stage 1: Metadata & Prompt Extraction
+    Extracts embedded generation parameters (A1111, ComfyUI, Midjourney, DALL-E, Fooocus).
+    """
     try:
         if isinstance(image_path_or_bytes, str):
             img = Image.open(image_path_or_bytes)
@@ -89,6 +100,10 @@ def scan_exif_metadata(image_path_or_bytes):
         return {"detected_ai_generators": [], "detected_editing_software": [], "has_ai_signature": False, "has_software_signature": False, "has_stripped_metadata": True}
 
 def analyze_frequency_domain(image_path_or_bytes):
+    """
+    Stage 3: 2D FFT Frequency Domain Fingerprinting
+    Measures 1/f natural law deviations and VAE upsampling lattice peaks.
+    """
     try:
         if isinstance(image_path_or_bytes, str):
             img = Image.open(image_path_or_bytes).convert('L')
@@ -146,6 +161,9 @@ def analyze_frequency_domain(image_path_or_bytes):
         return {"error": str(e), "ai_generation_score": 0.0, "is_ai_generated": False, "generator_family_hint": "Analysis Failed"}
 
 def analyze_dct_uniformity(image_path_or_bytes):
+    """
+    Stage 4: DCT AC Coefficient Distribution Kurtosis
+    """
     try:
         if isinstance(image_path_or_bytes, str):
             img = Image.open(image_path_or_bytes).convert('L')
@@ -184,49 +202,106 @@ def analyze_dct_uniformity(image_path_or_bytes):
         return {"error": str(e), "dct_ai_score": 0.0, "is_gaussian_like": False}
 
 def run_full_forensics(image_path):
+    """
+    Stage 6 & 7: Multi-Signal Feature Fusion & Confidence Calibration Layer
+    Combines:
+    - Metadata Signals (EXIF/PNG prompts)
+    - Forensic Signal Processing (ELA, FFT, DCT)
+    - Learned Pretrained Vision Ensemble (SDXL + General ViT + DeepFake)
+    """
     ela   = analyze_ela(image_path)
     noise = analyze_noise_inconsistency(image_path)
     exif  = scan_exif_metadata(image_path)
     fft   = analyze_frequency_domain(image_path)
     dct   = analyze_dct_uniformity(image_path)
-    sdxl  = predict_sdxl_detector(image_path)
+    ml    = predict_sdxl_detector(image_path)
 
+    # 1. Tamper Signal Aggregation
     tamper_score = 0.0
     if exif.get("has_software_signature"): tamper_score += 0.40
     if ela.get("is_tampered"): tamper_score += 0.35
     if noise.get("has_noise_anomaly"): tamper_score += 0.25
+    tamper_score = float(min(1.0, tamper_score))
 
-    ai_gen_score = 0.0
-    if exif.get("has_ai_signature"): ai_gen_score += 0.85
-    
-    ml_score = sdxl.get("score", 0.0)
-    if ml_score > 0.35:
-        ai_gen_score = max(ai_gen_score, ml_score)
-
+    # 2. Multi-Signal AI Feature Fusion
+    ml_score = ml.get("score", 0.0)
     fft_score = fft.get("ai_generation_score", 0.0)
     dct_score = dct.get("dct_ai_score", 0.0)
-    ai_gen_score += fft_score * 0.40
-    ai_gen_score += dct_score * 0.15
-    ai_gen_score = float(min(1.0, ai_gen_score))
+    has_metadata_ai = exif.get("has_ai_signature", False)
 
-    is_ai_generated = ai_gen_score >= 0.40 or sdxl.get("is_ai", False)
-    is_tampered = tamper_score >= 0.35
-    forensic_verdict = "CLEAN"
-    if is_ai_generated and is_tampered: forensic_verdict = "AI_GENERATED_AND_EDITED"
-    elif is_ai_generated: forensic_verdict = "AI_GENERATED"
-    elif is_tampered: forensic_verdict = "TAMPERED_REAL_IMAGE"
+    # Weighted Feature Fusion
+    if has_metadata_ai:
+        # Direct ground truth prompt trace found in metadata
+        final_ai_score = max(0.92, ml_score)
+        confidence = "HIGH"
+    elif ml_score >= 0.50:
+        # Pretrained ML Vision model detected strong generative pattern
+        final_ai_score = ml_score * 0.75 + fft_score * 0.15 + dct_score * 0.10
+        confidence = "HIGH" if ml_score >= 0.70 else "MEDIUM"
+    elif fft_score >= 0.40 and dct_score >= 0.30:
+        # Frequency domain + DCT indicates non-natural harmonic grid
+        final_ai_score = max(ml_score, (fft_score * 0.6 + dct_score * 0.4))
+        confidence = "MEDIUM"
+    elif ml_score >= 0.30 or fft_score >= 0.30:
+        # Moderate / Weak signals -> UNCERTAIN zone
+        final_ai_score = ml_score * 0.6 + fft_score * 0.4
+        confidence = "LOW"
+    else:
+        # Clean signals across all layers
+        final_ai_score = max(ml_score * 0.5, fft_score * 0.3)
+        confidence = "HIGH"
 
-    generator_hint = fft.get("generator_family_hint", "Unknown")
-    if sdxl.get("is_ai"):
-        generator_hint = f"Organika/sdxl-detector ML Vision Model ({int(sdxl.get('score',0)*100)}% AI probability)"
+    final_ai_score = float(min(1.0, max(0.0, final_ai_score)))
+    is_tampered = tamper_score >= 0.40
+
+    # 3. Stage 8: Calibrated Multi-State Verdict Classification
+    if final_ai_score >= 0.50 and is_tampered:
+        forensic_verdict = "AI_GENERATED_AND_EDITED"
+        is_ai_generated = True
+    elif final_ai_score >= 0.50 or ml_score >= 0.55 or has_metadata_ai:
+        forensic_verdict = "AI_GENERATED"
+        is_ai_generated = True
+    elif is_tampered and final_ai_score < 0.32:
+        forensic_verdict = "TAMPERED_REAL_IMAGE"
+        is_ai_generated = False
+    elif 0.32 <= final_ai_score < 0.50:
+        # Explicit UNCERTAIN / Inconclusive state
+        forensic_verdict = "UNCERTAIN"
+        is_ai_generated = False
+    else:
+        forensic_verdict = "CLEAN"
+        is_ai_generated = False
+
+    # Generator Family Attribution
+    generator_hint = "Natural Camera Photograph"
+    if is_ai_generated:
+        if has_metadata_ai:
+            generator_hint = "Latent Diffusion Model (Verified Prompt Metadata Found)"
+        elif ml_score >= 0.50:
+            generator_hint = f"Pretrained Vision Ensemble ({int(ml_score * 100)}% AI probability)"
+        else:
+            generator_hint = fft.get("generator_family_hint", "Synthetic AI Generator")
+    elif forensic_verdict == "UNCERTAIN":
+        generator_hint = "Inconclusive Signal (Weak Synthetic Residue Detected)"
+    elif is_tampered:
+        generator_hint = "Edited Real Photo (Photoshop / Canva Pixel Modification)"
 
     return {
-        "forensic_tamper_score": round(min(1.0, tamper_score), 3),
-        "ai_generation_score": round(ai_gen_score, 3),
+        "forensic_tamper_score": round(tamper_score, 3),
+        "ai_generation_score": round(final_ai_score, 3),
         "is_tampered": is_tampered,
         "is_ai_generated": is_ai_generated,
+        "is_uncertain": forensic_verdict == "UNCERTAIN",
+        "confidence_level": confidence,
         "forensic_verdict": forensic_verdict,
         "generator_family_hint": generator_hint,
+        "signals": {
+            "ml_vision_ensemble_score": round(ml_score, 4),
+            "fft_frequency_score": round(fft_score, 3),
+            "dct_kurtosis_score": round(dct_score, 3),
+            "metadata_ai_score": 1.0 if has_metadata_ai else 0.0,
+            "ela_tamper_score": round(tamper_score, 3)
+        },
         "detected_ai_generators": exif.get("detected_ai_generators", []),
         "detected_editing_software": exif.get("detected_editing_software", []),
         "sd_prompt_found": exif.get("sd_prompt_found", False),
@@ -236,7 +311,7 @@ def run_full_forensics(image_path):
         "exif_analysis": exif,
         "fft_analysis": fft,
         "dct_analysis": dct,
-        "sdxl_detector_ml": sdxl
+        "pretrained_vision_ensemble": ml
     }
 
 if __name__ == '__main__':

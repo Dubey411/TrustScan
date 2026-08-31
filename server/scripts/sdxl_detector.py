@@ -5,15 +5,40 @@ import json
 import urllib.request
 import ssl
 
-def predict_sdxl_detector(image_path_or_bytes):
-    """
-    Evaluates an image using Organika/sdxl-detector model.
-    First attempts local transformers pipeline; falls back to HuggingFace API if available.
-    Returns: {"score": float (0.0 to 1.0), "label": str, "method": str}
-    """
-    # Strategy 1: Local Transformers Pipeline
+# Cache directory for models
+CACHE_DIR = os.path.join(os.path.dirname(__file__), '..', 'models', 'cache')
+os.makedirs(CACHE_DIR, exist_ok=True)
+
+# Global pipelines cached in memory across invocations if python daemon/process persists
+_PIPELINES = {}
+
+def get_pipeline(model_id):
+    if model_id in _PIPELINES:
+        return _PIPELINES[model_id]
     try:
         from transformers import pipeline
+        pipe = pipeline("image-classification", model=model_id, model_kwargs={"cache_dir": CACHE_DIR})
+        _PIPELINES[model_id] = pipe
+        return pipe
+    except Exception as e:
+        return None
+
+def predict_sdxl_detector(image_path_or_bytes):
+    """
+    Evaluates an image using an ensemble of Pretrained AI Image Classifiers:
+    1. Organika/sdxl-detector (SDXL / Diffusion Specialist)
+    2. umm-maybe/AI-image-detector (General ViT - Midjourney / DALL-E / SD Specialist)
+    3. prithivMLmods/Deep-Fake-Detector-Model (Synthetic / DeepFake Specialist)
+
+    Returns: {
+        "score": float (0.0 to 1.0),
+        "is_ai": bool,
+        "label": str,
+        "method": str,
+        "models_evaluated": dict
+    }
+    """
+    try:
         from PIL import Image
 
         if isinstance(image_path_or_bytes, str):
@@ -21,83 +46,88 @@ def predict_sdxl_detector(image_path_or_bytes):
         else:
             img = Image.open(io.BytesIO(image_path_or_bytes)).convert('RGB')
 
-        # Cache model locally in server/models/cache
-        cache_dir = os.path.join(os.path.dirname(__file__), '..', 'models', 'cache')
-        os.makedirs(cache_dir, exist_ok=True)
+        model_results = {}
+        ai_scores = []
 
-        pipe = pipeline("image-classification", model="Organika/sdxl-detector", model_kwargs={"cache_dir": cache_dir})
-        results = pipe(img)
-        
-        # Results format: [{'label': 'artificial', 'score': 0.98}, {'label': 'human', 'score': 0.02}]
-        ai_score = 0.0
-        label_detected = "human"
-        for item in results:
-            lbl = str(item.get('label', '')).lower()
-            score = float(item.get('score', 0.0))
-            if lbl in ['artificial', 'ai', 'fake', 'generated', 'sdxl', 'synthetic']:
-                ai_score = score
-                label_detected = item.get('label')
-            elif lbl in ['human', 'real', 'natural', 'authentic']:
-                if ai_score == 0.0:
-                    ai_score = 1.0 - score
-
-        return {
-            "score": round(ai_score, 4),
-            "is_ai": ai_score > 0.40,
-            "label": label_detected,
-            "method": "local_transformers_sdxl_detector",
-            "all_scores": results
-        }
-    except Exception as local_err:
-        pass
-
-    # Strategy 2: Hugging Face Inference API / Router API
-    hf_token = os.environ.get("HF_TOKEN") or os.environ.get("HUGGINGFACE_TOKEN")
-    if hf_token:
-        try:
-            if isinstance(image_path_or_bytes, str):
-                with open(image_path_or_bytes, 'rb') as f:
-                    img_data = f.read()
-            else:
-                img_data = image_path_or_bytes
-
-            url = "https://router.huggingface.co/hf-inference/models/Organika/sdxl-detector"
-            req = urllib.request.Request(
-                url,
-                data=img_data,
-                headers={
-                    "Content-Type": "image/jpeg",
-                    "Authorization": f"Bearer {hf_token}",
-                    "User-Agent": "CheckIt-AI-Detector/1.0"
-                }
-            )
-            ctx = ssl.create_default_context()
-            with urllib.request.urlopen(req, context=ctx, timeout=10) as resp:
-                res = json.loads(resp.read().decode())
-                ai_score = 0.0
-                label_detected = "human"
-                for item in res:
+        # Model 1: Organika/sdxl-detector (SDXL Expert)
+        pipe_sdxl = get_pipeline("Organika/sdxl-detector")
+        if pipe_sdxl:
+            try:
+                res_sdxl = pipe_sdxl(img)
+                s_score = 0.0
+                for item in res_sdxl:
                     lbl = str(item.get('label', '')).lower()
                     score = float(item.get('score', 0.0))
-                    if lbl in ['artificial', 'ai', 'fake', 'generated', 'sdxl']:
-                        ai_score = score
-                        label_detected = item.get('label')
+                    if lbl in ['artificial', 'ai', 'fake', 'generated', 'sdxl', 'synthetic']:
+                        s_score = score
+                    elif lbl in ['human', 'real', 'natural', 'authentic'] and s_score == 0.0:
+                        s_score = 1.0 - score
+                model_results["sdxl_detector"] = {"score": round(s_score, 4), "raw": res_sdxl}
+                ai_scores.append(s_score)
+            except Exception as e:
+                model_results["sdxl_detector"] = {"error": str(e)}
 
-                return {
-                    "score": round(ai_score, 4),
-                    "is_ai": ai_score > 0.40,
-                    "label": label_detected,
-                    "method": "hf_api_sdxl_detector",
-                    "all_scores": res
-                }
-        except Exception as api_err:
-            pass
+        # Model 2: umm-maybe/AI-image-detector (ViT General AI Expert: Midjourney / DALL-E / SD)
+        pipe_vit = get_pipeline("umm-maybe/AI-image-detector")
+        if pipe_vit:
+            try:
+                res_vit = pipe_vit(img)
+                v_score = 0.0
+                for item in res_vit:
+                    lbl = str(item.get('label', '')).lower()
+                    score = float(item.get('score', 0.0))
+                    if lbl in ['artificial', 'ai', 'fake', 'generated', 'synthetic']:
+                        v_score = score
+                    elif lbl in ['human', 'real', 'natural', 'authentic'] and v_score == 0.0:
+                        v_score = 1.0 - score
+                model_results["general_vit_detector"] = {"score": round(v_score, 4), "raw": res_vit}
+                ai_scores.append(v_score)
+            except Exception as e:
+                model_results["general_vit_detector"] = {"error": str(e)}
+
+        # Model 3: prithivMLmods/Deep-Fake-Detector-Model
+        pipe_df = get_pipeline("prithivMLmods/Deep-Fake-Detector-Model")
+        if pipe_df:
+            try:
+                res_df = pipe_df(img)
+                df_score = 0.0
+                for item in res_df:
+                    lbl = str(item.get('label', '')).lower()
+                    score = float(item.get('score', 0.0))
+                    if lbl in ['fake', 'artificial', 'ai', 'generated']:
+                        df_score = score
+                    elif lbl in ['real', 'human'] and df_score == 0.0:
+                        df_score = 1.0 - score
+                model_results["deepfake_detector"] = {"score": round(df_score, 4), "raw": res_df}
+                ai_scores.append(df_score)
+            except Exception as e:
+                model_results["deepfake_detector"] = {"error": str(e)}
+
+        if ai_scores:
+            # Ensemble aggregation: Maximum single-model high-confidence detection with cross-model reinforcement
+            max_score = max(ai_scores)
+            avg_score = sum(ai_scores) / len(ai_scores)
+            # If any specialist model fires > 0.50, trust the specialist with gentle cross-weighting
+            ensemble_score = max_score if max_score >= 0.50 else (avg_score * 0.7 + max_score * 0.3)
+            
+            return {
+                "score": round(ensemble_score, 4),
+                "is_ai": ensemble_score >= 0.40,
+                "label": "artificial" if ensemble_score >= 0.40 else "human",
+                "method": "pretrained_vision_ensemble (SDXL + General ViT + DeepFake)",
+                "models_evaluated": model_results,
+                "all_scores": [{"model": k, "score": v.get("score", 0.0)} for k, v in model_results.items() if "score" in v]
+            }
+
+    except Exception as local_err:
+        pass
 
     return {
         "score": 0.0,
         "is_ai": False,
         "label": "unknown",
-        "method": "fallback_none"
+        "method": "fallback_none",
+        "models_evaluated": {}
     }
 
 if __name__ == '__main__':
@@ -105,4 +135,4 @@ if __name__ == '__main__':
         res = predict_sdxl_detector(sys.argv[1])
         print(json.dumps(res, indent=2))
     else:
-        print(json.dumps({"info": "Pass image path as argument to run Organika/sdxl-detector model."}))
+        print(json.dumps({"info": "Pass image path as argument to run Pretrained Vision Ensemble."}))
