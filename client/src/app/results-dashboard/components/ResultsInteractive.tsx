@@ -369,13 +369,13 @@ const ResultsInteractive = ({ scanData, showFeedback = true }: ResultsInteractiv
         const forensics = activeScanData?.metadata?.imageForensics || {};
         const scanMeta = activeScanData?.scanMeta || {};
 
-        const aiScore = scanMeta.forensicAiScore !== undefined && scanMeta.forensicAiScore > 0
+        const aiScore = scanMeta.forensicAiScore !== undefined
           ? scanMeta.forensicAiScore
           : forensics.aiGenerationScorePct !== undefined
           ? forensics.aiGenerationScorePct
           : forensics.aiGenerationScore !== undefined
           ? Math.round(forensics.aiGenerationScore * 100)
-          : (activeScanData?.riskScore && activeScanData.riskScore > 30 ? activeScanData.riskScore : 0);
+          : 0;
 
         const tamperScore = scanMeta.forensicTamperScore !== undefined
           ? scanMeta.forensicTamperScore
@@ -385,12 +385,12 @@ const ResultsInteractive = ({ scanData, showFeedback = true }: ResultsInteractiv
           ? Math.round(forensics.tamperingConfidence * 100)
           : 0;
 
-        const verdict: string = scanMeta.forensicVerdict || forensics.forensicVerdict || (aiScore > 30 ? 'AI_GENERATED' : 'CLEAN');
-        const isAI: boolean = aiScore > 30 || verdict.includes('AI') || Boolean(forensics.isAiGenerated);
-        const isTampered: boolean = tamperScore > 30 || verdict.includes('TAMPERED') || Boolean(forensics.isTampered);
+        const verdict: string = scanMeta.forensicVerdict || forensics.forensicVerdict || (aiScore >= 40 ? 'AI_GENERATED' : tamperScore >= 35 ? 'TAMPERED_REAL_IMAGE' : 'CLEAN');
+        const isAI: boolean = Boolean(forensics.isAiGenerated) || verdict === 'AI_GENERATED' || verdict === 'AI_GENERATED_AND_EDITED' || aiScore >= 40;
+        const isTampered: boolean = Boolean(forensics.isTampered) || verdict === 'TAMPERED_REAL_IMAGE' || verdict === 'AI_GENERATED_AND_EDITED' || tamperScore >= 35;
         const hint: string | null = scanMeta.generatorFamilyHint || forensics.generatorFamilyHint || (isAI ? 'Latent Diffusion Model (SD / Midjourney / DALL-E / FLUX)' : null);
         const sdPrompt: string | null = forensics.sdPromptPreview || null;
-        const trustScore = activeScanData?.riskScore !== undefined ? (100 - activeScanData.riskScore) : (100 - aiScore);
+        const trustScore = isAI ? (100 - aiScore) : isTampered ? (100 - tamperScore) : (activeScanData?.riskScore !== undefined ? (100 - activeScanData.riskScore) : 95);
 
         return (
           <div className={`rounded-3xl border-2 shadow-2xl overflow-hidden mb-8 transition-all duration-300 ${
