@@ -95,20 +95,33 @@ export async function performScan(data: ScanRequest): Promise<ScanResult> {
  * Fetches user profile including credits and stats
  */
 export async function getUserProfile(uid: string): Promise<any> {
-    const response = await fetch(`${API_BASE_URL}/me/${uid}`);
-    if (!response.ok) {
-        throw new Error('Failed to fetch user profile');
+    try {
+        const response = await fetch(`${API_BASE_URL}/me/${uid}`);
+        if (!response.ok) {
+            console.warn(`[getUserProfile] Non-200 response (${response.status}) for UID: ${uid}`);
+            return { credits: 0, uid };
+        }
+        return await response.json();
+    } catch (error: any) {
+        console.warn(`[getUserProfile] Unable to reach user profile API: ${error.message}`);
+        return { credits: 0, uid, error: error.message };
     }
-    return response.json();
 }
 
 /**
  * Fetches a single scan result by ID
  */
 export async function getScanResult(id: string): Promise<any> {
-    const response = await fetch(`${API_BASE_URL}/results/${id}`);
-    if (!response.ok) {
-        throw new Error('Failed to fetch scan results');
+    try {
+        const response = await fetch(`${API_BASE_URL}/results/${id}`);
+        if (!response.ok) {
+            console.warn(`[getScanResult] Non-200 response (${response.status}) for ID: ${id}`);
+            return null;
+        }
+        return await response.json();
+    } catch (error: any) {
+        console.warn(`[getScanResult] Unable to reach scan results API: ${error.message}`);
+        return null;
     }
-    return response.json();
 }
+
