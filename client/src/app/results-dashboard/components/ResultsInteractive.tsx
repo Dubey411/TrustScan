@@ -604,7 +604,7 @@ const ResultsInteractive = ({ scanData, showFeedback = true }: ResultsInteractiv
       )}
 
       {/* 🌟 6. GENERIC / MESSAGE / LINK RESULT VIEW (Fallback Hero Badge) */}
-      {!isGovId && !isPayment && !isCareer && !isCompany && !isAcademic && (
+      {!isGovId && !isPayment && !isCareer && !isCompany && !isAcademic && !isImageForensics && (
         <VerdictBadge 
           verdict={
               activeScanData?.metadata?.databaseHits?.some((h: any) => h.category === 'red_flag') 

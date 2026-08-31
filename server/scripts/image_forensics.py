@@ -1,4 +1,4 @@
-import sys
+﻿import sys
 import os
 import io
 import json
@@ -96,7 +96,7 @@ def analyze_frequency_domain(image_path_or_bytes):
         y_idx, x_idx = np.ogrid[:256, :256]
         dist = np.sqrt((x_idx - cx)**2 + (y_idx - cy)**2)
         total_energy = float(np.sum(log_magnitude))
-        high_freq_mask = dist > 80
+        high_freq_mask = dist > 70
         high_freq_energy = float(np.sum(log_magnitude[high_freq_mask]))
         hfer = high_freq_energy / (total_energy + 1e-10)
         center_crop = log_magnitude[112:144, 112:144]
@@ -112,26 +112,33 @@ def analyze_frequency_domain(image_path_or_bytes):
         expected_slope = np.array(range(len(ring_energies)), dtype=float)
         actual = np.array(ring_energies)
         corr = float(np.corrcoef(expected_slope, actual)[0, 1]) if np.std(actual) > 0 and np.std(expected_slope) > 0 else 0.0
+        patch_variances = []
+        arr_np = np.array(img, dtype=np.float32)
+        for rx in range(0, 240, 32):
+            for ry in range(0, 240, 32):
+                p = arr_np[rx:rx+32, ry:ry+32]
+                patch_variances.append(float(np.var(p)))
+        min_patch_var = float(np.min(patch_variances)) if patch_variances else 0.0
         ai_score = 0.0
-        if hfer < 0.05: ai_score += 0.45
-        elif hfer < 0.08: ai_score += 0.30
-        elif hfer < 0.12: ai_score += 0.10
-        if grid_spike_ratio > 50: ai_score += 0.35
-        elif grid_spike_ratio > 25: ai_score += 0.20
-        elif grid_spike_ratio > 15: ai_score += 0.08
-        if abs(corr) < 0.3: ai_score += 0.20
-        elif abs(corr) < 0.6: ai_score += 0.08
+        if hfer < 0.08: ai_score += 0.45
+        elif hfer < 0.12: ai_score += 0.30
+        elif hfer < 0.16: ai_score += 0.15
+        if grid_spike_ratio > 30: ai_score += 0.35
+        elif grid_spike_ratio > 18: ai_score += 0.20
+        elif grid_spike_ratio > 10: ai_score += 0.10
+        if abs(corr) < 0.45: ai_score += 0.20
+        if min_patch_var < 8.0: ai_score += 0.20
         ai_score = float(min(1.0, ai_score))
-        is_ai_generated = ai_score > 0.40
-        generator_hint = "Unknown / Real Photo"
+        is_ai_generated = ai_score >= 0.30
+        generator_hint = "Natural Camera Photograph"
         if is_ai_generated:
-            if hfer < 0.04 and grid_spike_ratio > 40:
+            if hfer < 0.08 and grid_spike_ratio > 20:
                 generator_hint = "Latent Diffusion Model (SD / SDXL / FLUX / DALL-E 3)"
-            elif hfer < 0.06:
-                generator_hint = "GAN-based Generator (Midjourney / StyleGAN / Imagen)"
+            elif hfer < 0.12:
+                generator_hint = "GAN / AI Graphic Generator (Midjourney / StyleGAN / Imagen)"
             else:
-                generator_hint = "AI-Assisted / Partial Generation (Inpainting / Canva AI)"
-        return {"hfer": round(hfer, 4), "grid_spike_ratio": round(grid_spike_ratio, 2), "spectral_1f_corr": round(corr, 3), "ring_energies": [round(e, 3) for e in ring_energies], "ai_generation_score": round(ai_score, 3), "is_ai_generated": is_ai_generated, "generator_family_hint": generator_hint}
+                generator_hint = "AI-Assisted Digital Generation / Canva AI"
+        return {"hfer": round(hfer, 4), "grid_spike_ratio": round(grid_spike_ratio, 2), "spectral_1f_corr": round(corr, 3), "min_patch_var": round(min_patch_var, 2), "ring_energies": [round(e, 3) for e in ring_energies], "ai_generation_score": round(ai_score, 3), "is_ai_generated": is_ai_generated, "generator_family_hint": generator_hint}
     except Exception as e:
         return {"error": str(e), "ai_generation_score": 0.0, "is_ai_generated": False, "generator_family_hint": "Analysis Failed"}
 
@@ -167,8 +174,8 @@ def analyze_dct_uniformity(image_path_or_bytes):
             kurtosis = float(np.mean(((acs - mean_ac) / std_ac) ** 4)) - 3.0
         else:
             kurtosis = 0.0
-        is_gaussian_like = kurtosis < 1.5
-        dct_ai_score = max(0.0, min(1.0, (2.0 - kurtosis) / 4.0)) if kurtosis < 2.0 else 0.0
+        is_gaussian_like = kurtosis < 2.0
+        dct_ai_score = max(0.0, min(1.0, (2.5 - kurtosis) / 3.5)) if kurtosis < 2.5 else 0.0
         return {"ac_kurtosis": round(kurtosis, 3), "ac_std": round(std_ac, 3), "is_gaussian_like": is_gaussian_like, "dct_ai_score": round(dct_ai_score, 3)}
     except Exception as e:
         return {"error": str(e), "dct_ai_score": 0.0, "is_gaussian_like": False}
@@ -184,17 +191,19 @@ def run_full_forensics(image_path):
     if ela.get("is_tampered"): tamper_score += 0.35
     if noise.get("has_noise_anomaly"): tamper_score += 0.25
     ai_gen_score = 0.0
-    if exif.get("has_ai_signature"): ai_gen_score += 0.70
-    ai_gen_score += fft.get("ai_generation_score", 0.0) * 0.50
-    ai_gen_score += dct.get("dct_ai_score", 0.0) * 0.20
-    if not noise.get("has_noise_anomaly") and ela.get("mean_ela", 99) < 10: ai_gen_score += 0.10
+    if exif.get("has_ai_signature"): ai_gen_score += 0.85
+    fft_score = fft.get("ai_generation_score", 0.0)
+    dct_score = dct.get("dct_ai_score", 0.0)
+    ai_gen_score += fft_score * 0.75
+    ai_gen_score += dct_score * 0.25
+    if not noise.get("has_noise_anomaly") and ela.get("mean_ela", 99) < 15: ai_gen_score += 0.15
     ai_gen_score = float(min(1.0, ai_gen_score))
-    is_ai_generated = ai_gen_score > 0.45
+    is_ai_generated = ai_gen_score >= 0.30
     forensic_verdict = "CLEAN"
     if is_ai_generated and tamper_score > 0.35: forensic_verdict = "AI_GENERATED_AND_EDITED"
     elif is_ai_generated: forensic_verdict = "AI_GENERATED"
     elif tamper_score >= 0.35: forensic_verdict = "TAMPERED_REAL_IMAGE"
-    return {"forensic_tamper_score": round(min(1.0, tamper_score), 3), "ai_generation_score": round(ai_gen_score, 3), "is_tampered": tamper_score >= 0.35, "is_ai_generated": is_ai_generated, "forensic_verdict": forensic_verdict, "generator_family_hint": fft.get("generator_family_hint", "Unknown"), "detected_ai_generators": exif.get("detected_ai_generators", []), "detected_editing_software": exif.get("detected_editing_software", []), "sd_prompt_found": exif.get("sd_prompt_found", False), "sd_prompt_preview": exif.get("sd_prompt_preview"), "ela_analysis": ela, "noise_analysis": noise, "exif_analysis": exif, "fft_analysis": {"hfer": fft.get("hfer"), "grid_spike_ratio": fft.get("grid_spike_ratio"), "spectral_1f_corr": fft.get("spectral_1f_corr"), "ai_generation_score": fft.get("ai_generation_score")}, "dct_analysis": dct}
+    return {"forensic_tamper_score": round(min(1.0, tamper_score), 3), "ai_generation_score": round(ai_gen_score, 3), "is_tampered": tamper_score >= 0.35, "is_ai_generated": is_ai_generated, "forensic_verdict": forensic_verdict, "generator_family_hint": fft.get("generator_family_hint", "Unknown"), "detected_ai_generators": exif.get("detected_ai_generators", []), "detected_editing_software": exif.get("detected_editing_software", []), "sd_prompt_found": exif.get("sd_prompt_found", False), "sd_prompt_preview": exif.get("sd_prompt_preview"), "ela_analysis": ela, "noise_analysis": noise, "exif_analysis": exif, "fft_analysis": fft, "dct_analysis": dct}
 
 if __name__ == '__main__':
     if len(sys.argv) > 1:
@@ -205,10 +214,9 @@ if __name__ == '__main__':
         else:
             print(json.dumps({"error": "File not found"}))
     else:
-        # Self-test: generate a synthetic image and pass as raw bytes
         dummy = Image.new('RGB', (300, 300), color=(128, 90, 45))
         buf = io.BytesIO()
         dummy.save(buf, 'JPEG', quality=95)
-        raw_bytes = buf.getvalue()  # Pass bytes, not BytesIO
+        raw_bytes = buf.getvalue()
         report = run_full_forensics(raw_bytes)
         print(json.dumps(report, indent=2))
