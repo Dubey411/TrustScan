@@ -462,8 +462,8 @@ router.post("/scan", upload.single('file'), async (req, res) => {
 
     const scanDataRecord = {
       userId: userId || null,
-      type: ["message", "link", "document", "email", "job", "company", "academic", "degree", "payment", "gov_id"].includes(originalType || type)
-        ? (originalType || type)
+      type: ["message", "link", "document", "email", "job", "company", "academic", "degree", "payment", "image", "gov_id"].includes(originalType || type)
+        ? (isPaymentReceipt ? (originalType || type) : (imageForensicsData ? "image" : (originalType || type)))
         : "document",
       content: content.substring(0, 500),
       fileName: req.file ? req.file.originalname : null,
