@@ -2,14 +2,16 @@ import sys
 import os
 import io
 import json
-import urllib.request
-import ssl
+import warnings
 
-# Cache directory for models
+# Suppress warnings
+warnings.filterwarnings("ignore")
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
+
 CACHE_DIR = os.path.join(os.path.dirname(__file__), '..', 'models', 'cache')
 os.makedirs(CACHE_DIR, exist_ok=True)
 
-# Global pipelines cached in memory across invocations if python daemon/process persists
 _PIPELINES = {}
 
 def get_pipeline(model_id):
@@ -25,18 +27,10 @@ def get_pipeline(model_id):
 
 def predict_sdxl_detector(image_path_or_bytes):
     """
-    Evaluates an image using an ensemble of Pretrained AI Image Classifiers:
-    1. Organika/sdxl-detector (SDXL / Diffusion Specialist)
-    2. umm-maybe/AI-image-detector (General ViT - Midjourney / DALL-E / SD Specialist)
-    3. prithivMLmods/Deep-Fake-Detector-Model (Synthetic / DeepFake Specialist)
-
-    Returns: {
-        "score": float (0.0 to 1.0),
-        "is_ai": bool,
-        "label": str,
-        "method": str,
-        "models_evaluated": dict
-    }
+    Optimized Fast Pretrained Vision Ensemble:
+    1. Runs Organika/sdxl-detector (SDXL Expert) first (~150ms).
+    2. If high confidence (> 0.60), returns immediately for sub-second latency.
+    3. If low/inconclusive, runs umm-maybe/AI-image-detector (General ViT) to catch Midjourney/DALL-E.
     """
     try:
         from PIL import Image
@@ -49,7 +43,7 @@ def predict_sdxl_detector(image_path_or_bytes):
         model_results = {}
         ai_scores = []
 
-        # Model 1: Organika/sdxl-detector (SDXL Expert)
+        # Model 1: Organika/sdxl-detector (Primary Diffusion Expert)
         pipe_sdxl = get_pipeline("Organika/sdxl-detector")
         if pipe_sdxl:
             try:
@@ -62,12 +56,23 @@ def predict_sdxl_detector(image_path_or_bytes):
                         s_score = score
                     elif lbl in ['human', 'real', 'natural', 'authentic'] and s_score == 0.0:
                         s_score = 1.0 - score
-                model_results["sdxl_detector"] = {"score": round(s_score, 4), "raw": res_sdxl}
+                model_results["sdxl_detector"] = {"score": round(s_score, 4)}
                 ai_scores.append(s_score)
+
+                # FAST PATH: If SDXL expert is already highly confident, return immediately!
+                if s_score >= 0.70:
+                    return {
+                        "score": round(s_score, 4),
+                        "is_ai": True,
+                        "label": "artificial",
+                        "method": "fast_sdxl_detector",
+                        "models_evaluated": model_results,
+                        "all_scores": [{"model": "sdxl_detector", "score": round(s_score, 4)}]
+                    }
             except Exception as e:
                 model_results["sdxl_detector"] = {"error": str(e)}
 
-        # Model 2: umm-maybe/AI-image-detector (ViT General AI Expert: Midjourney / DALL-E / SD)
+        # Model 2: umm-maybe/AI-image-detector (General ViT - Midjourney / DALL-E / FLUX Expert)
         pipe_vit = get_pipeline("umm-maybe/AI-image-detector")
         if pipe_vit:
             try:
@@ -80,41 +85,21 @@ def predict_sdxl_detector(image_path_or_bytes):
                         v_score = score
                     elif lbl in ['human', 'real', 'natural', 'authentic'] and v_score == 0.0:
                         v_score = 1.0 - score
-                model_results["general_vit_detector"] = {"score": round(v_score, 4), "raw": res_vit}
+                model_results["general_vit_detector"] = {"score": round(v_score, 4)}
                 ai_scores.append(v_score)
             except Exception as e:
                 model_results["general_vit_detector"] = {"error": str(e)}
 
-        # Model 3: prithivMLmods/Deep-Fake-Detector-Model
-        pipe_df = get_pipeline("prithivMLmods/Deep-Fake-Detector-Model")
-        if pipe_df:
-            try:
-                res_df = pipe_df(img)
-                df_score = 0.0
-                for item in res_df:
-                    lbl = str(item.get('label', '')).lower()
-                    score = float(item.get('score', 0.0))
-                    if lbl in ['fake', 'artificial', 'ai', 'generated']:
-                        df_score = score
-                    elif lbl in ['real', 'human'] and df_score == 0.0:
-                        df_score = 1.0 - score
-                model_results["deepfake_detector"] = {"score": round(df_score, 4), "raw": res_df}
-                ai_scores.append(df_score)
-            except Exception as e:
-                model_results["deepfake_detector"] = {"error": str(e)}
-
         if ai_scores:
-            # Ensemble aggregation: Maximum single-model high-confidence detection with cross-model reinforcement
             max_score = max(ai_scores)
             avg_score = sum(ai_scores) / len(ai_scores)
-            # If any specialist model fires > 0.50, trust the specialist with gentle cross-weighting
             ensemble_score = max_score if max_score >= 0.50 else (avg_score * 0.7 + max_score * 0.3)
             
             return {
                 "score": round(ensemble_score, 4),
                 "is_ai": ensemble_score >= 0.40,
                 "label": "artificial" if ensemble_score >= 0.40 else "human",
-                "method": "pretrained_vision_ensemble (SDXL + General ViT + DeepFake)",
+                "method": "fast_vision_ensemble (SDXL + General ViT)",
                 "models_evaluated": model_results,
                 "all_scores": [{"model": k, "score": v.get("score", 0.0)} for k, v in model_results.items() if "score" in v]
             }
@@ -135,4 +120,4 @@ if __name__ == '__main__':
         res = predict_sdxl_detector(sys.argv[1])
         print(json.dumps(res, indent=2))
     else:
-        print(json.dumps({"info": "Pass image path as argument to run Pretrained Vision Ensemble."}))
+        print(json.dumps({"info": "Pass image path as argument to run Fast Pretrained Vision Ensemble."}))

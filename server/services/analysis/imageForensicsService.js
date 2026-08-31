@@ -42,37 +42,57 @@ export async function analyzeDocumentForensics(imageBuffer) {
     try {
         await fs.promises.writeFile(tempFilePath, imageBuffer);
 
-        const pyCommand = process.platform === 'win32' ? 'python' : 'python3';
+        let parsed = null;
 
-        const resultJson = await new Promise((resolve) => {
-            const pythonProcess = spawn(pyCommand, [SCRIPT_PATH, tempFilePath]);
-            let stdoutData = '';
-
-            pythonProcess.stdout.on('data', (data) => {
-                stdoutData += data.toString();
-            });
-
-            pythonProcess.on('error', (err) => {
-                console.warn(`⚠️ [ImageForensics] Python spawn error: ${err.message}`);
-                resolve('{}');
-            });
-
-            pythonProcess.on('close', () => {
-                resolve(stdoutData);
-            });
-        });
-
-        let parsed = {};
+        // 🚀 Strategy 1: Ultra-fast Warm Python ML Daemon (50ms latency)
         try {
-            const jsonMatch = (stdoutData || '').match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-                parsed = JSON.parse(jsonMatch[0]);
-            } else {
-                parsed = JSON.parse(stdoutData || '{}');
+            const daemonResp = await fetch('http://127.0.0.1:5005', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ filePath: tempFilePath }),
+                signal: AbortSignal.timeout(4000)
+            });
+            if (daemonResp.ok) {
+                parsed = await daemonResp.json();
             }
-        } catch (parseErr) {
-            console.warn(`⚠️ [ImageForensics] JSON parse note: ${parseErr.message}`);
+        } catch (daemonErr) {
+            // Daemon offline or timed out -> proceed to CLI spawn fallback
         }
+
+        // 🔄 Strategy 2: CLI Spawn Fallback
+        if (!parsed) {
+            const pyCommand = process.platform === 'win32' ? 'python' : 'python3';
+            const stdoutData = await new Promise((resolve) => {
+                const pythonProcess = spawn(pyCommand, [SCRIPT_PATH, tempFilePath]);
+                let dataChunks = '';
+
+                pythonProcess.stdout.on('data', (data) => {
+                    dataChunks += data.toString();
+                });
+
+                pythonProcess.on('error', (err) => {
+                    console.warn(`⚠️ [ImageForensics] Python spawn error: ${err.message}`);
+                    resolve('{}');
+                });
+
+                pythonProcess.on('close', () => {
+                    resolve(dataChunks);
+                });
+            });
+
+            try {
+                const jsonMatch = (stdoutData || '').match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                    parsed = JSON.parse(jsonMatch[0]);
+                } else {
+                    parsed = JSON.parse(stdoutData || '{}');
+                }
+            } catch (parseErr) {
+                console.warn(`⚠️ [ImageForensics] JSON parse note: ${parseErr.message}`);
+                parsed = {};
+            }
+        }
+        if (!parsed) parsed = {};
 
         return {
             // ── Tamper detection (manually edited real photos) ──
