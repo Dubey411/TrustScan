@@ -6,6 +6,17 @@ import math
 import numpy as np
 from PIL import Image, ImageChops, ImageEnhance
 
+# Try importing local Organika/sdxl-detector ML predictor
+try:
+    from sdxl_detector import predict_sdxl_detector
+except ImportError:
+    try:
+        sys.path.append(os.path.dirname(__file__))
+        from sdxl_detector import predict_sdxl_detector
+    except ImportError:
+        def predict_sdxl_detector(img):
+            return {"score": 0.0, "is_ai": False, "method": "none"}
+
 def analyze_ela(image_path_or_bytes, quality=90, scale=15):
     try:
         if isinstance(image_path_or_bytes, str):
@@ -178,24 +189,55 @@ def run_full_forensics(image_path):
     exif  = scan_exif_metadata(image_path)
     fft   = analyze_frequency_domain(image_path)
     dct   = analyze_dct_uniformity(image_path)
+    sdxl  = predict_sdxl_detector(image_path)
+
     tamper_score = 0.0
     if exif.get("has_software_signature"): tamper_score += 0.40
     if ela.get("is_tampered"): tamper_score += 0.35
     if noise.get("has_noise_anomaly"): tamper_score += 0.25
+
     ai_gen_score = 0.0
     if exif.get("has_ai_signature"): ai_gen_score += 0.85
+    
+    ml_score = sdxl.get("score", 0.0)
+    if ml_score > 0.35:
+        ai_gen_score = max(ai_gen_score, ml_score)
+
     fft_score = fft.get("ai_generation_score", 0.0)
     dct_score = dct.get("dct_ai_score", 0.0)
-    ai_gen_score += fft_score * 0.70
-    ai_gen_score += dct_score * 0.20
+    ai_gen_score += fft_score * 0.40
+    ai_gen_score += dct_score * 0.15
     ai_gen_score = float(min(1.0, ai_gen_score))
-    is_ai_generated = ai_gen_score >= 0.40
+
+    is_ai_generated = ai_gen_score >= 0.40 or sdxl.get("is_ai", False)
     is_tampered = tamper_score >= 0.35
     forensic_verdict = "CLEAN"
     if is_ai_generated and is_tampered: forensic_verdict = "AI_GENERATED_AND_EDITED"
     elif is_ai_generated: forensic_verdict = "AI_GENERATED"
     elif is_tampered: forensic_verdict = "TAMPERED_REAL_IMAGE"
-    return {"forensic_tamper_score": round(min(1.0, tamper_score), 3), "ai_generation_score": round(ai_gen_score, 3), "is_tampered": is_tampered, "is_ai_generated": is_ai_generated, "forensic_verdict": forensic_verdict, "generator_family_hint": fft.get("generator_family_hint", "Unknown"), "detected_ai_generators": exif.get("detected_ai_generators", []), "detected_editing_software": exif.get("detected_editing_software", []), "sd_prompt_found": exif.get("sd_prompt_found", False), "sd_prompt_preview": exif.get("sd_prompt_preview"), "ela_analysis": ela, "noise_analysis": noise, "exif_analysis": exif, "fft_analysis": fft, "dct_analysis": dct}
+
+    generator_hint = fft.get("generator_family_hint", "Unknown")
+    if sdxl.get("is_ai"):
+        generator_hint = f"Organika/sdxl-detector ML Vision Model ({int(sdxl.get('score',0)*100)}% AI probability)"
+
+    return {
+        "forensic_tamper_score": round(min(1.0, tamper_score), 3),
+        "ai_generation_score": round(ai_gen_score, 3),
+        "is_tampered": is_tampered,
+        "is_ai_generated": is_ai_generated,
+        "forensic_verdict": forensic_verdict,
+        "generator_family_hint": generator_hint,
+        "detected_ai_generators": exif.get("detected_ai_generators", []),
+        "detected_editing_software": exif.get("detected_editing_software", []),
+        "sd_prompt_found": exif.get("sd_prompt_found", False),
+        "sd_prompt_preview": exif.get("sd_prompt_preview"),
+        "ela_analysis": ela,
+        "noise_analysis": noise,
+        "exif_analysis": exif,
+        "fft_analysis": fft,
+        "dct_analysis": dct,
+        "sdxl_detector_ml": sdxl
+    }
 
 if __name__ == '__main__':
     if len(sys.argv) > 1:
