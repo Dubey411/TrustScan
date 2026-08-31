@@ -13,6 +13,9 @@ interface PaymentReceiptProps {
   isFakeApkDetected?: boolean;
   forensicTamperScore?: number;
   isAiGenerated?: boolean;
+  aiGenerationScore?: number;
+  forensicVerdict?: 'CLEAN' | 'AI_GENERATED' | 'TAMPERED_REAL_IMAGE' | 'AI_GENERATED_AND_EDITED';
+  generatorFamilyHint?: string | null;
   trustScore?: number;
 }
 
@@ -26,6 +29,9 @@ export default function PaymentReceiptCard({
   isFakeApkDetected = false,
   forensicTamperScore = 14,
   isAiGenerated = false,
+  aiGenerationScore = 0,
+  forensicVerdict = 'CLEAN',
+  generatorFamilyHint = null,
   trustScore = 100
 }: PaymentReceiptProps) {
   return (
@@ -149,30 +155,68 @@ export default function PaymentReceiptCard({
             </div>
           </div>
 
-          {/* Card 4: AI Image & ELA Pixel Forensics */}
-          <div className="bg-muted/30 hover:bg-muted/40 transition-colors rounded-2xl p-5 border border-border flex flex-col justify-between">
+          {/* Card 4: AI Generation + ELA Dual-Verdict Forensics */}
+          <div className={`hover:bg-muted/40 transition-colors rounded-2xl p-5 border flex flex-col justify-between ${
+            forensicVerdict === 'AI_GENERATED' || forensicVerdict === 'AI_GENERATED_AND_EDITED'
+              ? 'bg-purple-500/10 border-purple-500/30'
+              : forensicVerdict === 'TAMPERED_REAL_IMAGE'
+              ? 'bg-destructive/10 border-destructive/30'
+              : 'bg-muted/30 border-border'
+          }`}>
             <div>
               <div className="flex items-center justify-between mb-3">
                 <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                   <Icon name="PhotoIcon" size={16} className="text-purple-400" />
                   AI Image & ELA Forensics
                 </span>
-                <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${forensicTamperScore <= 35 ? 'bg-success/10 text-success border border-success/20' : 'bg-destructive/10 text-destructive border border-destructive/20'}`}>
-                  {forensicTamperScore <= 35 ? 'CLEAN PIXELS' : 'TAMPERED'}
+                <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${
+                  forensicVerdict === 'CLEAN'
+                    ? 'bg-success/10 text-success border border-success/20'
+                    : forensicVerdict === 'AI_GENERATED'
+                    ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                    : forensicVerdict === 'AI_GENERATED_AND_EDITED'
+                    ? 'bg-red-600/20 text-red-300 border border-red-500/30'
+                    : 'bg-destructive/10 text-destructive border border-destructive/20'
+                }`}>
+                  {forensicVerdict === 'CLEAN' ? 'AUTHENTIC'
+                    : forensicVerdict === 'AI_GENERATED' ? 'AI GENERATED'
+                    : forensicVerdict === 'AI_GENERATED_AND_EDITED' ? 'AI + EDITED'
+                    : 'TAMPERED'}
                 </span>
               </div>
-              <div className={`text-xl font-mono font-black ${forensicTamperScore > 35 ? 'text-destructive' : 'text-foreground'}`}>
-                {forensicTamperScore}% Variance
+
+              {/* Dual Score Display */}
+              <div className="flex items-end gap-3 mb-2">
+                <div>
+                  <div className="text-[10px] text-muted-foreground uppercase tracking-wide">AI Gen Score</div>
+                  <div className={`text-xl font-mono font-black ${
+                    aiGenerationScore > 0.45 ? 'text-purple-400' : 'text-foreground'
+                  }`}>
+                    {Math.round(aiGenerationScore * 100)}%
+                  </div>
+                </div>
+                <div className="text-muted-foreground/40 text-lg mb-0.5">|</div>
+                <div>
+                  <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Tamper Score</div>
+                  <div className={`text-xl font-mono font-black ${
+                    forensicTamperScore > 35 ? 'text-destructive' : 'text-foreground'
+                  }`}>
+                    {forensicTamperScore}%
+                  </div>
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
-                {forensicTamperScore > 35 
-                  ? 'High JPEG error level variance detected. Localized editing or spliced text suspected.' 
-                  : 'Uniform pixel compression levels. No signs of Photoshop, Canva, or splicing.'}
+
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                {generatorFamilyHint
+                  ? `Spectral fingerprint: ${generatorFamilyHint}`
+                  : forensicTamperScore > 35
+                  ? 'High ELA variance — localized editing or pixel splicing detected.'
+                  : 'Authentic image spectrum. No AI generation or tampering detected.'}
               </p>
             </div>
             <div className="mt-4 pt-3 border-t border-border/50 text-[11px] font-mono text-purple-400 flex items-center gap-1">
               <Icon name="SparklesIcon" size={14} />
-              Error Level Analysis (ELA) Passed
+              FFT Spectral + ELA + DCT Analysis
             </div>
           </div>
 

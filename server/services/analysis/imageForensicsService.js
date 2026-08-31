@@ -1,4 +1,4 @@
-import { spawn } from 'child_process';
+﻿import { spawn } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
@@ -9,20 +9,35 @@ const __dirname = path.dirname(__filename);
 const SCRIPT_PATH = path.join(__dirname, '../../scripts/image_forensics.py');
 
 /**
- * Stage 3.5: Deep Image Forensic Analysis Service
- * Executes Error Level Analysis (ELA), Noise Inconsistency Analysis, and EXIF software scanning.
+ * 5-Stage Deep Image Forensic Analysis Service
+ *
+ * Stage 1: ELA (Error Level Analysis) — Photoshop/Canva tamper detection
+ * Stage 2: Noise Inconsistency — Composite/spliced image detection
+ * Stage 3: EXIF Metadata Scan — AI generator signatures (SD prompt, Midjourney job ID)
+ * Stage 4: FFT Frequency Domain — Spectral fingerprinting for LDM/GAN/Diffusion models
+ * Stage 5: DCT Block Kurtosis — AC coefficient distribution (Laplacian vs Gaussian)
+ *
+ * @param {Buffer} imageBuffer - Raw image bytes
+ * @returns {Promise<Object>} Full forensic report with tamper AND AI-generation verdicts
  */
 export async function analyzeDocumentForensics(imageBuffer) {
     if (!imageBuffer || imageBuffer.length === 0) {
         return {
             tamperingConfidence: 0.0,
+            aiGenerationScore: 0.0,
             isTampered: false,
+            isAiGenerated: false,
+            forensicVerdict: 'CLEAN',
+            generatorFamilyHint: null,
             anomalyRegions: [],
             method: 'none'
         };
     }
 
-    const tempFilePath = path.join(os.tmpdir(), `forensic_${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`);
+    const tempFilePath = path.join(
+        os.tmpdir(),
+        `forensic_${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`
+    );
 
     try {
         await fs.promises.writeFile(tempFilePath, imageBuffer);
@@ -48,19 +63,53 @@ export async function analyzeDocumentForensics(imageBuffer) {
         });
 
         const parsed = JSON.parse(resultJson || '{}');
-        const score = parsed.forensic_tamper_score || 0.0;
 
         return {
-            tamperingConfidence: score,
+            // ── Tamper detection (manually edited real photos) ──
+            tamperingConfidence: parsed.forensic_tamper_score || 0.0,
             isTampered: Boolean(parsed.is_tampered),
-            details: parsed,
-            anomalyRegions: parsed.is_tampered ? [{ bbox: [0, 0, 100, 100], type: 'ela_anomaly' }] : []
+
+            // ── AI generation detection (LDM / GAN / Diffusion) ──
+            aiGenerationScore: parsed.ai_generation_score || 0.0,
+            isAiGenerated: Boolean(parsed.is_ai_generated),
+
+            // CLEAN / AI_GENERATED / TAMPERED_REAL_IMAGE / AI_GENERATED_AND_EDITED
+            forensicVerdict: parsed.forensic_verdict || 'CLEAN',
+
+            // e.g. "Latent Diffusion Model (SD / SDXL / FLUX / DALL-E 3)"
+            generatorFamilyHint: parsed.generator_family_hint || null,
+
+            // Specific AI generators found in EXIF (e.g. ["midjourney", "comfyui"])
+            detectedAiGenerators: parsed.detected_ai_generators || [],
+            detectedEditingSoftware: parsed.detected_editing_software || [],
+
+            // Stable Diffusion PNG prompt metadata
+            sdPromptFound: Boolean(parsed.sd_prompt_found),
+            sdPromptPreview: parsed.sd_prompt_preview || null,
+
+            // Raw sub-analysis for detailed UI breakdown
+            details: {
+                ela:   parsed.ela_analysis,
+                noise: parsed.noise_analysis,
+                fft:   parsed.fft_analysis,
+                dct:   parsed.dct_analysis,
+                exif:  parsed.exif_analysis,
+            },
+
+            // Legacy field for backward compat with PaymentReceiptCard
+            anomalyRegions: parsed.is_tampered
+                ? [{ bbox: [0, 0, 100, 100], type: 'ela_anomaly' }]
+                : []
         };
     } catch (err) {
         console.warn(`⚠️ [ImageForensics] Forensics execution note: ${err.message}`);
         return {
             tamperingConfidence: 0.0,
+            aiGenerationScore: 0.0,
             isTampered: false,
+            isAiGenerated: false,
+            forensicVerdict: 'CLEAN',
+            generatorFamilyHint: null,
             anomalyRegions: []
         };
     } finally {
