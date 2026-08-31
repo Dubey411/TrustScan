@@ -255,10 +255,12 @@ const ResultsInteractive = ({ scanData, showFeedback = true }: ResultsInteractiv
                      activeScanData?.target?.toLowerCase().includes('certificate') ||
                      !!activeScanData?.metadata?.academicSignals?.isAcademicDocument;
   const isGovId = (activeScanData as any)?.scanType === 'gov_id' || activeScanData?.target?.toLowerCase().includes('aadhaar') || activeScanData?.target?.toLowerCase().includes('pan');
-  // isImageForensics: payment scan type but result came from image-forensics-only path (no OCR text)
-  const isImageForensics = ((activeScanData as any)?.scanType === 'payment' || (activeScanData as any)?.scanType === 'image') &&
-                           !!activeScanData?.metadata?.imageForensics;
-  const isPayment = !isImageForensics && ((activeScanData as any)?.scanType === 'payment' || (activeScanData as any)?.scanType === 'transaction' || activeScanData?.target?.toLowerCase().includes('upi') || activeScanData?.target?.toLowerCase().includes('gpay'));
+  const hasImageForensics = !!activeScanData?.metadata?.imageForensics || !!activeScanData?.scanMeta?.forensicVerdict;
+  const isVerifiedPaymentReceipt = activeScanData?.metadata?.isPaymentReceipt === true || 
+    (hasImageForensics && (activeScanData?.metadata?.upiRef || activeScanData?.reasons?.some((r: any) => r.toLowerCase().includes('upi') || r.toLowerCase().includes('utr'))));
+
+  const isImageForensics = hasImageForensics && !isVerifiedPaymentReceipt;
+  const isPayment = !isImageForensics && (isVerifiedPaymentReceipt || (activeScanData as any)?.scanType === 'payment' && !hasImageForensics);
   const isCompany = activeScanData?.scanType === 'company';
   const isCareer = !isAcademic && ((activeScanData as any)?.scanType === 'document' || activeScanData?.target?.toLowerCase().includes('offer') || activeScanData?.target?.toLowerCase().includes('internship'));
   const isDocument = (activeScanData as any)?.scanType === 'document' || (activeScanData as any)?.scanType === 'academic' || !!activeScanData?.scanMeta;

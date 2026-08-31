@@ -112,9 +112,25 @@ router.post("/scan", upload.single('file'), async (req, res) => {
     const originalType = type; // Preserve user's intended scan type (job, company, etc.)
     
     let isNotJobDocument = false;
+    let imageForensicsData = null;
+    let isPaymentReceipt = originalType === 'payment';
 
     if (req.file) {
       console.log(`📂 [API Scan] Document upload detected: ${req.file.originalname} (Depth: ${ocrDepth})`);
+      
+      const isImageFile = req.file.mimetype?.startsWith('image/') || /\.(png|jpg|jpeg|webp)$/i.test(req.file.originalname);
+      
+      // Always run image forensics for image file uploads
+      if (isImageFile) {
+          try {
+              const { analyzeDocumentForensics } = await import('../services/analysis/imageForensicsService.js');
+              imageForensicsData = await analyzeDocumentForensics(req.file.buffer);
+              console.log(`🔬 [API Scan] Image Forensics Executed: Verdict=${imageForensicsData?.forensicVerdict}, AI Score=${imageForensicsData?.aiGenerationScore}`);
+          } catch (fErr) {
+              console.warn(`⚠️ [API Scan] Image forensics error: ${fErr.message}`);
+          }
+      }
+
       const processed = await processDocument(req.file.buffer, req.file.mimetype, req.file.originalname, ocrDepth);
       
       content = processed.text;
@@ -132,65 +148,68 @@ router.post("/scan", upload.single('file'), async (req, res) => {
       const extractedText = (content || "").trim();
       const textLength = extractedText.length;
 
-      // 🛑 CHECK 1: Plain image with no text
-      // EXCEPTION: if scan type is 'payment' (AI Image & Payment Forensics),
-      // we run image-forensics-only and return without needing OCR text.
-      if (textLength < 10) {
-          if (originalType === 'payment' || originalType === 'image') {
-              console.log(`🔍 [Scan] No text found, but scan type is '${originalType}' → running image forensics only.`);
+      // Check if image OCR text actually contains payment/UPI indicators
+      if (isImageFile) {
+          const lowerText = extractedText.toLowerCase();
+          const paymentKeywords = [
+              'upi', 'utr', 'gpay', 'google pay', 'phonepe', 'paytm', 'bhim', 
+              'paid to', 'payment successful', 'transaction id', 'txn id', 
+              'ref no', 'transfer to', 'hdfc', 'sbi', 'icici', 'axis', 'kotak', 
+              'credited to', 'debited from'
+          ];
+          const hasPaymentKw = paymentKeywords.some(kw => lowerText.includes(kw));
+          isPaymentReceipt = hasPaymentKw;
+          console.log(`💳 [API Scan] Image Payment Keyword Detection: isPaymentReceipt=${isPaymentReceipt} (matched text length: ${textLength})`);
+      }
 
-              // Import and run forensics directly on the uploaded image buffer
-              let forensicsResult = { forensic_tamper_score: 0, ai_generation_score: 0, is_tampered: false, is_ai_generated: false, forensic_verdict: 'CLEAN', generator_family_hint: null };
-              try {
-                  const { analyzeDocumentForensics } = await import('../services/analysis/imageForensicsService.js');
-                  forensicsResult = await analyzeDocumentForensics(req.file.buffer);
-              } catch (forensicErr) {
-                  console.warn(`⚠️ [Scan] Image forensics failed: ${forensicErr.message}`);
-              }
+      // 🛑 CHECK 1: Plain image with no text
+      if (textLength < 10) {
+          if (originalType === 'payment' || originalType === 'image' || isImageFile) {
+              console.log(`🔍 [Scan] Minimal text found (${textLength} chars) → returning image forensics verdict.`);
+
+              const forensics = imageForensicsData || {
+                  forensicVerdict: 'CLEAN',
+                  aiGenerationScore: 0,
+                  tamperingConfidence: 0,
+                  isAiGenerated: false,
+                  isTampered: false,
+                  generatorFamilyHint: null
+              };
 
               const aiRiskScore = Math.round(
-                  (forensicsResult.aiGenerationScore || 0) * 60 +
-                  (forensicsResult.tamperingConfidence || 0) * 40
+                  (forensics.aiGenerationScore || 0) * 60 +
+                  (forensics.tamperingConfidence || 0) * 40
               );
 
               const savedScan = await new Scan({
                   target: req.file.originalname,
                   content: `[Image File: ${req.file.originalname}]`,
-                  scanType: 'payment',
+                  scanType: isPaymentReceipt ? 'payment' : 'image',
                   result: aiRiskScore > 45 ? 'fraud' : 'safe',
                   riskScore: aiRiskScore,
                   reasons: [
-                      forensicsResult.isAiGenerated
-                          ? `AI-generated image detected (${Math.round(forensicsResult.aiGenerationScore * 100)}% confidence). Generator: ${forensicsResult.generatorFamilyHint || 'Unknown model family'}.`
+                      forensics.isAiGenerated
+                          ? `AI-generated image detected (${Math.round(forensics.aiGenerationScore * 100)}% confidence). Generator: ${forensics.generatorFamilyHint || 'Unknown model family'}.`
                           : 'No AI generation signatures detected in this image.',
-                      forensicsResult.isTampered
-                          ? `Image tampering detected (${Math.round(forensicsResult.tamperingConfidence * 100)}% tamper confidence). ELA analysis found pixel-level editing.`
+                      forensics.isTampered
+                          ? `Image tampering detected (${Math.round(forensics.tamperingConfidence * 100)}% tamper confidence). ELA analysis found pixel-level editing.`
                           : 'No manual editing or pixel tampering detected.',
                   ].filter(Boolean),
                   signals: {},
                   metadata: {
-                      imageForensics: {
-                          forensicVerdict: forensicsResult.forensicVerdict,
-                          aiGenerationScore: forensicsResult.aiGenerationScore,
-                          tamperingConfidence: forensicsResult.tamperingConfidence,
-                          isAiGenerated: forensicsResult.isAiGenerated,
-                          isTampered: forensicsResult.isTampered,
-                          generatorFamilyHint: forensicsResult.generatorFamilyHint,
-                          detectedAiGenerators: forensicsResult.detectedAiGenerators,
-                          sdPromptFound: forensicsResult.sdPromptFound,
-                          sdPromptPreview: forensicsResult.sdPromptPreview,
-                      }
+                      isPaymentReceipt: isPaymentReceipt,
+                      imageForensics: forensics
                   },
                   scanMeta: {
                       source: 'IMAGE_UPLOAD',
                       mimeType: req.file.mimetype,
-                      forensicTamperScore: Math.round((forensicsResult.tamperingConfidence || 0) * 100),
-                      forensicAiScore: Math.round((forensicsResult.aiGenerationScore || 0) * 100),
-                      forensicVerdict: forensicsResult.forensicVerdict,
-                      generatorFamilyHint: forensicsResult.generatorFamilyHint,
-                      verdictLabel: forensicsResult.isAiGenerated
+                      forensicTamperScore: Math.round((forensics.tamperingConfidence || 0) * 100),
+                      forensicAiScore: Math.round((forensics.aiGenerationScore || 0) * 100),
+                      forensicVerdict: forensics.forensicVerdict,
+                      generatorFamilyHint: forensics.generatorFamilyHint,
+                      verdictLabel: forensics.isAiGenerated
                           ? `AI-Generated Image Detected`
-                          : forensicsResult.isTampered
+                          : forensics.isTampered
                           ? 'Tampered Image Detected'
                           : 'Authentic Image',
                       confidence: aiRiskScore > 60 ? 'High' : 'Medium',
@@ -200,7 +219,7 @@ router.post("/scan", upload.single('file'), async (req, res) => {
 
               return res.json({
                   id: savedScan._id,
-                  scanType: 'payment',
+                  scanType: isPaymentReceipt ? 'payment' : 'image',
                   target: req.file.originalname,
                   result: aiRiskScore > 45 ? 'fraud' : 'safe',
                   riskScore: aiRiskScore,
@@ -211,15 +230,13 @@ router.post("/scan", upload.single('file'), async (req, res) => {
               });
           }
 
-          // For all other scan types, reject images with no text
           console.log(`⚠️ [Scan] No readable text found in uploaded file.`);
           return res.status(400).json({
               error: "No readable text found",
-              details: "The uploaded image/document does not contain any readable text. Please upload a document with text content (e.g., an offer letter, job posting, or company registration).",
+              details: "The uploaded image/document does not contain any readable text. Please upload a document with text content.",
               suggestion: "To analyze a plain image for AI generation, use the 'AI Image & Payment Forensics' scan type instead."
           });
       }
-
 
       // 🛑 CHECK 2: Wrong document type for "job" scan
       if (originalType === 'job') {
@@ -238,11 +255,11 @@ router.post("/scan", upload.single('file'), async (req, res) => {
        scanMeta.preview = content.substring(0, 300) + (content.length > 300 ? "..." : "");
     }
 
-
     // 2. Run Unified India Fraud Confidence Engine (Intelligence Layering + LLM)
     const result = await runRules(content, externalSignals, trustSignals, senderId, analysisLayer, originalType || type);
 
     let finalRisk = result.riskScore || 0;
+
     
     // Depth sensitivity adjustments
     if (analysisLayer === 3) {
