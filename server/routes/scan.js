@@ -260,6 +260,42 @@ router.post("/scan", upload.single('file'), async (req, res) => {
 
     let finalRisk = result.riskScore || 0;
 
+    // 🔍 IMAGE FORENSICS ATTACHMENT
+    if (imageForensicsData) {
+        const aiPct = Math.round((imageForensicsData.aiGenerationScore || 0) * 100);
+        const tamperPct = Math.round((imageForensicsData.tamperingConfidence || 0) * 100);
+
+        scanMeta.forensicTamperScore = tamperPct;
+        scanMeta.forensicAiScore = aiPct;
+        scanMeta.forensicVerdict = imageForensicsData.forensicVerdict || (aiPct > 30 ? 'AI_GENERATED' : 'CLEAN');
+        scanMeta.generatorFamilyHint = imageForensicsData.generatorFamilyHint;
+
+        if (!result.metadata) result.metadata = {};
+        result.metadata.imageForensics = {
+            ...imageForensicsData,
+            aiGenerationScorePct: aiPct,
+            tamperingConfidencePct: tamperPct
+        };
+        result.metadata.isPaymentReceipt = isPaymentReceipt;
+
+        if (imageForensicsData.isAiGenerated || aiPct > 30) {
+            finalRisk = Math.max(finalRisk, Math.max(aiPct, 65));
+            scanMeta.verdictLabel = "🤖 AI-Generated Image Detected";
+            if (!result.reasons.some(r => r.includes('AI-generated'))) {
+                result.reasons.unshift(`🤖 AI-Generated Image Detected (${aiPct}% confidence). Generator: ${imageForensicsData.generatorFamilyHint || 'Latent Diffusion Model'}.`);
+            }
+        }
+        if (imageForensicsData.isTampered || tamperPct > 35) {
+            finalRisk = Math.max(finalRisk, Math.max(tamperPct, 65));
+            if (!imageForensicsData.isAiGenerated) {
+                scanMeta.verdictLabel = "✂️ Tampered Image Detected";
+            }
+            if (!result.reasons.some(r => r.includes('tampering'))) {
+                result.reasons.unshift(`✂️ Image Tampering Detected (${tamperPct}% confidence). Pixel-level ELA editing found.`);
+            }
+        }
+    }
+
     
     // Depth sensitivity adjustments
     if (analysisLayer === 3) {
