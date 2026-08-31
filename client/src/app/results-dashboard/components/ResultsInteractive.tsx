@@ -255,7 +255,10 @@ const ResultsInteractive = ({ scanData, showFeedback = true }: ResultsInteractiv
                      activeScanData?.target?.toLowerCase().includes('certificate') ||
                      !!activeScanData?.metadata?.academicSignals?.isAcademicDocument;
   const isGovId = (activeScanData as any)?.scanType === 'gov_id' || activeScanData?.target?.toLowerCase().includes('aadhaar') || activeScanData?.target?.toLowerCase().includes('pan');
-  const isPayment = (activeScanData as any)?.scanType === 'payment' || (activeScanData as any)?.scanType === 'transaction' || activeScanData?.target?.toLowerCase().includes('upi') || activeScanData?.target?.toLowerCase().includes('gpay');
+  // isImageForensics: payment scan type but result came from image-forensics-only path (no OCR text)
+  const isImageForensics = ((activeScanData as any)?.scanType === 'payment' || (activeScanData as any)?.scanType === 'image') &&
+                           !!activeScanData?.metadata?.imageForensics;
+  const isPayment = !isImageForensics && ((activeScanData as any)?.scanType === 'payment' || (activeScanData as any)?.scanType === 'transaction' || activeScanData?.target?.toLowerCase().includes('upi') || activeScanData?.target?.toLowerCase().includes('gpay'));
   const isCompany = activeScanData?.scanType === 'company';
   const isCareer = !isAcademic && ((activeScanData as any)?.scanType === 'document' || activeScanData?.target?.toLowerCase().includes('offer') || activeScanData?.target?.toLowerCase().includes('internship'));
   const isDocument = (activeScanData as any)?.scanType === 'document' || (activeScanData as any)?.scanType === 'academic' || !!activeScanData?.scanMeta;
@@ -359,7 +362,189 @@ const ResultsInteractive = ({ scanData, showFeedback = true }: ResultsInteractiv
         </div>
       )}
 
-      {/* 🌟 2. UPI & AI IMAGE PAYMENT SPECIALIZED RESULT VIEW */}
+      {/* 🌟 2a. AI IMAGE FORENSICS — pure image upload, no OCR text */}
+      {isImageForensics && (() => {
+        const forensics = activeScanData?.metadata?.imageForensics || {};
+        const aiScore = Math.round((forensics.aiGenerationScore || 0) * 100);
+        const tamperScore = Math.round((forensics.tamperingConfidence || 0) * 100);
+        const verdict: string = forensics.forensicVerdict || 'CLEAN';
+        const isAI: boolean = Boolean(forensics.isAiGenerated);
+        const isTampered: boolean = Boolean(forensics.isTampered);
+        const hint: string | null = forensics.generatorFamilyHint || null;
+        const sdPrompt: string | null = forensics.sdPromptPreview || null;
+        const trustScore = activeScanData?.riskScore !== undefined ? (100 - activeScanData.riskScore) : 70;
+
+        return (
+          <div className={`rounded-3xl border-2 shadow-2xl overflow-hidden mb-8 transition-all duration-300 ${
+            isAI ? 'border-purple-500/40 bg-card' : isTampered ? 'border-destructive/40 bg-card' : 'border-emerald-500/20 bg-card'
+          }`}>
+            {/* Header */}
+            <div className={`p-6 md:p-8 border-b border-border flex flex-col md:flex-row items-start md:items-center justify-between gap-6 ${
+              isAI ? 'bg-gradient-to-r from-purple-500/10 via-violet-500/10 to-blue-500/10'
+                   : isTampered ? 'bg-gradient-to-r from-destructive/10 via-orange-500/10 to-amber-500/10'
+                   : 'bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-blue-500/10'
+            }`}>
+              <div className="flex items-center gap-4">
+                <div className={`w-16 h-16 rounded-2xl border flex items-center justify-center flex-shrink-0 shadow-inner ${
+                  isAI ? 'bg-purple-500/20 border-purple-500/30 text-purple-400'
+                       : isTampered ? 'bg-destructive/20 border-destructive/30 text-destructive'
+                       : 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400'
+                }`}>
+                  <Icon name="PhotoIcon" size={36} variant="solid" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className={`text-[11px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full border ${
+                      isAI ? 'bg-purple-500/20 text-purple-400 border-purple-500/30'
+                           : isTampered ? 'bg-destructive/20 text-destructive border-destructive/30'
+                           : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                    }`}>
+                      AI Image Forensics
+                    </span>
+                    <span className="text-xs text-muted-foreground font-mono">FFT Spectral + ELA + DCT</span>
+                  </div>
+                  <h2 className="font-headline font-black text-2xl md:text-3xl text-foreground">
+                    {isAI ? '🤖 AI-Generated Image Detected' : isTampered ? '✂️ Tampered Image Detected' : '✅ Authentic Image'}
+                  </h2>
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    {hint ? `Spectral fingerprint: ${hint}` : 'Multi-stage forensic analysis: frequency domain, pixel tampering, and metadata scan'}
+                  </p>
+                </div>
+              </div>
+              {/* Trust Score Dial */}
+              <div className="flex items-center gap-4 bg-background/80 backdrop-blur-md px-6 py-4 rounded-2xl border border-border shadow-sm">
+                <div className="text-right">
+                  <div className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Image Authenticity</div>
+                  <div className={`text-3xl font-black ${
+                    trustScore >= 70 ? 'text-success' : trustScore >= 40 ? 'text-warning' : 'text-destructive'
+                  }`}>{trustScore} / 100</div>
+                </div>
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                  trustScore >= 70 ? 'bg-success/20 text-success' : 'bg-destructive/20 text-destructive'
+                }`}>
+                  <Icon name={trustScore >= 70 ? 'CheckBadgeIcon' : 'ExclamationTriangleIcon'} size={28} variant="solid" />
+                </div>
+              </div>
+            </div>
+
+            {/* Score Grid */}
+            <div className="p-6 md:p-8 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+
+                {/* AI Generation Score */}
+                <div className={`rounded-2xl p-5 border flex flex-col justify-between ${
+                  isAI ? 'bg-purple-500/10 border-purple-500/30' : 'bg-muted/30 border-border'
+                }`}>
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                        <Icon name="SparklesIcon" size={16} className="text-purple-400" />
+                        AI Generation Score
+                      </span>
+                      <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${
+                        isAI ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' : 'bg-success/10 text-success border border-success/20'
+                      }`}>
+                        {isAI ? 'AI GENERATED' : 'AUTHENTIC'}
+                      </span>
+                    </div>
+                    <div className={`text-3xl font-mono font-black ${isAI ? 'text-purple-400' : 'text-foreground'}`}>
+                      {aiScore}%
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
+                      FFT high-frequency energy ratio + VAE decoder grid artifact analysis.
+                    </p>
+                  </div>
+                  <div className="mt-4 pt-3 border-t border-border/50 text-[11px] font-mono text-purple-400 flex items-center gap-1">
+                    <Icon name="ChartBarIcon" size={14} />
+                    Spectral Fingerprinting Active
+                  </div>
+                </div>
+
+                {/* Tamper Score */}
+                <div className={`rounded-2xl p-5 border flex flex-col justify-between ${
+                  isTampered ? 'bg-destructive/10 border-destructive/30' : 'bg-muted/30 border-border'
+                }`}>
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                        <Icon name="ScissorsIcon" size={16} className="text-amber-400" />
+                        ELA Tamper Score
+                      </span>
+                      <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${
+                        !isTampered ? 'bg-success/10 text-success border border-success/20' : 'bg-destructive/10 text-destructive border border-destructive/20'
+                      }`}>
+                        {isTampered ? 'TAMPERED' : 'CLEAN'}
+                      </span>
+                    </div>
+                    <div className={`text-3xl font-mono font-black ${isTampered ? 'text-destructive' : 'text-foreground'}`}>
+                      {tamperScore}%
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
+                      Error Level Analysis detects Photoshop, Canva, or pixel-level editing.
+                    </p>
+                  </div>
+                  <div className="mt-4 pt-3 border-t border-border/50 text-[11px] font-mono text-amber-400 flex items-center gap-1">
+                    <Icon name="PhotoIcon" size={14} />
+                    JPEG Recompression Analysis
+                  </div>
+                </div>
+
+                {/* Forensic Verdict */}
+                <div className="bg-muted/30 rounded-2xl p-5 border border-border flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                        <Icon name="ShieldCheckIcon" size={16} className="text-blue-400" />
+                        Forensic Verdict
+                      </span>
+                    </div>
+                    <div className={`text-lg font-bold ${
+                      verdict === 'CLEAN' ? 'text-success'
+                      : verdict === 'AI_GENERATED' ? 'text-purple-400'
+                      : verdict === 'AI_GENERATED_AND_EDITED' ? 'text-red-400'
+                      : 'text-destructive'
+                    }`}>
+                      {verdict === 'CLEAN' ? '✅ Authentic' 
+                       : verdict === 'AI_GENERATED' ? '🤖 AI Generated'
+                       : verdict === 'AI_GENERATED_AND_EDITED' ? '⚠️ AI + Edited'
+                       : '✂️ Tampered'}
+                    </div>
+                    {hint && (
+                      <p className="text-xs text-muted-foreground mt-2 leading-relaxed font-mono">
+                        {hint}
+                      </p>
+                    )}
+                    {sdPrompt && (
+                      <div className="mt-2 p-2 bg-purple-500/10 rounded-lg border border-purple-500/20">
+                        <div className="text-[10px] text-purple-400 font-bold uppercase tracking-wide mb-1">SD Prompt Found in Metadata</div>
+                        <p className="text-xs text-muted-foreground font-mono">{sdPrompt}...</p>
+                      </div>
+                    )}
+                  </div>
+                  <div className="mt-4 pt-3 border-t border-border/50 text-[11px] font-mono text-blue-400 flex items-center gap-1">
+                    <Icon name="DocumentMagnifyingGlassIcon" size={14} />
+                    5-Stage Forensic Pipeline
+                  </div>
+                </div>
+              </div>
+
+              {/* Detection Methods Legend */}
+              <div className="bg-muted/20 rounded-2xl p-4 border border-border">
+                <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">Detection Methods Applied</div>
+                <div className="flex flex-wrap gap-2">
+                  {['ELA (Error Level Analysis)', 'FFT Frequency Domain', 'DCT Block Kurtosis', 'EXIF Metadata Scan', 'Noise Inconsistency'].map((method) => (
+                    <span key={method} className="text-[11px] font-mono px-2.5 py-1 rounded-full bg-background border border-border text-muted-foreground">
+                      ✓ {method}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* 🌟 2b. UPI & AI IMAGE PAYMENT SPECIALIZED RESULT VIEW */}
       {isPayment && (
         <div className="space-y-6">
           <PaymentReceiptCard 
