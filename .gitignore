@@ -39,6 +39,9 @@ Thumbs.db
 __pycache__/
 *.py[cod]
 *$py.class
+server/models/cache/
+*.pth
+*.onnx
 .venv/
 venv/
 ENV/

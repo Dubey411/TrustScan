@@ -1,4 +1,4 @@
-﻿import { spawn } from 'child_process';
+import { spawn } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
@@ -62,7 +62,17 @@ export async function analyzeDocumentForensics(imageBuffer) {
             });
         });
 
-        const parsed = JSON.parse(resultJson || '{}');
+        let parsed = {};
+        try {
+            const jsonMatch = (stdoutData || '').match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                parsed = JSON.parse(jsonMatch[0]);
+            } else {
+                parsed = JSON.parse(stdoutData || '{}');
+            }
+        } catch (parseErr) {
+            console.warn(`⚠️ [ImageForensics] JSON parse note: ${parseErr.message}`);
+        }
 
         return {
             // ── Tamper detection (manually edited real photos) ──
