@@ -19,9 +19,16 @@ def get_pipeline(model_id):
         return _PIPELINES[model_id]
     try:
         from transformers import pipeline
-        pipe = pipeline("image-classification", model=model_id, model_kwargs={"cache_dir": CACHE_DIR})
-        _PIPELINES[model_id] = pipe
-        return pipe
+        # ⚡ Instant Offline Load: Check local cache first with ZERO network latency
+        try:
+            pipe = pipeline("image-classification", model=model_id, model_kwargs={"cache_dir": CACHE_DIR, "local_files_only": True})
+            _PIPELINES[model_id] = pipe
+            return pipe
+        except Exception:
+            # Fallback to online download once if not yet cached
+            pipe = pipeline("image-classification", model=model_id, model_kwargs={"cache_dir": CACHE_DIR})
+            _PIPELINES[model_id] = pipe
+            return pipe
     except Exception as e:
         return None
 

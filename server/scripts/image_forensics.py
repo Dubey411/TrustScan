@@ -223,32 +223,36 @@ def run_full_forensics(image_path):
     if noise.get("has_noise_anomaly"): tamper_score += 0.25
     tamper_score = float(min(1.0, tamper_score))
 
-    # 2. Multi-Signal AI Feature Fusion
+    # 2. Multi-Signal AI Feature Fusion with Forensic Corroboration
     ml_score = ml.get("score", 0.0)
     fft_score = fft.get("ai_generation_score", 0.0)
     dct_score = dct.get("dct_ai_score", 0.0)
     has_metadata_ai = exif.get("has_ai_signature", False)
 
-    # Weighted Feature Fusion
+    # Weighted Feature Fusion with Corroboration
     if has_metadata_ai:
         # Direct ground truth prompt trace found in metadata
         final_ai_score = max(0.92, ml_score)
         confidence = "HIGH"
-    elif ml_score >= 0.50:
-        # Pretrained ML Vision model detected strong generative pattern
+    elif ml_score >= 0.60 and (fft_score >= 0.20 or dct_score >= 0.15):
+        # High ML confidence corroborated by frequency domain or DCT
         final_ai_score = ml_score * 0.75 + fft_score * 0.15 + dct_score * 0.10
-        confidence = "HIGH" if ml_score >= 0.70 else "MEDIUM"
+        confidence = "HIGH"
+    elif ml_score >= 0.70 and fft_score == 0.0 and dct_score == 0.0:
+        # Isolated ML activation on documents/scans with natural camera frequency spectrum -> UNCERTAIN
+        final_ai_score = 0.35
+        confidence = "LOW"
     elif fft_score >= 0.40 and dct_score >= 0.30:
         # Frequency domain + DCT indicates non-natural harmonic grid
         final_ai_score = max(ml_score, (fft_score * 0.6 + dct_score * 0.4))
         confidence = "MEDIUM"
-    elif ml_score >= 0.30 or fft_score >= 0.30:
-        # Moderate / Weak signals -> UNCERTAIN zone
-        final_ai_score = ml_score * 0.6 + fft_score * 0.4
+    elif ml_score >= 0.35 or fft_score >= 0.30:
+        # Moderate signals -> UNCERTAIN zone
+        final_ai_score = ml_score * 0.5 + fft_score * 0.5
         confidence = "LOW"
     else:
-        # Clean signals across all layers
-        final_ai_score = max(ml_score * 0.5, fft_score * 0.3)
+        # Clean signals across all forensic and ML layers
+        final_ai_score = max(ml_score * 0.3, fft_score * 0.3)
         confidence = "HIGH"
 
     final_ai_score = float(min(1.0, max(0.0, final_ai_score)))
@@ -258,7 +262,7 @@ def run_full_forensics(image_path):
     if final_ai_score >= 0.50 and is_tampered:
         forensic_verdict = "AI_GENERATED_AND_EDITED"
         is_ai_generated = True
-    elif final_ai_score >= 0.50 or ml_score >= 0.55 or has_metadata_ai:
+    elif final_ai_score >= 0.50 or has_metadata_ai:
         forensic_verdict = "AI_GENERATED"
         is_ai_generated = True
     elif is_tampered and final_ai_score < 0.32:

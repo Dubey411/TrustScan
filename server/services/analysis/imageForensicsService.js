@@ -7,6 +7,40 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const SCRIPT_PATH = path.join(__dirname, '../../scripts/image_forensics.py');
+const DAEMON_SCRIPT_PATH = path.join(__dirname, '../../scripts/forensics_server.py');
+
+let daemonStarted = false;
+
+/**
+ * Ensures the warm Python ML daemon is running in the background on port 5005.
+ * Keeps models in RAM so image scans execute in sub-second time.
+ */
+export function ensureForensicsDaemonRunning() {
+    if (daemonStarted) return;
+    daemonStarted = true;
+
+    fetch('http://127.0.0.1:5005', { signal: AbortSignal.timeout(1000) })
+        .then(res => {
+            if (res.ok) console.log('✅ [ImageForensics] Warm Python ML daemon active on http://127.0.0.1:5005');
+        })
+        .catch(() => {
+            console.log('🚀 [ImageForensics] Launching warm Python ML daemon on port 5005...');
+            const pyCommand = process.platform === 'win32' ? 'python' : 'python3';
+            try {
+                const proc = spawn(pyCommand, [DAEMON_SCRIPT_PATH, '5005'], {
+                    detached: true,
+                    stdio: 'ignore'
+                });
+                proc.unref();
+                console.log('⚡ [ImageForensics] Python ML daemon spawned in background.');
+            } catch (err) {
+                console.warn(`⚠️ [ImageForensics] Could not auto-spawn daemon: ${err.message}`);
+            }
+        });
+}
+
+// Automatically initialize on server boot
+ensureForensicsDaemonRunning();
 
 /**
  * 5-Stage Deep Image Forensic Analysis Service
