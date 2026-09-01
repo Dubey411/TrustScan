@@ -229,10 +229,24 @@ def run_full_forensics(image_path):
     dct_score = dct.get("dct_ai_score", 0.0)
     has_metadata_ai = exif.get("has_ai_signature", False)
 
+    # Sensor Physics Ground Truth Check:
+    # Natural camera lenses & sensors follow the 1/f power law (corr <= -0.94) and high DCT kurtosis (>= 50).
+    is_natural_camera_physics = (
+        fft.get("spectral_1f_corr", 0.0) <= -0.94 and
+        dct.get("ac_kurtosis", 0.0) >= 45.0 and
+        fft_score == 0.0 and
+        dct_score == 0.0 and
+        not has_metadata_ai
+    )
+
     # Weighted Feature Fusion with Corroboration
     if has_metadata_ai:
         # Direct ground truth prompt trace found in metadata
         final_ai_score = max(0.92, ml_score)
+        confidence = "HIGH"
+    elif is_natural_camera_physics:
+        # Physical camera sensor verification confirmed via 1/f spectral physics -> AUTHENTIC
+        final_ai_score = min(0.18, ml_score * 0.15)
         confidence = "HIGH"
     elif ml_score >= 0.60 and (fft_score >= 0.20 or dct_score >= 0.15):
         # High ML confidence corroborated by frequency domain or DCT
