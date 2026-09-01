@@ -13,10 +13,11 @@ sys.path.append(os.path.dirname(__file__))
 from image_forensics import run_full_forensics
 from sdxl_detector import get_pipeline
 
-# Pre-warm model in memory during server startup
-print("[ForensicsServer] Pre-warming models into memory...", flush=True)
+# Pre-warm both specialized models in memory during server startup
+print("[ForensicsServer] Pre-warming models into memory (SDXL + General ViT)...", flush=True)
 get_pipeline("Organika/sdxl-detector")
-print("[ForensicsServer] Models pre-warmed and ready!", flush=True)
+get_pipeline("umm-maybe/AI-image-detector")
+print("[ForensicsServer] Both models pre-warmed and ready in RAM!", flush=True)
 
 class ForensicsHandler(BaseHTTPRequestHandler):
     def do_POST(self):

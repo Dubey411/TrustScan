@@ -229,32 +229,31 @@ def run_full_forensics(image_path):
     dct_score = dct.get("dct_ai_score", 0.0)
     has_metadata_ai = exif.get("has_ai_signature", False)
 
-    # Sensor Physics Ground Truth Check:
-    # Natural camera lenses & sensors follow the 1/f power law (corr <= -0.94) and high DCT kurtosis (>= 50).
-    is_natural_camera_physics = (
-        fft.get("spectral_1f_corr", 0.0) <= -0.94 and
-        dct.get("ac_kurtosis", 0.0) >= 45.0 and
-        fft_score == 0.0 and
-        dct_score == 0.0 and
-        not has_metadata_ai
-    )
+    # Check individual model scores from the ensemble
+    models_eval = ml.get("models_evaluated", {})
+    sdxl_s = models_eval.get("sdxl_detector", {}).get("score", 0.0)
+    vit_s = models_eval.get("general_vit_detector", {}).get("score", 0.0)
 
     # Weighted Feature Fusion with Corroboration
     if has_metadata_ai:
         # Direct ground truth prompt trace found in metadata
         final_ai_score = max(0.92, ml_score)
         confidence = "HIGH"
-    elif is_natural_camera_physics:
-        # Physical camera sensor verification confirmed via 1/f spectral physics -> AUTHENTIC
-        final_ai_score = min(0.18, ml_score * 0.15)
+    elif vit_s >= 0.70 or ml_score >= 0.80:
+        # Strong deep learning visual recognition (e.g. Midjourney, DALL-E, SDXL, FLUX)
+        final_ai_score = max(vit_s, ml_score)
         confidence = "HIGH"
-    elif ml_score >= 0.60 and (fft_score >= 0.20 or dct_score >= 0.15):
+    elif ml_score >= 0.55 and (fft_score >= 0.20 or dct_score >= 0.15):
         # High ML confidence corroborated by frequency domain or DCT
         final_ai_score = ml_score * 0.75 + fft_score * 0.15 + dct_score * 0.10
         confidence = "HIGH"
-    elif ml_score >= 0.70 and fft_score == 0.0 and dct_score == 0.0:
-        # Isolated ML activation on documents/scans with natural camera frequency spectrum -> UNCERTAIN
-        final_ai_score = 0.35
+    elif vit_s <= 0.25 and (fft.get("spectral_1f_corr", 0.0) <= -0.94 and dct.get("ac_kurtosis", 0.0) >= 45.0):
+        # Verified Physical Camera Sensor (Natural 1/f optics and ViT confirms Human)
+        final_ai_score = min(0.18, vit_s * 0.5)
+        confidence = "HIGH"
+    elif ml_score >= 0.60:
+        # Isolated single-model activation on ambiguous image -> UNCERTAIN
+        final_ai_score = 0.38
         confidence = "LOW"
     elif fft_score >= 0.40 and dct_score >= 0.30:
         # Frequency domain + DCT indicates non-natural harmonic grid
@@ -266,7 +265,7 @@ def run_full_forensics(image_path):
         confidence = "LOW"
     else:
         # Clean signals across all forensic and ML layers
-        final_ai_score = max(ml_score * 0.3, fft_score * 0.3)
+        final_ai_score = max(ml_score * 0.2, fft_score * 0.1)
         confidence = "HIGH"
 
     final_ai_score = float(min(1.0, max(0.0, final_ai_score)))

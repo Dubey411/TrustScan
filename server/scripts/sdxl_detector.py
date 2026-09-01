@@ -65,17 +65,6 @@ def predict_sdxl_detector(image_path_or_bytes):
                         s_score = 1.0 - score
                 model_results["sdxl_detector"] = {"score": round(s_score, 4)}
                 ai_scores.append(s_score)
-
-                # FAST PATH: If SDXL expert is already highly confident, return immediately!
-                if s_score >= 0.70:
-                    return {
-                        "score": round(s_score, 4),
-                        "is_ai": True,
-                        "label": "artificial",
-                        "method": "fast_sdxl_detector",
-                        "models_evaluated": model_results,
-                        "all_scores": [{"model": "sdxl_detector", "score": round(s_score, 4)}]
-                    }
             except Exception as e:
                 model_results["sdxl_detector"] = {"error": str(e)}
 
@@ -98,9 +87,20 @@ def predict_sdxl_detector(image_path_or_bytes):
                 model_results["general_vit_detector"] = {"error": str(e)}
 
         if ai_scores:
-            max_score = max(ai_scores)
-            avg_score = sum(ai_scores) / len(ai_scores)
-            ensemble_score = max_score if max_score >= 0.50 else (avg_score * 0.7 + max_score * 0.3)
+            s_val = model_results.get("sdxl_detector", {}).get("score", 0.0)
+            v_val = model_results.get("general_vit_detector", {}).get("score", 0.0)
+            
+            # 1. Strong Consensus: Both models detect AI
+            if s_val >= 0.50 and v_val >= 0.50:
+                ensemble_score = max(s_val, v_val)
+            # 2. General ViT detects Midjourney / DALL-E / FLUX
+            elif v_val >= 0.70:
+                ensemble_score = v_val
+            # 3. Model Disagreement: SDXL specialist over-activates on real photo while General ViT says Human
+            elif s_val >= 0.70 and v_val <= 0.25:
+                ensemble_score = s_val * 0.35 + v_val * 0.65
+            else:
+                ensemble_score = v_val * 0.6 + s_val * 0.4
             
             return {
                 "score": round(ensemble_score, 4),
@@ -108,7 +108,10 @@ def predict_sdxl_detector(image_path_or_bytes):
                 "label": "artificial" if ensemble_score >= 0.40 else "human",
                 "method": "fast_vision_ensemble (SDXL + General ViT)",
                 "models_evaluated": model_results,
-                "all_scores": [{"model": k, "score": v.get("score", 0.0)} for k, v in model_results.items() if "score" in v]
+                "all_scores": [
+                    {"model": "sdxl_detector", "score": s_val},
+                    {"model": "general_vit_detector", "score": v_val}
+                ]
             }
 
     except Exception as local_err:
