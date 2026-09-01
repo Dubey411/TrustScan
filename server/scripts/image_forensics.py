@@ -79,7 +79,8 @@ def analyze_noise_inconsistency(image_path_or_bytes, grid_size=8):
 def scan_exif_metadata(image_path_or_bytes):
     """
     Stage 1: Metadata & Prompt Extraction
-    Extracts embedded generation parameters (A1111, ComfyUI, Midjourney, DALL-E, Fooocus).
+    Extracts embedded generation parameters (A1111, ComfyUI, Midjourney, DALL-E, Fooocus)
+    and physical camera hardware tags (Make, Model, FNumber, ISO).
     """
     try:
         if isinstance(image_path_or_bytes, str):
@@ -88,16 +89,54 @@ def scan_exif_metadata(image_path_or_bytes):
             img = Image.open(io.BytesIO(image_path_or_bytes))
         info = img.info or {}
         raw_text = str(info).lower()
+        
+        # Check EXIF camera hardware tags
+        has_camera_tags = False
+        camera_maker = None
+        camera_model = None
+        try:
+            exif_data = img.getexif()
+            if exif_data:
+                # Standard EXIF tags: 271=Make, 272=Model, 306=DateTime, 33434=ExposureTime, 33437=FNumber, 34855=ISOSpeed
+                maker = exif_data.get(271)
+                model = exif_data.get(272)
+                if maker or model:
+                    has_camera_tags = True
+                    camera_maker = str(maker) if maker else None
+                    camera_model = str(model) if model else None
+        except Exception:
+            pass
+
         ai_generators = ["midjourney", "dall-e", "stable diffusion", "sdxl", "flux", "firefly", "ideogram", "leonardo", "runway", "pika", "imagen", "craiyon", "artbreeder", "nightcafe", "bing image creator", "invoke ai", "automatic1111", "comfyui", "fooocus"]
         tampering_tools = ["photoshop", "canva", "gimp", "acrobat", "coreldraw", "illustrator", "affinity", "paint.net"]
+        
         detected_ai = [g for g in ai_generators if g in raw_text]
         detected_editors = [t for t in tampering_tools if t in raw_text]
         sd_prompt = info.get('parameters', '') or info.get('prompt', '')
         has_sd_prompt = bool(sd_prompt and len(sd_prompt) > 20)
-        has_stripped_metadata = len(info) == 0
-        return {"detected_ai_generators": detected_ai, "detected_editing_software": detected_editors, "has_ai_signature": len(detected_ai) > 0 or has_sd_prompt, "has_software_signature": len(detected_editors) > 0, "has_stripped_metadata": has_stripped_metadata, "sd_prompt_found": has_sd_prompt, "sd_prompt_preview": sd_prompt[:120] if has_sd_prompt else None}
+        has_stripped_metadata = len(info) == 0 and not has_camera_tags
+
+        return {
+            "detected_ai_generators": detected_ai,
+            "detected_editing_software": detected_editors,
+            "has_ai_signature": len(detected_ai) > 0 or has_sd_prompt,
+            "has_software_signature": len(detected_editors) > 0,
+            "has_camera_tags": has_camera_tags,
+            "camera_maker": camera_maker,
+            "camera_model": camera_model,
+            "has_stripped_metadata": has_stripped_metadata,
+            "sd_prompt_found": has_sd_prompt,
+            "sd_prompt_preview": sd_prompt[:120] if has_sd_prompt else None
+        }
     except Exception as e:
-        return {"detected_ai_generators": [], "detected_editing_software": [], "has_ai_signature": False, "has_software_signature": False, "has_stripped_metadata": True}
+        return {
+            "detected_ai_generators": [],
+            "detected_editing_software": [],
+            "has_ai_signature": False,
+            "has_software_signature": False,
+            "has_camera_tags": False,
+            "has_stripped_metadata": True
+        }
 
 def analyze_frequency_domain(image_path_or_bytes):
     """
@@ -254,10 +293,14 @@ def run_full_forensics(image_path):
         # High ML confidence corroborated by frequency domain or DCT
         final_ai_score = ml_score * 0.75 + fft_score * 0.15 + dct_score * 0.10
         confidence = "HIGH"
-    elif vit_s <= 0.25 and (fft.get("spectral_1f_corr", 0.0) <= -0.94 and dct.get("ac_kurtosis", 0.0) >= 45.0):
-        # Verified Physical Camera Sensor (Natural 1/f optics and ViT confirms Human)
+    elif vit_s <= 0.25 and exif.get("has_camera_tags", False) and (fft.get("spectral_1f_corr", 0.0) <= -0.94 and dct.get("ac_kurtosis", 0.0) >= 45.0):
+        # Verified Physical Camera Sensor (Hardware EXIF metadata + natural 1/f optics)
         final_ai_score = min(0.18, vit_s * 0.5)
         confidence = "HIGH"
+    elif vit_s <= 0.30 and not exif.get("has_camera_tags", False) and exif.get("has_stripped_metadata", False):
+        # Digital Graphic / Synthetic 2D Illustration with no camera sensor hardware origin -> UNCERTAIN
+        final_ai_score = 0.38
+        confidence = "LOW"
     elif ml_score >= 0.60:
         # Isolated single-model activation on ambiguous image -> UNCERTAIN
         final_ai_score = 0.38
@@ -306,7 +349,10 @@ def run_full_forensics(image_path):
         else:
             generator_hint = fft.get("generator_family_hint", "Synthetic AI Generator")
     elif forensic_verdict == "UNCERTAIN":
-        generator_hint = "Inconclusive Signal (Weak Synthetic Residue Detected)"
+        if not exif.get("has_camera_tags", False):
+            generator_hint = "Digital Graphic / Synthetic Illustration (No Physical Camera Metadata)"
+        else:
+            generator_hint = "Inconclusive Signal (Weak Synthetic Residue Detected)"
     elif is_tampered:
         generator_hint = "Edited Real Photo (Photoshop / Canva Pixel Modification)"
 
