@@ -1,8 +1,8 @@
 # 🏛️ TrustScan AI — System Architecture & Dataflow Specification
 
-> **Version 4.2 — Multi-Modal Credential, Document & Multi-Signal AI Image Forensics**
+> **Version 4.3 — Multi-Modal Credential, Document & Evidence-Based AI Image Forensics**
 
-This document outlines the production architecture of **TrustScan AI**, detailing how uploads (images, academic transcripts, corporate IDs, employment letters) flow through our multi-signal inspection engine, deep learning vision models, signal processing pipelines, and deterministic verification layers.
+This document outlines the production architecture of **TrustScan AI**, detailing how uploads (images, academic transcripts, corporate IDs, employment letters) flow through our multi-signal inspection engine, pretrained vision models, signal processing pipelines, and deterministic verification layers.
 
 ---
 
@@ -10,37 +10,39 @@ This document outlines the production architecture of **TrustScan AI**, detailin
 
 ```mermaid
 flowchart TD
-    subgraph Ingestion ["1. INGESTION & PREPROCESSING"]
-        UPLOAD[User Upload: Image / Document] --> PRE[Resize, Color Space Conversion & Normalization]
+    subgraph Ingestion ["1. INGESTION & FAST-PATH ROUTER"]
+        UPLOAD[User Upload: Image / Document] --> ROUTER{Scan Type?}
+        ROUTER -->|type: image| FAST[Fast-Path: Native Buffer to Warm Daemon]
+        ROUTER -->|type: academic / document| PARALLEL[Parallel Execution: OCR + Forensics]
     end
 
-    subgraph Signals ["2. MULTI-SIGNAL PARALLEL EXTRACTION"]
-        PRE --> S1[Stage 1: Metadata Engine<br/>EXIF & PNG Chunks, SD/A1111/ComfyUI Traces]
-        PRE --> S2[Stage 2: ELA Engine<br/>JPEG Recompression Error Level Analysis]
-        PRE --> S3[Stage 3: FFT Frequency Engine<br/>2D Spectral 1/f Slope & Radial Energy]
-        PRE --> S4[Stage 4: DCT Block Engine<br/>AC Coefficient Kurtosis Distribution]
-        PRE --> S5[Stage 5: Pretrained ML Classifier<br/>Organika/sdxl-detector Vision Model]
+    subgraph Signals ["2. MULTI-SIGNAL EVIDENCE EXTRACTION (Native Resolution)"]
+        FAST & PARALLEL --> S1[Signal 1: Metadata Engine<br/>EXIF & PNG Chunks, Prompt Traces, Tool Signatures]
+        FAST & PARALLEL --> S2[Signal 2: ELA Engine<br/>JPEG Recompression Error Level Analysis]
+        FAST & PARALLEL --> S3[Signal 3: FFT Frequency Engine<br/>2D Radial 1/f Power Spectrum & Grid Spikes]
+        FAST & PARALLEL --> S4[Signal 4: Vectorized 2D DCT Engine<br/>8x8 Orthonormal AC Coefficient Kurtosis]
+        FAST & PARALLEL --> S5[Signal 5: Pretrained Vision Ensemble<br/>General ViT + SDXL Specialist - 384px Tensor]
     end
 
-    subgraph Fusion ["3. FEATURE FUSION & CALIBRATION"]
-        S1 & S2 & S3 & S4 & S5 --> FUS[Stage 6: Multi-Signal Feature Fusion]
+    subgraph Fusion ["3. EVIDENCE-BASED FEATURE FUSION"]
+        S1 & S2 & S3 & S4 & S5 --> FUS[Stage 6: Multi-Signal Evidence Aggregation]
         FUS --> CAL[Stage 7: Confidence Calibration Layer]
     end
 
     subgraph Doc_Engine ["4. DETERMINISTIC CREDENTIAL ENGINES"]
-        UPLOAD -->|type: academic / document / company| OCR[Sarvam Vision 3B / Tesseract OCR]
+        PARALLEL --> OCR[Sarvam Vision 3B / Tesseract OCR]
         OCR --> UGC[UGC University Accreditation Registry]
         OCR --> MCA[MCA CIN & GSTIN Registry Lookup]
         OCR --> CTC[Salary Math & HR Domain Verifier]
     end
 
-    subgraph Verdict ["5. VERDICT CLASSIFICATION"]
+    subgraph Verdict ["5. 5-STATE VERDICT CLASSIFICATION"]
         CAL --> V_OUT[Stage 8: Calibrated Verdict]
-        V_OUT --> V_REAL["✅ REAL (Authentic)"]
+        V_OUT --> V_REAL["🟢 AUTHENTIC (Clean)"]
         V_OUT --> V_AI["🤖 AI_GENERATED"]
-        V_OUT --> V_TAMP["✂️ TAMPERED (Edited)"]
-        V_OUT --> V_AI_TAMP["⚠️ AI_GENERATED_AND_EDITED"]
-        V_OUT --> V_UNC["❓ UNCERTAIN (Low Confidence)"]
+        V_OUT --> V_TAMP["✂️ TAMPERED_REAL_IMAGE"]
+        V_OUT --> V_AI_TAMP["🤖✂️ AI_GENERATED_AND_EDITED"]
+        V_OUT --> V_UNC["❓ UNCERTAIN (Inconclusive)"]
     end
 
     subgraph Output ["6. AUDIT & DASHBOARD LAYER"]
@@ -51,48 +53,34 @@ flowchart TD
 
 ---
 
-## 🔬 Multi-Signal AI Image Forensics Architecture
+## 🔬 Evidence-Based AI Image Forensics Architecture
 
-Rather than relying on a single neural network or heuristic formula, TrustScan AI utilizes a **layered 8-stage multi-signal fusion pipeline**:
+Rather than relying on a single neural network or heuristic vote, TrustScan AI utilizes an **evidence-based multi-signal fusion pipeline**:
 
 ```
-IMAGE
+ORIGINAL IMAGE BUFFER (Native Resolution)
   │
-  ▼
-┌────────────────────────────────────────┐
-│ Stage 0: Preprocessing & Normalization │
-└──────────────────┬─────────────────────┘
-                   │
-  ┌────────────────┼──────────────────────────────┐
-  │                │                              │
-  ▼                ▼                              ▼
-[METADATA]    [SIGNAL PROCESSING]            [LEARNED ML]
-Stage 1:       Stage 2: ELA (Error Level)     Stage 5: Pretrained Classifier
-EXIF / PNG     Stage 3: FFT (2D Frequency)    (Organika/sdxl-detector)
-Prompt Traces  Stage 4: DCT (Block Kurtosis)  
-  │                │                              │
-  └────────────────┼──────────────────────────────┘
-                   │
-                   ▼
-┌────────────────────────────────────────┐
-│ Stage 6: Multi-Signal Feature Fusion   │
-└──────────────────┬─────────────────────┘
-                   │
-                   ▼
-┌────────────────────────────────────────┐
-│ Stage 7: Confidence Calibration Layer  │
-└──────────────────┬─────────────────────┘
-                   │
-                   ▼
-┌────────────────────────────────────────┐
-│ Stage 8: Calibrated Verdict Output     │
-├────────────────────────────────────────┤
-│ • REAL (Authentic)                     │
-│ • AI_GENERATED                         │
-│ • TAMPERED (Real Photo Edited)         │
-│ • AI_GENERATED_AND_EDITED              │
-│ • UNCERTAIN (Inconclusive Signal)      │
-└────────────────────────────────────────┘
+  ├──────────────────► Signal 1: Metadata Scanner (EXIF / PNG Chunks / Prompts)
+  ├──────────────────► Signal 2: ELA Recompression Analysis (JPEG Error Differentials)
+  ├──────────────────► Signal 3: FFT 2D Frequency Domain (1/f Spectral Decay & Grid Spikes)
+  ├──────────────────► Signal 4: Vectorized 2D DCT Matrix Transform (Laplacian vs Gaussian Kurtosis)
+  └─► [Resize 384px] ─► Signal 5: Pretrained Vision Ensemble (General ViT + SDXL Specialist)
+                              │
+                              ▼
+               ┌──────────────────────────────┐
+               │ Multi-Signal Evidence Fusion │
+               └──────────────┬───────────────┘
+                              │
+                              ▼
+               ┌──────────────────────────────┐
+               │ 5-State Verdict Output       │
+               ├──────────────────────────────┤
+               │ • 🟢 AUTHENTIC (Clean)       │
+               │ • 🤖 AI_GENERATED            │
+               │ • ✂️ TAMPERED (Real Edited)  │
+               │ • 🤖✂️ AI & TAMPERED          │
+               │ • ❓ UNCERTAIN (Ambiguous)   │
+               └──────────────────────────────┘
 ```
 
 ---
