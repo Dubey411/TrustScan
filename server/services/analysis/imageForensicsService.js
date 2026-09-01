@@ -78,19 +78,27 @@ export async function analyzeDocumentForensics(imageBuffer) {
 
         let parsed = null;
 
-        // 🚀 Strategy 1: Ultra-fast Warm Python ML Daemon
-        try {
-            const daemonResp = await fetch('http://127.0.0.1:5005', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ filePath: tempFilePath }),
-                signal: AbortSignal.timeout(20000)
-            });
-            if (daemonResp.ok) {
-                parsed = await daemonResp.json();
+        // 🚀 Strategy 1: Ultra-fast Warm Python ML Daemon (with startup retry)
+        for (let attempt = 1; attempt <= 3; attempt++) {
+            try {
+                const daemonResp = await fetch('http://127.0.0.1:5005', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filePath: tempFilePath }),
+                    signal: AbortSignal.timeout(20000)
+                });
+                if (daemonResp.ok) {
+                    parsed = await daemonResp.json();
+                    break;
+                }
+            } catch (daemonErr) {
+                if (attempt < 3) {
+                    // Daemon may be finishing its initial 3s weight load, wait and retry
+                    await new Promise(r => setTimeout(r, 1200));
+                } else {
+                    console.warn(`⚠️ [ImageForensics] Daemon fetch note after 3 attempts: ${daemonErr.message}, falling back to CLI spawn.`);
+                }
             }
-        } catch (daemonErr) {
-            console.warn(`⚠️ [ImageForensics] Daemon fetch note: ${daemonErr.message}, falling back to CLI spawn.`);
         }
 
         // 🔄 Strategy 2: CLI Spawn Fallback
