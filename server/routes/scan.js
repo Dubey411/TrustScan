@@ -120,29 +120,38 @@ router.post("/scan", upload.single('file'), async (req, res) => {
       
       const isImageFile = req.file.mimetype?.startsWith('image/') || /\.(png|jpg|jpeg|webp)$/i.test(req.file.originalname);
       
-      // Always run image forensics for image file uploads
-      if (isImageFile) {
+      let processed = { text: '', externalSignals: [], trustSignals: {}, scanMeta: {} };
+
+      // ⚡ FAST-PATH FOR PURE IMAGE FORENSICS (Sub-second response)
+      if (originalType === 'image') {
           try {
               const { analyzeDocumentForensics } = await import('../services/analysis/imageForensicsService.js');
               imageForensicsData = await analyzeDocumentForensics(req.file.buffer);
-              console.log(`🔬 [API Scan] Image Forensics Executed: Verdict=${imageForensicsData?.forensicVerdict}, AI Score=${imageForensicsData?.aiGenerationScore}`);
+              console.log(`🔬 [API Scan] Fast Image Forensics Executed in Sub-Second: Verdict=${imageForensicsData?.forensicVerdict}, AI Score=${imageForensicsData?.aiGenerationScore}`);
           } catch (fErr) {
               console.warn(`⚠️ [API Scan] Image forensics error: ${fErr.message}`);
           }
+      } else {
+          // Concurrent Execution for Documents/Certificates
+          const { analyzeDocumentForensics } = await import('../services/analysis/imageForensicsService.js');
+          const [forensicsRes, docRes] = await Promise.all([
+              isImageFile ? analyzeDocumentForensics(req.file.buffer).catch(() => null) : Promise.resolve(null),
+              processDocument(req.file.buffer, req.file.mimetype, req.file.originalname, ocrDepth)
+          ]);
+          imageForensicsData = forensicsRes;
+          processed = docRes;
       }
-
-      const processed = await processDocument(req.file.buffer, req.file.mimetype, req.file.originalname, ocrDepth);
       
-      content = processed.text;
-      externalSignals = processed.externalSignals;
+      content = processed.text || "";
+      externalSignals = processed.externalSignals || [];
       trustSignals = processed.trustSignals || {};
       
       scanMeta = {
           ...scanMeta,
           ...processed.scanMeta,
-          preview: processed.text?.substring(0, 300) + (processed.text?.length > 300 ? "..." : "")
+          preview: processed.text ? (processed.text.substring(0, 300) + (processed.text.length > 300 ? "..." : "")) : "Visual Image Forensics Scan"
       };
-      type = "document";
+      type = originalType === 'image' ? "image" : "document";
 
       // --- SMART DOCUMENT VALIDATION ---
       const extractedText = (content || "").trim();
@@ -181,11 +190,19 @@ router.post("/scan", upload.single('file'), async (req, res) => {
                   (forensics.tamperingConfidence || 0) * 40
               );
 
+              const scanStatus = aiRiskScore > 45 ? 'fraud' : 'safe';
+              const scanDocType = isPaymentReceipt ? 'payment' : 'image';
+
               const savedScan = await new Scan({
+                  userId: userId || null,
+                  type: scanDocType,
+                  scanType: scanDocType,
+                  status: scanStatus,
+                  result: scanStatus,
                   target: req.file.originalname,
+                  fileName: req.file.originalname,
+                  fileMimeType: req.file.mimetype,
                   content: `[Image File: ${req.file.originalname}]`,
-                  scanType: isPaymentReceipt ? 'payment' : 'image',
-                  result: aiRiskScore > 45 ? 'fraud' : 'safe',
                   riskScore: aiRiskScore,
                   reasons: [
                       forensics.isAiGenerated
@@ -213,8 +230,7 @@ router.post("/scan", upload.single('file'), async (req, res) => {
                           ? 'Tampered Image Detected'
                           : 'Authentic Image',
                       confidence: aiRiskScore > 60 ? 'High' : 'Medium',
-                  },
-                  userId: userId || null,
+                  }
               }).save();
 
               return res.json({
