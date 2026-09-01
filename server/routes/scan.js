@@ -224,10 +224,12 @@ router.post("/scan", upload.single('file'), async (req, res) => {
                       forensicAiScore: Math.round((forensics.aiGenerationScore || 0) * 100),
                       forensicVerdict: forensics.forensicVerdict,
                       generatorFamilyHint: forensics.generatorFamilyHint,
-                      verdictLabel: forensics.isAiGenerated
+                      verdictLabel: forensics.isAiGenerated || forensics.forensicVerdict === 'AI_GENERATED'
                           ? `AI-Generated Image Detected`
-                          : forensics.isTampered
+                          : forensics.isTampered || forensics.forensicVerdict === 'TAMPERED_REAL_IMAGE'
                           ? 'Tampered Image Detected'
+                          : forensics.forensicVerdict === 'UNCERTAIN'
+                          ? 'Inconclusive / Uncertain AI Signal'
                           : 'Authentic Image',
                       confidence: aiRiskScore > 60 ? 'High' : 'Medium',
                   }

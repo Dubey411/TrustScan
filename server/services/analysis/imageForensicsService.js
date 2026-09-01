@@ -78,19 +78,19 @@ export async function analyzeDocumentForensics(imageBuffer) {
 
         let parsed = null;
 
-        // 🚀 Strategy 1: Ultra-fast Warm Python ML Daemon (50ms latency)
+        // 🚀 Strategy 1: Ultra-fast Warm Python ML Daemon
         try {
             const daemonResp = await fetch('http://127.0.0.1:5005', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ filePath: tempFilePath }),
-                signal: AbortSignal.timeout(4000)
+                signal: AbortSignal.timeout(20000)
             });
             if (daemonResp.ok) {
                 parsed = await daemonResp.json();
             }
         } catch (daemonErr) {
-            // Daemon offline or timed out -> proceed to CLI spawn fallback
+            console.warn(`⚠️ [ImageForensics] Daemon fetch note: ${daemonErr.message}, falling back to CLI spawn.`);
         }
 
         // 🔄 Strategy 2: CLI Spawn Fallback

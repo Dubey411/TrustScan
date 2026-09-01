@@ -13,11 +13,10 @@ sys.path.append(os.path.dirname(__file__))
 from image_forensics import run_full_forensics
 from sdxl_detector import get_pipeline
 
-# Pre-warm both specialized models in memory during server startup
-print("[ForensicsServer] Pre-warming models into memory (SDXL + General ViT)...", flush=True)
-get_pipeline("Organika/sdxl-detector")
+# Pre-warm primary General ViT model in memory during server startup
+print("[ForensicsServer] Pre-warming General ViT model into memory...", flush=True)
 get_pipeline("umm-maybe/AI-image-detector")
-print("[ForensicsServer] Both models pre-warmed and ready in RAM!", flush=True)
+print("[ForensicsServer] Model pre-warmed and ready in RAM!", flush=True)
 
 class ForensicsHandler(BaseHTTPRequestHandler):
     def do_POST(self):
@@ -60,10 +59,14 @@ class ForensicsHandler(BaseHTTPRequestHandler):
         return
 
 def run_server(port=5005):
-    server_address = ('127.0.0.1', port)
-    httpd = HTTPServer(server_address, ForensicsHandler)
-    print(f"[ForensicsServer] Warm ML daemon listening on http://127.0.0.1:{port}", flush=True)
-    httpd.serve_forever()
+    try:
+        HTTPServer.allow_reuse_address = True
+        server_address = ('127.0.0.1', port)
+        httpd = HTTPServer(server_address, ForensicsHandler)
+        print(f"[ForensicsServer] Warm ML daemon listening on http://127.0.0.1:{port}", flush=True)
+        httpd.serve_forever()
+    except Exception as e:
+        print(f"[ForensicsServer] Server error: {e}", flush=True)
 
 if __name__ == '__main__':
     port = int(sys.argv[1]) if len(sys.argv) > 1 else 5005

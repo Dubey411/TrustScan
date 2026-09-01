@@ -34,85 +34,52 @@ def get_pipeline(model_id):
 
 def predict_sdxl_detector(image_path_or_bytes):
     """
-    Optimized Fast Pretrained Vision Ensemble:
-    1. Runs Organika/sdxl-detector (SDXL Expert) first (~150ms).
-    2. If high confidence (> 0.60), returns immediately for sub-second latency.
-    3. If low/inconclusive, runs umm-maybe/AI-image-detector (General ViT) to catch Midjourney/DALL-E.
+    High-Performance General Vision Classifier (< 200ms)
+    Uses umm-maybe/AI-image-detector (General ViT trained on Midjourney, DALL-E, SDXL, and Real photos)
     """
     try:
         from PIL import Image
+        import torch
+        torch.set_num_threads(4)
 
         if isinstance(image_path_or_bytes, str):
             img = Image.open(image_path_or_bytes).convert('RGB')
         else:
             img = Image.open(io.BytesIO(image_path_or_bytes)).convert('RGB')
 
-        model_results = {}
-        ai_scores = []
+        # Fast smart downscaling to 384px max for sub-200ms ViT inference
+        if max(img.size) > 384:
+            img.thumbnail((384, 384), Image.BILINEAR)
 
-        # Model 1: Organika/sdxl-detector (Primary Diffusion Expert)
-        pipe_sdxl = get_pipeline("Organika/sdxl-detector")
-        if pipe_sdxl:
-            try:
-                res_sdxl = pipe_sdxl(img)
-                s_score = 0.0
-                for item in res_sdxl:
-                    lbl = str(item.get('label', '')).lower()
-                    score = float(item.get('score', 0.0))
-                    if lbl in ['artificial', 'ai', 'fake', 'generated', 'sdxl', 'synthetic']:
-                        s_score = score
-                    elif lbl in ['human', 'real', 'natural', 'authentic'] and s_score == 0.0:
-                        s_score = 1.0 - score
-                model_results["sdxl_detector"] = {"score": round(s_score, 4)}
-                ai_scores.append(s_score)
-            except Exception as e:
-                model_results["sdxl_detector"] = {"error": str(e)}
-
-        # Model 2: umm-maybe/AI-image-detector (General ViT - Midjourney / DALL-E / FLUX Expert)
         pipe_vit = get_pipeline("umm-maybe/AI-image-detector")
-        if pipe_vit:
-            try:
-                res_vit = pipe_vit(img)
-                v_score = 0.0
-                for item in res_vit:
-                    lbl = str(item.get('label', '')).lower()
-                    score = float(item.get('score', 0.0))
-                    if lbl in ['artificial', 'ai', 'fake', 'generated', 'synthetic']:
-                        v_score = score
-                    elif lbl in ['human', 'real', 'natural', 'authentic'] and v_score == 0.0:
-                        v_score = 1.0 - score
-                model_results["general_vit_detector"] = {"score": round(v_score, 4)}
-                ai_scores.append(v_score)
-            except Exception as e:
-                model_results["general_vit_detector"] = {"error": str(e)}
+        if not pipe_vit:
+            # Fallback to SDXL detector if ViT not cached
+            pipe_vit = get_pipeline("Organika/sdxl-detector")
 
-        if ai_scores:
-            s_val = model_results.get("sdxl_detector", {}).get("score", 0.0)
-            v_val = model_results.get("general_vit_detector", {}).get("score", 0.0)
-            
-            # 1. Strong Consensus: Both models detect AI
-            if s_val >= 0.50 and v_val >= 0.50:
-                ensemble_score = max(s_val, v_val)
-            # 2. General ViT detects Midjourney / DALL-E / FLUX
-            elif v_val >= 0.70:
-                ensemble_score = v_val
-            # 3. Model Disagreement: SDXL specialist over-activates on real photo while General ViT says Human
-            elif s_val >= 0.70 and v_val <= 0.25:
-                ensemble_score = s_val * 0.35 + v_val * 0.65
-            else:
-                ensemble_score = v_val * 0.6 + s_val * 0.4
-            
+        if pipe_vit:
+            res = pipe_vit(img)
+            v_score = 0.0
+            for item in res:
+                lbl = str(item.get('label', '')).lower()
+                score = float(item.get('score', 0.0))
+                if lbl in ['artificial', 'ai', 'fake', 'generated', 'synthetic', 'sdxl']:
+                    v_score = score
+                elif lbl in ['human', 'real', 'natural', 'authentic'] and v_score == 0.0:
+                    v_score = 1.0 - score
+
+            model_name = "general_vit_detector"
             return {
-                "score": round(ensemble_score, 4),
-                "is_ai": ensemble_score >= 0.40,
-                "label": "artificial" if ensemble_score >= 0.40 else "human",
-                "method": "fast_vision_ensemble (SDXL + General ViT)",
-                "models_evaluated": model_results,
-                "all_scores": [
-                    {"model": "sdxl_detector", "score": s_val},
-                    {"model": "general_vit_detector", "score": v_val}
-                ]
+                "score": round(v_score, 4),
+                "is_ai": v_score >= 0.50,
+                "label": "artificial" if v_score >= 0.50 else "human",
+                "method": "general_vit_classifier",
+                "models_evaluated": {model_name: {"score": round(v_score, 4)}},
+                "all_scores": [{"model": model_name, "score": round(v_score, 4)}]
             }
+
+        return {"score": 0.0, "is_ai": False, "label": "human", "method": "none", "models_evaluated": {}}
+    except Exception as e:
+        return {"error": str(e), "score": 0.0, "is_ai": False, "label": "error", "models_evaluated": {}}
 
     except Exception as local_err:
         pass
