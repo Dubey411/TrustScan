@@ -80,14 +80,14 @@ export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfa
       buttonText: 'Scan Offer Letter for Fraud'
     },
     {
-      id: 'academic',
-      icon: 'AcademicCapIcon',
-      title: 'Degree & Marksheet',
-      description: 'Detect fake universities, altered CGPA, and tampered marks',
+      id: 'payment',
+      icon: 'CreditCardIcon',
+      title: 'UPI & Payment Fraud Forensics',
+      description: 'Detect fake payment APKs, altered ₹ amounts, 12-digit UTR integrity, and IFSC resolver',
       inputType: 'file',
       acceptedFormats: ['.pdf', '.jpg', '.jpeg', '.png', '.webp'],
       maxSize: 15 * 1024 * 1024,
-      buttonText: 'Verify Degree / Marksheet'
+      buttonText: 'Verify Payment Receipt'
     },
     {
       id: 'image',
@@ -222,7 +222,7 @@ export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfa
               AI <span className="text-primary italic">Offer Letter & Fraud</span> Scanner
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              Check <strong>Fake Offer Letters</strong>, audit <strong>Academic Degrees</strong>, inspect <strong>AI Images & Payment Slips</strong>, and verify <strong>Companies</strong>.
+              Check <strong>Fake Offer Letters</strong>, audit <strong>UPI Payment Receipts</strong>, inspect <strong>AI Images & Forensics</strong>, and verify <strong>Companies</strong>.
             </p>
             {error && (
               <div className="mt-4 p-3 bg-red-100 border border-red-200 text-red-700 rounded-lg max-w-md mx-auto">

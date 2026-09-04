@@ -4,7 +4,7 @@ import ScanInterfaceInteractive from './components/ScanInterfaceInteractive';
 
 export const metadata: Metadata = {
   title: 'Offer Letter Check Online Free | Fake Job Offer Detection - TrustScan AI',
-  description: 'Free online tool to check fake offer letters in PDF or image. Detect forged company seals, fake HR emails, registration fee scams, academic degrees, and manipulated payment receipts with AI forensics.',
+  description: 'Free online tool to check fake offer letters in PDF or image. Detect forged company seals, fake HR emails, registration fee scams, UPI payment receipts, and AI images with deep forensic AI.',
   alternates: {
     canonical: '/scan-interface',
   },
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     'check offer letter online',
     'fake upi payment screenshot check',
     'ai image detection online',
-    'degree marksheet verification online',
+    'fake payment receipt verification online',
     'scam checker India',
     'TrustScan AI'
   ],
