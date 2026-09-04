@@ -1,0 +1,42 @@
+{
+  "calibrated_at": "2026-09-04 23:08:18",
+  "total_samples": 100,
+  "class_distribution": {
+    "fake": 50,
+    "real": 50
+  },
+  "coefficients": {
+    "raw_weights": {
+      "vit_score": 2.289,
+      "fft_score": -0.6342,
+      "dct_score": 0.0,
+      "ela_score": -1.2126,
+      "noise_anomaly_score": -0.1911,
+      "metadata_score": -2.0145
+    },
+    "normalized_weights": {
+      "vit_score": 1.0,
+      "fft_score": 0.0,
+      "dct_score": 0.0,
+      "ela_score": 0.0,
+      "noise_anomaly_score": 0.0,
+      "metadata_score": 0.0
+    },
+    "intercept": -0.6736
+  },
+  "5_fold_cv_metrics": {
+    "accuracy_mean": 79.0,
+    "precision_mean": 79.56,
+    "recall_mean": 82.0,
+    "f1_mean": 0.7939,
+    "roc_auc_mean": 0.858
+  },
+  "confusion_matrix": {
+    "true_positives_fake": 41,
+    "false_positives_real_as_fake": 12,
+    "true_negatives_real": 38,
+    "false_negatives_fake_as_real": 9,
+    "false_positive_rate_pct": 24.0,
+    "false_negative_rate_pct": 18.0
+  }
+}

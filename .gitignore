@@ -58,6 +58,10 @@ test_results.log
 RE-SHUBHAM-DUBEY*.html
 Shubham_Dubey_*.html
 *.pdf
+
+# Large Datasets
+ImageForensicData/
+**/ImageForensicData/
 *resume*
 *Resume*
 .chrome-pdf-profile/
