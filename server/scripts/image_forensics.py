@@ -340,8 +340,8 @@ def run_full_forensics(image_path):
         final_ai_score = min(0.18, vit_s * 0.5)
         confidence = "HIGH"
     elif vit_s <= 0.30 and not has_camera_tags and exif.get("has_stripped_metadata", False):
-        # Invariant 4: Digital Graphic / Synthetic 2D Illustration with no camera sensor origin -> UNCERTAIN
-        final_ai_score = 0.38
+        # Invariant 4: Digital Graphic / Synthetic 2D Illustration with no camera sensor origin -> Dynamic UNCERTAIN Band
+        final_ai_score = round(min(0.48, max(0.34, 0.34 + (vit_s * 0.25) + (fft_score * 0.15))), 3)
         confidence = "LOW"
     else:
         # Calibrated Sigmoid-Normalized Evidence Score
