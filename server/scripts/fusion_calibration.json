@@ -1,42 +1,52 @@
 {
-  "calibrated_at": "2026-09-04 23:08:18",
-  "total_samples": 100,
-  "class_distribution": {
-    "fake": 50,
-    "real": 50
+  "calibrated_at": "2026-09-04 23:25:52",
+  "total_dataset_available": 21642,
+  "total_samples_evaluated": 200,
+  "split_policy": {
+    "train_samples": 160,
+    "held_out_test_samples": 40,
+    "train_ratio": 0.8,
+    "leakage_protection": "STRICT_DISJOINT_SPLIT"
   },
   "coefficients": {
     "raw_weights": {
-      "vit_score": 2.289,
-      "fft_score": -0.6342,
+      "vit_score": 1.9034,
+      "fft_score": 0.189,
       "dct_score": 0.0,
-      "ela_score": -1.2126,
-      "noise_anomaly_score": -0.1911,
-      "metadata_score": -2.0145
+      "ela_score": -2.656,
+      "noise_anomaly_score": 0.2671,
+      "metadata_score": -2.1265
     },
     "normalized_weights": {
-      "vit_score": 1.0,
-      "fft_score": 0.0,
+      "vit_score": 0.8067,
+      "fft_score": 0.0801,
       "dct_score": 0.0,
       "ela_score": 0.0,
-      "noise_anomaly_score": 0.0,
+      "noise_anomaly_score": 0.1132,
       "metadata_score": 0.0
     },
-    "intercept": -0.6736
+    "intercept": -0.2093
   },
-  "5_fold_cv_metrics": {
-    "accuracy_mean": 79.0,
-    "precision_mean": 79.56,
-    "recall_mean": 82.0,
-    "f1_mean": 0.7939,
-    "roc_auc_mean": 0.858
+  "held_out_test_metrics": {
+    "test_accuracy_pct": 82.5,
+    "test_precision_pct": 80.95,
+    "test_recall_pct": 85.0,
+    "test_f1_score": 0.8293,
+    "test_roc_auc": 0.9175,
+    "false_positive_rate_pct": 20.0,
+    "false_negative_rate_pct": 15.0
   },
-  "confusion_matrix": {
-    "true_positives_fake": 41,
-    "false_positives_real_as_fake": 12,
-    "true_negatives_real": 38,
-    "false_negatives_fake_as_real": 9,
-    "false_positive_rate_pct": 24.0,
-    "false_negative_rate_pct": 18.0
+  "held_out_confusion_matrix": {
+    "true_positives_fake": 17,
+    "false_positives_real_as_fake": 4,
+    "true_negatives_real": 16,
+    "false_negatives_fake_as_real": 3
+  },
+  "train_cross_validation_metrics": {
+    "cv_accuracy_mean_pct": 76.88,
+    "cv_precision_mean_pct": 72.99,
+    "cv_recall_mean_pct": 85.0,
+    "cv_f1_mean": 0.7837,
+    "cv_roc_auc_mean": 0.8438
   }
 }
