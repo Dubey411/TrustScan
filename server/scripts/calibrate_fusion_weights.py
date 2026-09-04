@@ -10,9 +10,10 @@ import numpy as np
 # Configure UTF-8 encoding for Windows console
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8')
+
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, confusion_matrix
-from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import train_test_split, StratifiedKFold
 
 # Ensure script can import image_forensics and vision ensemble
 sys.path.append(os.path.dirname(__file__))
@@ -76,7 +77,7 @@ def extract_feature_vector(image_path):
         return [0.5, 0.0, 0.0, 0.0, 0.0, 0.0]
 
 
-def calibrate_dataset(data_dir, samples_per_class=100, output_json="fusion_calibration.json"):
+def calibrate_and_evaluate_split(data_dir, total_samples_per_class=100, train_ratio=0.8, output_json="fusion_calibration.json"):
     fake_pattern = os.path.join(data_dir, "**", "FAKE", "*.*")
     real_pattern = os.path.join(data_dir, "**", "REAL", "*.*")
 
@@ -90,21 +91,23 @@ def calibrate_dataset(data_dir, samples_per_class=100, output_json="fusion_calib
         return None
 
     random.seed(42)
-    sample_fakes = random.sample(all_fakes, min(samples_per_class, len(all_fakes)))
-    sample_reals = random.sample(all_reals, min(samples_per_class, len(all_reals)))
+    sample_fakes = random.sample(all_fakes, min(total_samples_per_class, len(all_fakes)))
+    sample_reals = random.sample(all_reals, min(total_samples_per_class, len(all_reals)))
 
-    print(f"\n🚀 Sampling {len(sample_fakes)} FAKE and {len(sample_reals)} REAL images for calibration...")
+    print(f"\n🚀 Sampling {len(sample_fakes)} FAKE and {len(sample_reals)} REAL images (Total: {len(sample_fakes)+len(sample_reals)})...")
 
-    X = []
-    y = []
+    X_all = []
+    y_all = []
+    file_paths = []
 
     # 1. Process FAKE samples (y = 1)
     print("Extracting features from FAKE samples...")
     t0 = time.time()
     for i, fpath in enumerate(sample_fakes):
         feats = extract_feature_vector(fpath)
-        X.append(feats)
-        y.append(1)
+        X_all.append(feats)
+        y_all.append(1)
+        file_paths.append(fpath)
         if (i + 1) % 25 == 0 or (i + 1) == len(sample_fakes):
             print(f"  Processed {i+1}/{len(sample_fakes)} FAKEs ({(time.time()-t0):.1f}s)")
 
@@ -113,76 +116,106 @@ def calibrate_dataset(data_dir, samples_per_class=100, output_json="fusion_calib
     t0 = time.time()
     for i, rpath in enumerate(sample_reals):
         feats = extract_feature_vector(rpath)
-        X.append(feats)
-        y.append(0)
+        X_all.append(feats)
+        y_all.append(0)
+        file_paths.append(rpath)
         if (i + 1) % 25 == 0 or (i + 1) == len(sample_reals):
             print(f"  Processed {i+1}/{len(sample_reals)} REALs ({(time.time()-t0):.1f}s)")
 
-    X = np.array(X, dtype=np.float64)
-    y = np.array(y, dtype=np.int32)
+    X_all = np.array(X_all, dtype=np.float64)
+    y_all = np.array(y_all, dtype=np.int32)
 
-    # 3. Fit Logistic Regression Model
-    print("\n🧮 Fitting Logistic Regression Classifier...")
+    # 3. Create Strict Disjoint Train / Test Split (Zero Leakage)
+    X_train, X_test, y_train, y_test = train_test_split(
+        X_all, y_all, test_size=(1.0 - train_ratio), random_state=42, stratify=y_all
+    )
+
+    print(f"\n🔒 Split Composition (Zero Leakage):")
+    print(f"   Train Set: {len(y_train)} samples (FAKE: {np.sum(y_train==1)}, REAL: {np.sum(y_train==0)})")
+    print(f"   Held-Out Test Set: {len(y_test)} samples (FAKE: {np.sum(y_test==1)}, REAL: {np.sum(y_test==0)})")
+
+    # 4. Fit Logistic Regression on TRAIN SET ONLY
+    print("\n🧮 Fitting Logistic Regression exclusively on Train Split...")
     clf = LogisticRegression(C=1.0, max_iter=1000, random_state=42)
-
-    # 5-Fold Stratified Cross-Validation
-    skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-    cv_acc, cv_prec, cv_rec, cv_f1, cv_auc = [], [], [], [], []
-
-    for train_idx, val_idx in skf.split(X, y):
-        X_tr, X_val = X[train_idx], X[val_idx]
-        y_tr, y_val = y[train_idx], y[val_idx]
-
-        clf_cv = LogisticRegression(C=1.0, max_iter=1000, random_state=42)
-        clf_cv.fit(X_tr, y_tr)
-        preds = clf_cv.predict(X_val)
-        probs = clf_cv.predict_proba(X_val)[:, 1]
-
-        cv_acc.append(accuracy_score(y_val, preds))
-        cv_prec.append(precision_score(y_val, preds, zero_division=0))
-        cv_rec.append(recall_score(y_val, preds, zero_division=0))
-        cv_f1.append(f1_score(y_val, preds, zero_division=0))
-        cv_auc.append(roc_auc_score(y_val, probs))
-
-    # Fit full dataset
-    clf.fit(X, y)
-    full_probs = clf.predict_proba(X)[:, 1]
-    full_preds = clf.predict(X)
+    clf.fit(X_train, y_train)
 
     feature_names = ["vit_score", "fft_score", "dct_score", "ela_score", "noise_anomaly_score", "metadata_score"]
     raw_weights = clf.coef_[0].tolist()
     intercept = float(clf.intercept_[0])
 
-    # Normalized positive weights for probabilistic attribution
     abs_weights = [max(0.0, w) for w in raw_weights]
     sum_w = sum(abs_weights) + 1e-10
     norm_weights = [round(w / sum_w, 4) for w in abs_weights]
 
-    tn, fp, fn, tp = confusion_matrix(y, full_preds).ravel()
+    # 5. Evaluate on HELD-OUT TEST SET (Never seen during training)
+    test_probs = clf.predict_proba(X_test)[:, 1]
+    test_preds = clf.predict(X_test)
+
+    test_acc = accuracy_score(y_test, test_preds)
+    test_prec = precision_score(y_test, test_preds, zero_division=0)
+    test_rec = recall_score(y_test, test_preds, zero_division=0)
+    test_f1 = f1_score(y_test, test_preds, zero_division=0)
+    test_auc = roc_auc_score(y_test, test_probs)
+
+    tn, fp, fn, tp = confusion_matrix(y_test, test_preds).ravel()
+    fpr = float(fp / (fp + tn)) if (fp + tn) > 0 else 0.0
+    fnr = float(fn / (fn + tp)) if (fn + tp) > 0 else 0.0
+
+    # 5-Fold Stratified Cross-Validation on TRAIN SET
+    skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+    cv_acc, cv_prec, cv_rec, cv_f1, cv_auc = [], [], [], [], []
+
+    for tr_idx, val_idx in skf.split(X_train, y_train):
+        X_tr, X_val = X_train[tr_idx], X_train[val_idx]
+        y_tr, y_val = y_train[tr_idx], y_train[val_idx]
+
+        clf_cv = LogisticRegression(C=1.0, max_iter=1000, random_state=42)
+        clf_cv.fit(X_tr, y_tr)
+        val_preds = clf_cv.predict(X_val)
+        val_probs = clf_cv.predict_proba(X_val)[:, 1]
+
+        cv_acc.append(accuracy_score(y_val, val_preds))
+        cv_prec.append(precision_score(y_val, val_preds, zero_division=0))
+        cv_rec.append(recall_score(y_val, val_preds, zero_division=0))
+        cv_f1.append(f1_score(y_val, val_preds, zero_division=0))
+        cv_auc.append(roc_auc_score(y_val, val_probs))
 
     results = {
         "calibrated_at": time.strftime("%Y-%m-%d %H:%M:%S"),
-        "total_samples": len(y),
-        "class_distribution": {"fake": int(np.sum(y == 1)), "real": int(np.sum(y == 0))},
+        "total_dataset_available": len(all_fakes) + len(all_reals),
+        "total_samples_evaluated": len(y_all),
+        "split_policy": {
+            "train_samples": len(y_train),
+            "held_out_test_samples": len(y_test),
+            "train_ratio": train_ratio,
+            "leakage_protection": "STRICT_DISJOINT_SPLIT"
+        },
         "coefficients": {
             "raw_weights": {name: round(w, 4) for name, w in zip(feature_names, raw_weights)},
             "normalized_weights": {name: nw for name, nw in zip(feature_names, norm_weights)},
             "intercept": round(intercept, 4)
         },
-        "5_fold_cv_metrics": {
-            "accuracy_mean": round(float(np.mean(cv_acc)) * 100.0, 2),
-            "precision_mean": round(float(np.mean(cv_prec)) * 100.0, 2),
-            "recall_mean": round(float(np.mean(cv_rec)) * 100.0, 2),
-            "f1_mean": round(float(np.mean(cv_f1)), 4),
-            "roc_auc_mean": round(float(np.mean(cv_auc)), 4)
+        "held_out_test_metrics": {
+            "test_accuracy_pct": round(test_acc * 100.0, 2),
+            "test_precision_pct": round(test_prec * 100.0, 2),
+            "test_recall_pct": round(test_rec * 100.0, 2),
+            "test_f1_score": round(test_f1, 4),
+            "test_roc_auc": round(test_auc, 4),
+            "false_positive_rate_pct": round(fpr * 100.0, 2),
+            "false_negative_rate_pct": round(fnr * 100.0, 2)
         },
-        "confusion_matrix": {
+        "held_out_confusion_matrix": {
             "true_positives_fake": int(tp),
             "false_positives_real_as_fake": int(fp),
             "true_negatives_real": int(tn),
-            "false_negatives_fake_as_real": int(fn),
-            "false_positive_rate_pct": round(float(fp / (fp + tn)) * 100.0, 2) if (fp + tn) > 0 else 0.0,
-            "false_negative_rate_pct": round(float(fn / (fn + tp)) * 100.0, 2) if (fn + tp) > 0 else 0.0
+            "false_negatives_fake_as_real": int(fn)
+        },
+        "train_cross_validation_metrics": {
+            "cv_accuracy_mean_pct": round(float(np.mean(cv_acc)) * 100.0, 2),
+            "cv_precision_mean_pct": round(float(np.mean(cv_prec)) * 100.0, 2),
+            "cv_recall_mean_pct": round(float(np.mean(cv_rec)) * 100.0, 2),
+            "cv_f1_mean": round(float(np.mean(cv_f1)), 4),
+            "cv_roc_auc_mean": round(float(np.mean(cv_auc)), 4)
         }
     }
 
@@ -191,18 +224,19 @@ def calibrate_dataset(data_dir, samples_per_class=100, output_json="fusion_calib
         json.dump(results, f, indent=2)
 
     print("\n" + "="*60)
-    print("📊 CALIBRATION COMPLETE — RESULTS SUMMARY")
+    print("📊 HELD-OUT GENERALIZATION BENCHMARK — ZERO LEAKAGE")
     print("="*60)
     print(json.dumps(results, indent=2))
-    print(f"\nSaved calibrated weights to: {out_path}")
+    print(f"\nSaved calibrated weights and held-out metrics to: {out_path}")
     return results
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Calibrate TrustScan multi-signal fusion weights against ground truth dataset.")
+    parser = argparse.ArgumentParser(description="Calibrate TrustScan multi-signal fusion weights against disjoint train/test dataset.")
     parser.add_argument("--data_dir", type=str, default=r"D:\Chakra\Code\CheckIt\ImageForensicData", help="Path to ImageForensicData folder")
-    parser.add_argument("--samples", type=int, default=100, help="Number of samples per class (FAKE and REAL)")
+    parser.add_argument("--samples", type=int, default=100, help="Total samples per class (e.g., 100 = 100 FAKE + 100 REAL = 200 total)")
+    parser.add_argument("--train_ratio", type=float, default=0.8, help="Train/test split ratio (default: 0.8)")
     parser.add_argument("--output", type=str, default="fusion_calibration.json", help="Output calibration JSON file name")
     args = parser.parse_args()
 
-    calibrate_dataset(args.data_dir, samples_per_class=args.samples, output_json=args.output)
+    calibrate_and_evaluate_split(args.data_dir, total_samples_per_class=args.samples, train_ratio=args.train_ratio, output_json=args.output)
