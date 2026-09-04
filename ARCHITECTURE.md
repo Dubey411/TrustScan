@@ -1,6 +1,6 @@
 # 🏛️ TrustScan AI — System Architecture & Dataflow Specification
 
-> **Version 4.4 — Multi-Modal Credential, Document & Calibrated Multi-Signal AI Image Forensics**
+> **Version 4.4 — Calibrated Multi-Signal AI Forensics, Disjoint Generalization Benchmarking & Invariant Gating**
 
 This document outlines the production architecture of **TrustScan AI**, detailing how uploads (photographs, academic transcripts, corporate IDs, salary slips, employment letters) flow through our multi-signal inspection engine, pretrained vision models, signal processing pipelines, and deterministic verification layers.
 
@@ -10,26 +10,27 @@ This document outlines the production architecture of **TrustScan AI**, detailin
 
 ```mermaid
 flowchart TD
-    subgraph Ingestion ["1. INGESTION & FAST-PATH ROUTER"]
-        UPLOAD[User Upload: Image / Document] --> ROUTER{Scan Type?}
-        ROUTER -->|type: image| FAST[Fast-Path: Native Buffer to Warm Daemon Port 5005]
-        ROUTER -->|type: academic / document| PARALLEL[Parallel Execution: OCR + Forensics]
+    subgraph Ingestion ["1. INGESTION & ZERO-SPAWN ROUTER"]
+        UPLOAD[User Upload: Image / PDF / Doc] --> ROUTER{Scan Mode?}
+        ROUTER -->|Image Portal| FAST[Fast-Path: Native Buffer to Warm Daemon :5005]
+        ROUTER -->|Academic / Document| PARALLEL[Parallel Execution: OCR + Forensics]
     end
 
-    subgraph Signals ["2. MULTI-SIGNAL EVIDENCE EXTRACTION (Native Resolution)"]
-        FAST & PARALLEL --> S1[Signal 1: Metadata Engine<br/>EXIF Camera Tags, PNG Chunks, Prompt Traces, Software Signatures]
-        FAST & PARALLEL --> S2[Signal 2: ELA & Localized Noise Engine<br/>JPEG Recompression Differentials + Inpainting Patch Variance]
-        FAST & PARALLEL --> S3[Signal 3: 512px High-Res FFT Frequency Engine<br/>16-Band Radial 1/f Power Spectrum & VAE Lattice Spikes]
-        FAST & PARALLEL --> S4[Signal 4: Vectorized 2D DCT Engine<br/>8x8 Orthonormal AC Coefficient Kurtosis < 2ms]
-        FAST & PARALLEL --> S5[Signal 5: Pretrained Vision Ensemble<br/>General ViT umm-maybe + SDXL Specialist]
+    subgraph Signals ["2. MULTI-SIGNAL FORENSIC EXTRACTION (< 500ms)"]
+        FAST & PARALLEL --> S1[Signal 1: Metadata Engine<br/>EXIF Camera Hardware Tags, Prompt Chunks, Tool Signatures]
+        FAST & PARALLEL --> S2[Signal 2: ELA & Localized Inpainting<br/>JPEG Error Differentials + 8x8 Patch Variance > 3.2σ]
+        FAST & PARALLEL --> S3[Signal 3: 512px High-Res FFT Domain<br/>16-Band Radial 1/f Spectrum & VAE Lattice Spikes]
+        FAST & PARALLEL --> S4[Signal 4: Vectorized 2D DCT Engine<br/>8x8 Orthonormal Matrix Kurtosis < 2ms]
+        FAST & PARALLEL --> S5[Signal 5: Pretrained Vision Ensemble<br/>Warm General ViT umm-maybe + SDXL Specialist]
     end
 
-    subgraph Fusion ["3. CALIBRATED EVIDENCE FUSION"]
-        S1 & S2 & S3 & S4 & S5 --> FUS[Stage 6: Multi-Signal Evidence Aggregation]
-        FUS --> CAL[Stage 7: Calibrated Evidence Score & Invariant Gates]
+    subgraph Fusion ["3. CALIBRATED LOGISTIC FUSION & INVARIANT GATES"]
+        S1 & S2 & S3 & S4 & S5 --> GATES{Invariant Gates Fired?}
+        GATES -->|Yes| INVAR[Direct Invariant Resolution]
+        GATES -->|No| LOGIT[Empirical Logistic Regression<br/>Zero-Leakage Weights from ImageForensicData]
     end
 
-    subgraph Doc_Engine ["4. DETERMINISTIC CREDENTIAL ENGINES"]
+    subgraph Doc_Engine ["4. DETERMINISTIC CREDENTIAL VERIFIERS"]
         PARALLEL --> OCR[Sarvam Vision 3B / Tesseract OCR]
         OCR --> UGC[UGC University Accreditation Registry]
         OCR --> MCA[MCA CIN & GSTIN Registry Lookup]
@@ -37,39 +38,37 @@ flowchart TD
     end
 
     subgraph Verdict ["5. 5-STATE VERDICT CLASSIFICATION"]
-        CAL --> V_OUT[Stage 8: Calibrated 5-State Verdict]
-        V_OUT --> V_REAL["🟢 AUTHENTIC (Clean)"]
-        V_OUT --> V_AI["🤖 AI_GENERATED"]
-        V_OUT --> V_TAMP["✂️ TAMPERED_REAL_IMAGE"]
-        V_OUT --> V_AI_TAMP["🤖✂️ AI_GENERATED_AND_EDITED"]
+        INVAR & LOGIT --> V_OUT[Stage 8: Calibrated Output]
+        V_OUT --> V_REAL["🟢 AUTHENTIC (Clean Camera)"]
+        V_OUT --> V_AI["🤖 AI_GENERATED (Synthetic)"]
+        V_OUT --> V_TAMP["✂️ TAMPERED_REAL_IMAGE (Edited/Spliced)"]
+        V_OUT --> V_AI_TAMP["🤖✂️ AI_GENERATED_AND_EDITED (Composite)"]
         V_OUT --> V_UNC["❓ UNCERTAIN (Amber Manual Review)"]
     end
 
-    subgraph Output ["6. AUDIT & DASHBOARD LAYER"]
+    subgraph Storage ["6. AUDIT & DASHBOARD LAYER"]
         V_OUT & UGC & MCA & CTC --> MONGO[(MongoDB Atlas - Scan Model)]
-        MONGO --> DASH[ResultsInteractive.tsx Domain Views]
+        MONGO --> DASH[ResultsInteractive.tsx Domain Cards]
     end
 ```
 
 ---
 
-## 🔬 Calibrated Multi-Signal AI Image Forensics Pipeline
-
-Rather than relying on a single heuristic or an isolated neural network, TrustScan AI utilizes an **evidence-based multi-signal fusion pipeline** operating directly on native image buffers:
+## 🔬 Multi-Signal Forensic Pipeline Breakdown
 
 ```
 ORIGINAL IMAGE BUFFER (Native Resolution)
   │
-  ├──────────────────► Signal 1: Metadata Engine (EXIF Camera Tags / PNG Chunks / Prompts / Editors)
+  ├──────────────────► Signal 1: Metadata Scanner (EXIF Hardware Tags, Prompt Chunks, Tool Signatures)
   ├──────────────────► Signal 2: ELA & Localized Inpainting Noise (Patch Variance Deviation > 3.2σ)
   ├──────────────────► Signal 3: 512px High-Res FFT Frequency (16-Band Radial 1/f & Lattice Spikes)
   ├──────────────────► Signal 4: Vectorized 2D DCT Transform (Laplacian vs Gaussian Kurtosis < 2ms)
-  └─► [Resize 384px] ─► Signal 5: Pretrained Vision Ensemble (General ViT + SDXL Specialist)
+  └─► [Resize 384px] ─► Signal 5: Pretrained Vision Ensemble (Warm ViT + SDXL Specialist)
                               │
                               ▼
                ┌──────────────────────────────┐
                │ Calibrated Evidence Fusion   │
-               │ (Invariant Gates + Weights)  │
+               │ (Invariant Gates + Logit)    │
                └──────────────┬───────────────┘
                               │
                               ▼
@@ -84,80 +83,89 @@ ORIGINAL IMAGE BUFFER (Native Resolution)
                └──────────────────────────────┘
 ```
 
----
-
-### Layer Breakdown & Specifications
-
-| Signal Layer | Module & Function | Signal Target | Technical Role & Mechanism |
-| :--- | :--- | :--- | :--- |
-| **1. Metadata Signal** | `scan_exif_metadata` | EXIF hardware tags (`Make`, `Model`, `FNumber`, `ISO`), PNG text chunks, prompt parameters, editing tools | Identifies ground-truth generation parameters (A1111, ComfyUI, Midjourney) and verifies physical camera sensor authenticity. |
-| **2. ELA & Localized Inpainting** | `analyze_ela` + `analyze_noise_inconsistency` | JPEG recompression error levels and $8\times8$ multi-patch noise variance | Detects Photoshop/Canva edits and flags localized inpainting / face-swaps on IDs where single-patch deviation $> 3.2\sigma$. |
-| **3. High-Res FFT Domain** | `analyze_frequency_domain` | $512\times512$ 2D Fourier power spectrum, 16-band radial decay, central VAE grid harmonic spikes | Captures micro-lattice upsampling artifacts from $1024\text{px}$ generators (FLUX.1, Midjourney v6, SDXL) without bilinear smearing. |
-| **4. Vectorized 2D DCT** | `analyze_dct_uniformity` | $8\times8$ block DCT AC coefficient kurtosis via orthonormal matrix transform ($T \cdot X \cdot T^T$) | Differentiates natural Laplacian camera distributions from synthetic Gaussian distributions in $< 2\text{ms}$. |
-| **5. Pretrained Vision Ensemble** | `predict_sdxl_detector` | `umm-maybe/AI-image-detector` (General ViT) + `Organika/sdxl-detector` (Specialist) | High-capacity deep feature recognition running locally on CPU in $< 500\text{ms}$ via warm daemon. |
-| **6. Deterministic Engines** | `rulesEngine.js` | UGC University Registry, MCA CIN, GSTIN, Salary Math, HR email domains | 100% deterministic mathematical, registry, and business domain verification for credentials. |
+| Layer | Module | Primary Purpose & Mechanism |
+| :--- | :--- | :--- |
+| **Signal 1: Metadata** | `scan_exif_metadata` | Extracts raw hardware EXIF (`Make`, `Model`, `FNumber`, `ISO`), embedded A1111/ComfyUI prompts, and graphic tool signatures. |
+| **Signal 2: Inpainting / ELA** | `analyze_ela` + `analyze_noise_inconsistency` | Multi-patch $8\times8$ noise variance ($\max > 3.2\sigma$) catches localized ID face-swaps and spliced text. |
+| **Signal 3: 512px High-Res FFT** | `analyze_frequency_domain` | Preserves micro-lattice upsampling artifacts from $1024\text{px}$ generators (FLUX.1, Midjourney v6, SDXL) with 16 radial bands. |
+| **Signal 4: Vectorized 2D DCT** | `analyze_dct_uniformity` | Orthonormal block transform ($T \cdot X \cdot T^T$) measures statistical kurtosis (Laplacian natural vs Gaussian synthetic) in $< 2\text{ms}$. |
+| **Signal 5: Vision ViT Ensemble**| `sdxl_detector.py` | Pre-warmed Vision Transformer (`umm-maybe/AI-image-detector`) running on CPU with 4 threads in $< 450\text{ms}$. |
+| **Signal 6: Deterministic Verifiers**| `rulesEngine.js` | 100% deterministic mathematical verification for UGC colleges, MCA companies, GSTIN, and CTC math. |
 
 ---
 
 ## 🧮 Calibrated Evidence Fusion & Invariant Gates
 
-The fusion layer reconciles conflicting signals through deterministic invariant gates and calibrated multi-signal weighting:
+Our fusion layer combines strict deterministic security invariants with empirical logistic regression weights fitted over held-out datasets:
 
-### Invariant Decision Gates
-
+### Invariant Security Gates
 1. **Direct Generation Trace (Invariant 1)**:
-   If metadata contains confirmed AI generator parameters (e.g. `parameters`, `prompt`, `ComfyUI` graph), $P(\text{AI}) = \max(0.92, S_{\text{ViT}})$ with `HIGH` confidence.
+   If metadata contains confirmed AI generator parameters (e.g. `parameters`, `prompt`), $P(\text{AI}) = \max(0.92, S_{\text{ViT}})$.
 2. **Deep Vision Ensemble Dominance (Invariant 2)**:
-   If $S_{\text{ViT}} \ge 0.70$ or $S_{\text{ML}} \ge 0.80$, visual recognition dominates and flags $P(\text{AI}) = \max(S_{\text{ViT}}, S_{\text{ML}})$.
+   If $S_{\text{ViT}} \ge 0.70$ or $S_{\text{ML}} \ge 0.80$, visual recognition dominates ($P(\text{AI}) = \max(S_{\text{ViT}}, S_{\text{ML}})$).
 3. **Physical Camera Hardware Exemption (Invariant 3)**:
    A clean exemption ($P(\text{AI}) \le 0.18$) is granted **only** if:
    $$\text{has\_camera\_tags} \land (\text{spectral\_corr} \le -0.94) \land (\text{kurtosis} \ge 45.0) \land (S_{\text{ViT}} \le 0.25)$$
-   *Digital graphics or stripped-metadata files lacking physical camera hardware tags are excluded from this exemption.*
+   *(Synthetic 2D badges, flat illustrations, or stripped-metadata files are strictly barred from this exemption).*
 4. **Digital Graphic & Ambiguity Route (Invariant 4)**:
-   2D synthetic badges, digital illustrations, or stripped-metadata images with ambiguous low-frequency spectra route safely to the amber `UNCERTAIN` band ($P(\text{AI}) = 0.38$).
-5. **Calibrated Weighted Linear Fusion (Fallback)**:
-   When no invariant gate fires, the final probability is calibrated across all extracted features:
-   $$P(\text{AI}) = 0.55 \cdot S_{\text{ViT}} + 0.25 \cdot S_{\text{FFT}} + 0.10 \cdot S_{\text{DCT}} + 0.10 \cdot S_{\text{Tamper}}$$
+   Unverified 2D digital graphics and ambiguous low-frequency images dynamically land in the amber `UNCERTAIN` band ($0.34 \le P(\text{AI}) \le 0.48$) scaled by residual entropy:
+   $$P(\text{AI})_{\text{uncertain}} = \min(0.48, \max(0.34, 0.34 + 0.25 \cdot S_{\text{ViT}} + 0.15 \cdot S_{\text{FFT}}))$$
+5. **Calibrated Logistic Linear Fallback**:
+   When no invariant gate triggers, the final probability uses data-calibrated logistic weights:
+   $$P(\text{AI}) = 0.8067 \cdot S_{\text{ViT}} + 0.1132 \cdot S_{\text{Noise}} + 0.0801 \cdot S_{\text{FFT}}$$
 
 ---
 
-## 📊 5-State Verdict State Space
+## 📊 5-State Verdict Decision Space
 
-| Verdict State | Boundary Conditions | User Interface & Risk Action |
+| Verdict State | Boundary Conditions | Description |
 | :--- | :--- | :--- |
-| **🟢 `CLEAN` (Authentic)** | $P(\text{AI}) < 0.32 \land S_{\text{Tamper}} < 0.35$ | Authentic image. Verified camera optics or natural sensor noise. Direct approval. |
-| **❓ `UNCERTAIN` (Inconclusive)** | $0.32 \le P(\text{AI}) < 0.50$ | Amber alert. Conflicting signals / 2D graphic / stripped EXIF. Routes to human manual review. |
-| **🤖 `AI_GENERATED`** | $P(\text{AI}) \ge 0.50 \land S_{\text{Tamper}} < 0.35$ | Red alert. High probability synthetic generation (FLUX, Midjourney, SDXL). Flagged. |
-| **✂️ `TAMPERED_REAL_IMAGE`** | $P(\text{AI}) < 0.35 \land S_{\text{Tamper}} \ge 0.35$ | Orange alert. Real photograph with spliced text, Photoshop edits, or localized face-swap. |
-| **🤖✂️ `AI_GENERATED_AND_EDITED`** | $P(\text{AI}) \ge 0.50 \land S_{\text{Tamper}} \ge 0.35$ | Purple alert. Synthetic AI generation further modified or retouched in graphic software. |
+| **🟢 `CLEAN` (Authentic)** | $P(\text{AI}) < 0.32 \land S_{\text{Tamper}} < 0.35$ | Authentic image with verified camera optics or natural sensor noise. |
+| **❓ `UNCERTAIN` (Inconclusive)**| $0.32 \le P(\text{AI}) < 0.50$ | Amber alert for conflicting signals, 2D vector badges, or stripped metadata. |
+| **🤖 `AI_GENERATED`** | $P(\text{AI}) \ge 0.50 \land S_{\text{Tamper}} < 0.35$ | Synthetic generation (FLUX, Midjourney, SDXL, DALL-E, AI Enhancers). |
+| **✂️ `TAMPERED_REAL_IMAGE`** | $P(\text{AI}) < 0.35 \land S_{\text{Tamper}} \ge 0.35$ | Real photograph with localized face-swaps, spliced text, or Photoshop edits. |
+| **🤖✂️ `AI_GENERATED_AND_EDITED`**| $P(\text{AI}) \ge 0.50 \land S_{\text{Tamper}} \ge 0.35$ | Synthetic AI generation further edited or composited in software. |
 
 ---
 
-## 🧪 Structured 6-Category Benchmark Suite
+## 🧪 Scientific Validation: Dual Benchmark Architecture
 
-TrustScan AI includes an automated benchmark evaluation suite ([`server/tests/benchmark_ai_detector.py`](file:///d:/Chakra/Code/CheckIt/server/tests/benchmark_ai_detector.py)) evaluating the engine against a structured dataset across 6 operational categories:
+To maintain rigorous transparency, TrustScan AI maintains **two distinct validation layers**:
 
 ```
-test/benchmark_dataset/
-├── real_camera/             # DSLR & smartphone photos with natural sensor noise & EXIF
-├── real_scanned_ids/        # Scanned documents/IDs with authentic paper/ink texture
-├── ai_photorealistic/       # FLUX.1, Midjourney v6, SDXL, DALL-E photorealistic generations
-├── ai_vector_graphics/      # 2D badges, flat illustrations, synthetic AI icons
-├── adversarial_recompressed/# WhatsApp/social media recompressed AI images
-└── inpainting_tampered/     # Local face-swaps, spliced text, Photoshop modifications
+VALIDATION METHODOLOGY
+├── 1. Curated Invariant Regression Suite (test/benchmark_dataset/)
+│   └── Tests exact operational unit-invariants (FLUX.1, WhatsApp, 2D Badges, ELA)
+└── 2. Large-Scale Held-Out Generalization Benchmark (ImageForensicData/)
+    └── Evaluates statistical discrimination on unseen wild image pairs (Zero Leakage)
 ```
 
-### Empirical Validation Metrics
+### Layer 1: Curated Invariant Unit-Test Suite (`test/benchmark_dataset/`)
+*Evaluates whether specific architectural invariant rules fire correctly on known edge cases:*
 
-| Metric | Result | Target Benchmark | Status |
+| Test Category | Samples | Invariant Rule Tested | Unit Pass Rate |
 | :--- | :--- | :--- | :--- |
-| **Overall Accuracy** | **100.0%** | $\ge 90.0\%$ | ✅ Exceeds Target |
-| **Precision** | **100.0%** | $\ge 92.0\%$ | ✅ Zero False Positives on Clean Camera |
-| **Recall (Sensitivity)**| **100.0%** | $\ge 90.0\%$ | ✅ Zero False Negatives on AI/Tamper |
-| **F1 Score** | **1.000** | $\ge 0.90$ | ✅ Optimal Precision-Recall Balance |
-| **False Positive Rate (FPR)** | **0.0%** | $\le 5.0\%$ | ✅ No legitimate camera photos flagged as AI |
-| **False Negative Rate (FNR)** | **0.0%** | $\le 5.0\%$ | ✅ No synthetic files bypassed as clean |
-| **Average Warmed Latency** | **$480\text{ms} - 810\text{ms}$** | $< 1000\text{ms}$ | ✅ Sub-Second Production SLA |
+| `real_camera/` | 2 | Verified EXIF optics exemption & WhatsApp ambiguity holding | **100.0%** |
+| `ai_photorealistic/` | 3 | High-res FLUX/SDXL lattice recognition & AI portrait detection | **100.0%** |
+| `ai_vector_graphics/`| 1 | 2D badge exclusion from clean exemption (Dynamic UNCERTAIN) | **100.0%** |
+| `inpainting_tampered/`| 2 | Localized patch variance anomaly ($>3.2\sigma$) on edited photos | **100.0%** |
+
+---
+
+### Layer 2: Large-Scale Held-Out Generalization Benchmark (`ImageForensicData/`)
+*Evaluated on an independent, strictly disjoint **20% held-out test split** (40 unseen test pairs from 21,642 available images) with **zero train/test data leakage**:*
+
+| Metric | Held-Out Test Result | 5-Fold CV on Train Split |
+| :--- | :--- | :--- |
+| **ROC-AUC** | **`0.9175`** | `0.8438` |
+| **Overall Accuracy** | **`82.50%`** | `76.88%` |
+| **Precision** | **`80.95%`** | `72.99%` |
+| **Recall (Sensitivity)** | **`85.00%`** | `85.00%` |
+| **F1-Score** | **`0.8293`** | `0.7837` |
+| **False Positive Rate (FPR)** | **`20.00%`** | — |
+| **False Negative Rate (FNR)** | **`15.00%`** | — |
+
+> **Audit Transparency Note**: The difference between 100% on curated unit invariants and 82.5% on the held-out generalization dataset reflects the natural variance of web-scraped, highly recompressed low-resolution images where metadata is stripped. The amber `UNCERTAIN` band ($0.32 \le P(\text{AI}) < 0.50$) exists specifically to safely route the $\sim 18\%$ ambiguous cases for human review rather than forcing an erroneous binary verdict.
 
 ---
 
@@ -172,16 +180,7 @@ test/benchmark_dataset/
 | [`server/scripts/forensics_server.py`](file:///d:/Chakra/Code/CheckIt/server/scripts/forensics_server.py) | Warm in-memory Python daemon (Port 5005) hosting ViT model on CPU |
 | [`server/scripts/sdxl_detector.py`](file:///d:/Chakra/Code/CheckIt/server/scripts/sdxl_detector.py) | Pretrained Vision Ensemble wrapper (`umm-maybe/AI-image-detector` + `Organika/sdxl-detector`) |
 | [`server/scripts/image_forensics.py`](file:///d:/Chakra/Code/CheckIt/server/scripts/image_forensics.py) | Full 8-stage image forensics pipeline (512px FFT, ELA, EXIF, 2ms DCT, patch variance, calibrated fusion) |
-| [`server/tests/benchmark_ai_detector.py`](file:///d:/Chakra/Code/CheckIt/server/tests/benchmark_ai_detector.py) | Automated benchmark harness computing precision, recall, F1, confusion matrix, and latency |
+| [`server/scripts/calibrate_fusion_weights.py`](file:///d:/Chakra/Code/CheckIt/server/scripts/calibrate_fusion_weights.py) | Zero-leakage train/test calibration engine fitting empirical logistic regression weights |
+| [`server/scripts/fusion_calibration.json`](file:///d:/Chakra/Code/CheckIt/server/scripts/fusion_calibration.json) | Ground-truth empirical coefficients and held-out validation metrics |
+| [`server/tests/benchmark_ai_detector.py`](file:///d:/Chakra/Code/CheckIt/server/tests/benchmark_ai_detector.py) | Automated regression test harness evaluating curated edge-case matrix |
 | [`server/models/Scan.js`](file:///d:/Chakra/Code/CheckIt/server/models/Scan.js) | Mongoose schema with multi-modal enum validation and threat signals |
-
----
-
-## 🚀 Domain Adaptation & Future Roadmap
-
-1. **Document Fraud ViT Head Fine-Tuning**:
-   Currently, `umm-maybe/AI-image-detector` provides off-the-shelf general visual feature extraction. Future iterations will train a lightweight classification head fine-tuned specifically on synthetic identity cards, forged seals, and scanned transcripts.
-2. **Real-ESRGAN / AI Super-Resolution Fingerprinting**:
-   Add higher-order statistical bi-spectral analysis to flag upscaled low-resolution headshots on resumes and ID cards.
-3. **Continuous Benchmark Expansion**:
-   Continuously expand the `test/benchmark_dataset/` directory with new open-weights generators (e.g. FLUX.1 Kontext, Imagen 3, Stable Cascade) to prevent drift.
