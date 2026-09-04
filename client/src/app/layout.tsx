@@ -17,8 +17,8 @@ export const metadata: Metadata = {
     default: 'TrustScan AI | India\'s Leading Fraud Detection Engine',
     template: '%s | TrustScan AI'
   },
-  description: 'Instant AI fraud verification for Indian job seekers and businesses. Check fake offer letters, verify academic degrees, detect manipulated UPI screenshots, and verify MCA CIN records.',
-  keywords: ['offer letter check online', 'fake offer letter check online free', 'fake offer letter detection pdf', 'job offer letter check online free', 'check offer letter online', 'fake upi payment screenshot check', 'ai image detection online', 'degree verification online', 'CIN verification online', 'GST verification', 'online scam protection', 'TrustScan AI'],
+  description: 'Instant AI fraud verification for Indian job seekers and businesses. Check fake offer letters, verify UPI payments, detect manipulated images, and verify MCA CIN records.',
+  keywords: ['offer letter check online', 'fake offer letter check online free', 'fake offer letter detection pdf', 'job offer letter check online free', 'check offer letter online', 'fake upi payment screenshot check', 'ai image detection online', 'payment fraud check online', 'CIN verification online', 'GST verification', 'online scam protection', 'TrustScan AI'],
   authors: [{ name: 'TrustScan Team' }],
   creator: 'TrustScan AI',
   publisher: 'TrustScan AI India',

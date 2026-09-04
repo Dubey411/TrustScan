@@ -3,7 +3,7 @@ import HomepageInteractive from './homepage/components/HomepageInteractive';
 
 export const metadata: Metadata = {
   title: 'TrustScan AI | Fake Offer Letter Check Online & AI Fraud Detection',
-  description: 'Free online tool to check fake offer letters, verify job offers, audit academic degrees, detect manipulated UPI screenshots, and verify MCA CIN companies with deep AI forensics.',
+  description: 'Free online tool to check fake offer letters, verify job offers, audit UPI payment receipts, detect manipulated images, and verify MCA CIN companies with deep AI forensics.',
   alternates: {
     canonical: '/',
   },
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
     'check offer letter online',
     'fake upi payment screenshot check',
     'ai image detection online',
-    'degree marksheet verification',
+    'payment receipt fraud check',
     'company cin verification',
     'TrustScan AI'
   ],

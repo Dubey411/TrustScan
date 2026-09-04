@@ -61,18 +61,18 @@ const QuickScanSection = ({ isVisible, onClose }: QuickScanSectionProps) => {
             </button>
 
             <button
-              onClick={() => setScanType('academic')}
+              onClick={() => setScanType('payment')}
               className={`flex flex-col items-center space-y-2 p-3 rounded-lg border-2 transition-all duration-300 ${
-                scanType === 'academic' ? 'border-primary bg-primary/5' : 'border-border hover:border-muted-foreground'
+                scanType === 'payment' ? 'border-primary bg-primary/5' : 'border-border hover:border-muted-foreground'
               }`}
             >
               <Icon
-                name="AcademicCapIcon"
+                name="CreditCardIcon"
                 size={28}
-                variant={scanType === 'academic' ? 'solid' : 'outline'}
-                className={scanType === 'academic' ? 'text-primary' : 'text-muted-foreground'}
+                variant={scanType === 'payment' ? 'solid' : 'outline'}
+                className={scanType === 'payment' ? 'text-primary' : 'text-muted-foreground'}
               />
-              <span className="text-xs font-semibold text-foreground text-center">Degree & Marksheet</span>
+              <span className="text-xs font-semibold text-foreground text-center">UPI & Payment</span>
             </button>
 
             <button
@@ -111,7 +111,7 @@ const QuickScanSection = ({ isVisible, onClose }: QuickScanSectionProps) => {
             <label className="block text-sm font-medium text-foreground">
               {scanType === 'company' && 'Enter Company Name, 21-digit MCA CIN, or GSTIN'}
               {scanType === 'document' && 'Paste offer letter text, contract excerpt, or credentials'}
-              {scanType === 'academic' && 'Enter University Name, Roll / Registration Number, or Degree details'}
+              {scanType === 'payment' && 'Enter UPI ID, 12-digit UTR reference, or transaction details'}
               {scanType === 'image' && 'Upload any image or paste text to test for AI Generation & pixel tampering'}
             </label>
             <textarea
@@ -120,7 +120,7 @@ const QuickScanSection = ({ isVisible, onClose }: QuickScanSectionProps) => {
               placeholder={
                 scanType === 'company' ? 'Example: Tata Consultancy Services, U72900MH2020PTC123456, or 27AAAAA0000A1Z5...'
                   : scanType === 'document' ? 'Example: Paste offer letter joining dates, CTC compensation, HR signature info...'
-                  : scanType === 'academic' ? 'Example: University of Delhi, Roll: 190456, Degree: B.Tech Computer Science, CGPA: 8.4...'
+                  : scanType === 'payment' ? 'Example: Paid to user@okhdfcbank, UTR: 328901928392, Amount: ₹50,000, Status: Successful...'
                   : 'Example: Upload an image file or enter image details to scan for AI Generation (Stable Diffusion, Midjourney, DALL-E)...'
               }
               className="w-full h-36 px-4 py-3 bg-background border border-input rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"

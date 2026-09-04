@@ -33,12 +33,12 @@ const HeroSection = ({ onScanClick }: HeroSectionProps) => {
             </div>
 
             <h1 className="text-4xl lg:text-6xl font-headline font-bold leading-tight">
-              Verify Degrees, Offers, <br />
-              <span className="text-success-green">Companies & Payments</span> 
+              Verify Offers, Payments, <br />
+              <span className="text-success-green">Images & Companies</span> 
             </h1>
 
             <p className="text-lg lg:text-xl text-primary-foreground/90 leading-relaxed">
-              Instantly audit <strong>Academic Degrees, Offer Letters, Company CIN/GSTIN, and UPI Payments</strong> with deep forensic AI. Protect yourself from fake credentials and fraudulent transactions.
+              Instantly audit <strong>Job Offer Letters, UPI Payments, AI-Generated Images, and MCA CIN/GSTIN</strong> with deep forensic AI. Protect yourself from fake credentials and fraudulent transactions.
             </p>
 
             {/* Stats */}

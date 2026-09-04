@@ -4,10 +4,10 @@ import Link from 'next/link';
 const ScanTypesSection = () => {
   const scanTypes = [
     {
-      icon: 'AcademicCapIcon',
-      title: 'Degree & Marksheet Audit',
-      description: 'Audit university degrees, semester marksheets, and diplomas for fake institutions, altered CGPA, and font tampering.',
-      features: ['UGC recognized vs fake university check', 'CGPA & marksheet math validation', 'Roll / PRN format pattern check', 'Pixel-level ELA tampering detection'],
+      icon: 'CreditCardIcon',
+      title: 'UPI & Payment Fraud Forensics',
+      description: 'Audit payment receipts, transaction screenshots, and banking transfers for fake APK generators and altered ₹ amounts.',
+      features: ['12-digit NPCI UTR reference audit', 'Fake payment APK template detection', 'Pixel-level ELA tampering on amounts', 'Bank IFSC & UPI VPA handle resolver'],
       color: 'primary',
     },
     {
@@ -41,7 +41,7 @@ const ScanTypesSection = () => {
             AI Fraud & Credential Verification
           </h2>
           <p className="text-lg text-muted-foreground">
-            Multi-modal verification for Academic Degrees, Corporate Records, Employment Offers, and UPI Payments
+            Multi-modal verification for UPI Payments, Corporate Records, Employment Offers, and AI Image Forensics
           </p>
         </div>
 
