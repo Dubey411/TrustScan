@@ -2,94 +2,61 @@
 
 import { useState, useEffect } from 'react';
 import Header from '@/components/common/Header';
+import BackgroundLayers from './BackgroundLayers';
 import ScanInterfaceInteractive from '../../scan-interface/components/ScanInterfaceInteractive';
-import ResultsInteractive from '../../results-dashboard/components/ResultsInteractive';
-import PricingInteractive from '../../pricing-page/components/PricingInteractive';
-import Icon from '@/components/ui/AppIcon';
-
-import QuickScanSection from './QuickScanSection';
 import HowItWorksSection from './HowItWorksSection';
+import PricingInteractive from '../../pricing-page/components/PricingInteractive';
 import FooterSection from './FooterSection';
+import QuickScanSection from './QuickScanSection';
 
 const HomepageInteractive = () => {
   const [isHydrated, setIsHydrated] = useState(false);
   const [showQuickScan, setShowQuickScan] = useState(false);
-  const [scanResult, setScanResult] = useState<any>(null);
-
 
   useEffect(() => {
     setIsHydrated(true);
   }, []);
 
-  const handleScanClick = () => {
-    setShowQuickScan(true);
-  };
-
-  const handleCloseScan = () => {
-    setShowQuickScan(false);
-  };
-
-  const handleScanComplete = (data: any) => {
-    // Transform data to match ResultsInteractive expectation if needed
-    // The ScanInterfaceInteractive returns: { type, target, apiResult }
-    // ResultsInteractive expects: { id, target, result, confidence, date, reasons }
-    
-    const formattedResult = {
-        ...data.apiResult, // Spread all API fields first
-        id: data.id || data.apiResult?.id || data.apiResult?._id || `guest-${Date.now()}`,
-        target: data.target,
-        result: data.apiResult?.status || 'safe',
-        confidence: data.apiResult?.riskScore || 0,
-        date: new Date().toLocaleDateString(),
-        scanType: data.type
-    };
-    
-    setScanResult(formattedResult);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const handleResetScan = () => {
-    setScanResult(null);
-  };
-
-
   if (!isHydrated) {
     return (
-      <div className="min-h-screen bg-background">
-        <div className="animate-pulse">
-          <div className="h-16 bg-muted"></div>
-          <div className="h-96 bg-muted/50"></div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+          <span className="text-xs font-mono text-muted-foreground uppercase tracking-widest">
+            Loading TrustScan AI...
+          </span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background text-foreground relative selection:bg-primary/30 selection:text-white">
+      {/* Fixed Ambient Background Layers */}
+      <BackgroundLayers />
+
+      {/* Sovereign Navigation Header */}
       <Header />
-      <main className="pt-16">
-        {scanResult ? (
-            <div className="container mx-auto px-4 py-8 animate-fade-in-up">
-                <button 
-                    onClick={handleResetScan}
-                    className="flex items-center gap-2 mb-6 px-4 py-2 text-primary font-semibold hover:bg-primary/10 rounded-lg transition-colors"
-                >
-                    <Icon name="ArrowLeftIcon" size={20} />
-                    Back to Scanner
-                </button>
-                <ResultsInteractive scanData={scanResult} />
-            </div>
-        ) : (
-            <>
-                <ScanInterfaceInteractive onScanComplete={handleScanComplete} />
-                <HowItWorksSection />
-                <PricingInteractive />
-            </>
-        )}
+
+      {/* Main Interactive App Area */}
+      <main className="pt-20 pb-12 relative z-10">
+        <>
+          {/* Scanner — results display in-place via ScanProgress overlay, no redirect */}
+          <ScanInterfaceInteractive />
+
+          {/* How It Works Section */}
+          <HowItWorksSection />
+
+          {/* Pricing Section */}
+          <PricingInteractive />
+        </>
       </main>
 
+      {/* Sovereign Footer */}
       <FooterSection />
-      <QuickScanSection isVisible={showQuickScan} onClose={handleCloseScan} />
+
+      {/* Quick Scan Modal */}
+      <QuickScanSection isVisible={showQuickScan} onClose={() => setShowQuickScan(false)} />
     </div>
   );
 };
