@@ -31,10 +31,10 @@ const PricingCard = ({
 }: PricingCardProps) => {
   return (
     <div
-      className={`relative bg-card rounded-xl p-8 transition-all duration-300 hover:shadow-brand-elevated ${
+      className={`relative bg-card dark:bg-gradient-to-b dark:from-[#131726] dark:to-[#0F121E] rounded-2xl p-8 transition-all duration-300 hover:shadow-2xl ${
         isPopular
-          ? 'border-2 border-primary shadow-brand-elevated scale-105'
-          : 'border border-border shadow-brand hover:border-primary'
+          ? 'border-2 border-primary shadow-[0_0_30px_rgba(255,107,74,0.25)] scale-105'
+          : 'border border-border dark:border-white/[0.08] hover:border-primary/50 shadow-md dark:shadow-xl'
       }`}
     >
       {badge && (
