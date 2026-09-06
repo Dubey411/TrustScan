@@ -91,6 +91,144 @@ export default function FileUploadArea({ onFileSelect, acceptedFormats, maxSize 
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   };
 
+  const createSampleFile = (type: 'pdf' | 'mountain' | 'receipt') => {
+    if (type === 'pdf') {
+      const pdfText = `%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>
+endobj
+4 0 obj
+<< /Length 214 >>
+stream
+BT
+/F1 16 Tf
+50 720 Td
+(TATA CONSULTANCY SERVICES - EMPLOYMENT OFFER) Tj
+/F1 12 Tf
+0 -30 Td
+(Candidate Name: Rahul Sharma) Tj
+0 -20 Td
+(Designation: Senior Systems Engineer) Tj
+0 -20 Td
+(CIN: L22210MH1995PLC084781) Tj
+0 -20 Td
+(Annual CTC: INR 12,50,000) Tj
+ET
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000222 00000 n 
+0000000488 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+562
+%%EOF`;
+      const blob = new Blob([pdfText], { type: 'application/pdf' });
+      const mockFile = new File([blob], 'tcs_offer_letter_verified.pdf', { type: 'application/pdf' });
+      handleFileSelect(mockFile);
+      return;
+    }
+
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    if (type === 'mountain') {
+      canvas.width = 800;
+      canvas.height = 500;
+      const sky = ctx.createLinearGradient(0, 0, 0, 500);
+      sky.addColorStop(0, '#1E293B');
+      sky.addColorStop(0.5, '#334155');
+      sky.addColorStop(1, '#64748B');
+      ctx.fillStyle = sky;
+      ctx.fillRect(0, 0, 800, 500);
+
+      ctx.fillStyle = '#0F172A';
+      ctx.beginPath();
+      ctx.moveTo(100, 500);
+      ctx.lineTo(380, 110);
+      ctx.lineTo(660, 500);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = '#1E293B';
+      ctx.beginPath();
+      ctx.moveTo(350, 500);
+      ctx.lineTo(550, 160);
+      ctx.lineTo(750, 500);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = '#94A3B8';
+      ctx.font = '16px sans-serif';
+      ctx.fillText('Sample Landscape Photographic Artifact', 30, 40);
+
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const mockFile = new File([blob], 'mountain.png', { type: 'image/png' });
+          handleFileSelect(mockFile);
+        }
+      }, 'image/png');
+    } else {
+      canvas.width = 400;
+      canvas.height = 550;
+      ctx.fillStyle = '#161922';
+      ctx.fillRect(0, 0, 400, 550);
+
+      ctx.fillStyle = 'rgba(74, 222, 128, 0.2)';
+      ctx.beginPath();
+      ctx.arc(200, 70, 30, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#4ADE80';
+      ctx.font = '24px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('✓', 200, 78);
+
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = 'bold 22px sans-serif';
+      ctx.fillText('₹ 12,500.00', 200, 135);
+
+      ctx.fillStyle = '#9CA3AF';
+      ctx.font = '12px monospace';
+      ctx.fillText('UPI Ref: 328901928392', 200, 165);
+      ctx.fillText('Paid to: merchant@okaxis', 200, 185);
+      ctx.fillText('Date: 05 Sep 2026, 08:30 PM', 200, 205);
+
+      ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+      ctx.beginPath();
+      ctx.moveTo(30, 230);
+      ctx.lineTo(370, 230);
+      ctx.stroke();
+
+      ctx.fillStyle = '#4ADE80';
+      ctx.font = 'bold 13px sans-serif';
+      ctx.fillText('Payment Successful', 200, 270);
+
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const mockFile = new File([blob], 'upi_payment_receipt_328901.png', { type: 'image/png' });
+          handleFileSelect(mockFile);
+        }
+      }, 'image/png');
+    }
+  };
+
   return (
     <div className="space-y-3">
       <div
@@ -117,22 +255,50 @@ export default function FileUploadArea({ onFileSelect, acceptedFormats, maxSize 
         />
         
         {!selectedFile ? (
-          <label htmlFor="file-upload" className="cursor-pointer">
-            <div className="flex flex-col items-center space-y-4">
-              <div className={`p-4 rounded-full ${isDragging ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
-                <Icon name="CloudArrowUpIcon" size={40} variant="outline" />
+          <div>
+            <label htmlFor="file-upload" className="cursor-pointer">
+              <div className="flex flex-col items-center space-y-4">
+                <div className={`p-4 rounded-full ${isDragging ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+                  <Icon name="CloudArrowUpIcon" size={40} variant="outline" />
+                </div>
+                <div className="text-center">
+                  <p className="text-lg font-headline font-semibold text-foreground mb-1">
+                    {isDragging ? 'Drop file here' : 'Drag & drop your file here'}
+                  </p>
+                  <p className="text-sm text-muted-foreground mb-3">or click to browse</p>
+                  <p className="text-xs text-muted-foreground">
+                    Supported formats: {acceptedFormats.join(', ')} • Max size: {(maxSize / (1024 * 1024)).toFixed(0)}MB
+                  </p>
+                </div>
               </div>
-              <div className="text-center">
-                <p className="text-lg font-headline font-semibold text-foreground mb-1">
-                  {isDragging ? 'Drop file here' : 'Drag & drop your file here'}
-                </p>
-                <p className="text-sm text-muted-foreground mb-3">or click to browse</p>
-                <p className="text-xs text-muted-foreground">
-                  Supported formats: {acceptedFormats.join(', ')} • Max size: {(maxSize / (1024 * 1024)).toFixed(0)}MB
-                </p>
-              </div>
+            </label>
+
+            {/* Quick Demo Sample Files */}
+            <div className="mt-5 pt-4 border-t border-border/50 flex flex-wrap items-center justify-center gap-2">
+              <span className="text-xs font-mono text-muted-foreground mr-1">Quick Demo:</span>
+              <button
+                type="button"
+                onClick={() => createSampleFile('pdf')}
+                className="px-2.5 py-1 rounded-md bg-muted/50 hover:bg-primary/15 hover:text-primary text-[11px] font-mono border border-border text-foreground transition-all"
+              >
+                📄 Sample Offer Letter
+              </button>
+              <button
+                type="button"
+                onClick={() => createSampleFile('mountain')}
+                className="px-2.5 py-1 rounded-md bg-muted/50 hover:bg-primary/15 hover:text-primary text-[11px] font-mono border border-border text-foreground transition-all"
+              >
+                🖼️ Sample Mountain (Image)
+              </button>
+              <button
+                type="button"
+                onClick={() => createSampleFile('receipt')}
+                className="px-2.5 py-1 rounded-md bg-muted/50 hover:bg-primary/15 hover:text-primary text-[11px] font-mono border border-border text-foreground transition-all"
+              >
+                💳 Sample UPI Receipt
+              </button>
             </div>
-          </label>
+          </div>
         ) : (
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
