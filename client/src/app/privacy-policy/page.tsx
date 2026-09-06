@@ -65,7 +65,7 @@ export default function PrivacyPolicy() {
                 Have questions about your data? Reach out to our dedicated privacy officer.
               </p>
               <a href="mailto:privacy@trustscan.ai" className="text-primary font-bold hover:underline">
-                privacy@trustscan.ai
+                trustscan.ai@gmail.com
               </a>
             </section>
           </div>
