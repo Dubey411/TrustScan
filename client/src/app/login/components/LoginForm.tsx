@@ -25,11 +25,6 @@ const LoginForm = ({ onSwitchToRegister }: LoginFormProps) => {
     setIsHydrated(true);
   }, []);
 
-  const mockCredentials = {
-    email: 'student@safejobindia.com',
-    password: 'SafeJob@2026',
-  };
-
   const validateForm = (): boolean => {
     const newErrors: { email?: string; password?: string } = {};
 
