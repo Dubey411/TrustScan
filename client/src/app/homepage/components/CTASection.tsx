@@ -1,48 +1,77 @@
+'use client';
+
 import Link from 'next/link';
 import Icon from '@/components/ui/AppIcon';
 
-const CTASection = () => {
+interface CTASectionProps {
+  onScanClick?: () => void;
+}
+
+const CTASection = ({ onScanClick }: CTASectionProps) => {
   return (
-    <section className="py-20 bg-gradient-to-br from-primary via-trust-blue to-secondary">
-      <div className="container mx-auto px-4">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl lg:text-5xl font-headline font-bold text-primary-foreground mb-6">
-            Start Protecting Your Career Today
-          </h2>
-          <p className="text-xl text-primary-foreground/90 mb-8 leading-relaxed">
-            Join 1 lakh+ users who trust TrustScan to verify credentials, detect fraud, and protect themselves from scams. Your first scan is completely free!
-          </p>
+    <section className="py-24 relative z-10 overflow-hidden">
+      <div className="container mx-auto px-4 max-w-6xl">
+        {/* Dark Gradient Card with Animated Radial Glows */}
+        <div className="relative rounded-3xl bg-card dark:bg-gradient-to-br dark:from-[#161922] dark:via-[#1A1D27] dark:to-[#12141C] border border-border overflow-hidden text-center p-10 sm:p-14 lg:p-16 shadow-xl dark:shadow-[0_24px_64px_rgba(0,0,0,0.6)]">
+          {/* Animated Radial Glow Layer 1 (10s loop) */}
+          <div
+            className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-primary opacity-10 dark:opacity-20 blur-[100px] animate-cta-glow-1 pointer-events-none"
+            style={{ willChange: 'transform' }}
+          />
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
-            <Link
-              href="/scan-interface"
-              className="flex items-center space-x-2 px-8 py-4 bg-accent text-accent-foreground rounded-lg font-headline font-semibold text-lg hover:bg-conversion-accent hover:shadow-brand-elevated hover:-translate-y-1 transition-all duration-300"
-            >
-              <Icon name="ShieldCheckIcon" size={24} variant="solid" />
-              <span>Scan Now - Free</span>
-            </Link>
-            <Link
-              href="/pricing-page"
-              className="flex items-center space-x-2 px-8 py-4 bg-white/10 backdrop-blur-sm text-primary-foreground rounded-lg font-headline font-semibold text-lg hover:bg-white/20 hover:-translate-y-1 transition-all duration-300"
-            >
-              <span>View Pricing</span>
-              <Icon name="ArrowRightIcon" size={20} variant="outline" />
-            </Link>
-          </div>
+          {/* Animated Radial Glow Layer 2 (12s loop) */}
+          <div
+            className="absolute -bottom-32 -right-32 w-96 h-96 rounded-full bg-secondary opacity-10 dark:opacity-20 blur-[100px] animate-cta-glow-2 pointer-events-none"
+            style={{ willChange: 'transform' }}
+          />
 
-          {/* Trust Indicators */}
-          <div className="flex flex-wrap justify-center items-center gap-8 text-primary-foreground/80">
-            <div className="flex items-center space-x-2">
-              <Icon name="CheckCircleIcon" size={20} variant="solid" className="text-success-green" />
-              <span className="text-sm">No credit card required</span>
+          <div className="relative z-10 max-w-3xl mx-auto space-y-6">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-muted dark:bg-white/[0.05] border border-border text-xs font-mono text-foreground/80">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              <span>Instant AI Verification Access</span>
             </div>
-            <div className="flex items-center space-x-2">
-              <Icon name="CheckCircleIcon" size={20} variant="solid" className="text-success-green" />
-              <span className="text-sm">Cancel anytime</span>
+
+            <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-headline font-semibold text-foreground tracking-tight leading-tight">
+              Start verifying in seconds.
+            </h2>
+
+            <p className="text-base sm:text-lg text-muted-foreground font-body max-w-2xl mx-auto leading-relaxed">
+              Protect your career and financial transactions from forgery. Instant multi-modal forensic audits with zero data persistence.
+            </p>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+              <Link
+                href="/scan-interface"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-8 py-4 rounded-xl font-semibold text-base text-white bg-[#FF6B4A] hover:bg-[#FF7A5C] transition-all duration-300 shadow-[0_0_28px_rgba(255,107,74,0.4)] hover:shadow-[0_0_36px_rgba(255,107,74,0.6)] hover:-translate-y-0.5"
+              >
+                <Icon name="ShieldCheckIcon" size={20} className="text-white" />
+                <span>Start Free Scan</span>
+              </Link>
+
+              <Link
+                href="/pricing-page"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-4 rounded-xl font-medium text-base text-foreground bg-muted dark:bg-white/[0.05] hover:bg-muted/80 dark:hover:bg-white/[0.08] border border-border hover:border-primary/40 transition-all duration-300 hover:-translate-y-0.5"
+              >
+                <span>View Enterprise Pricing</span>
+                <Icon name="ArrowRightIcon" size={16} className="text-muted-foreground" />
+              </Link>
             </div>
-            <div className="flex items-center space-x-2">
-              <Icon name="CheckCircleIcon" size={20} variant="solid" className="text-success-green" />
-              <span className="text-sm">100% secure</span>
+
+            {/* Trust Indicators */}
+            <div className="pt-8 border-t border-border flex flex-wrap items-center justify-center gap-6 text-xs font-mono text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <Icon name="CheckCircleIcon" size={16} className="text-[#4ADE80]" />
+                <span>No Credit Card Required</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Icon name="CheckCircleIcon" size={16} className="text-[#4ADE80]" />
+                <span>100% Sovereign Privacy</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Icon name="CheckCircleIcon" size={16} className="text-[#4ADE80]" />
+                <span>Zero-Retention Verification</span>
+              </div>
             </div>
           </div>
         </div>
