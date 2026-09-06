@@ -340,7 +340,7 @@ const PricingInteractive = () => {
 
 
       {/* FAQ Section */}
-      <section className="py-16 px-4 bg-card">
+      <section className="py-20 px-4 bg-gradient-to-b from-transparent via-[#0C0E17] to-transparent border-t border-white/[0.06]">
         <div className="container mx-auto max-w-4xl">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-headline font-bold text-foreground mb-4">
