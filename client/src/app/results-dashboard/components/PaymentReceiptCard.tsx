@@ -34,212 +34,131 @@ export default function PaymentReceiptCard({
   generatorFamilyHint = null,
   trustScore = 100
 }: PaymentReceiptProps) {
+  const isSuspicious = isFakeApkDetected || trustScore < 50;
+
   return (
-    <div className="bg-card rounded-3xl border-2 border-emerald-500/20 shadow-2xl overflow-hidden mb-8 transition-all duration-300 hover:border-emerald-500/40">
-      {/* 🌟 Bespoke Payment & AI Image Forensics Header */}
-      <div className="bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-blue-500/10 p-6 md:p-8 border-b border-border flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-        <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center flex-shrink-0 text-emerald-400 shadow-inner">
-            <Icon name="PhotoIcon" size={36} variant="solid" />
+    <div className="space-y-3.5 animate-fade-in">
+      {/* 1. Transaction Summary Bar */}
+      <div className="rounded-xl border border-white/[0.08] bg-[#0A0B0F] p-3.5 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-8 h-8 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 flex-shrink-0">
+            <Icon name="BanknotesIcon" size={16} />
           </div>
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-[11px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                AI Image & Payment Forensics
-              </span>
-              <span className="text-xs text-muted-foreground font-mono">
-                Error Level Analysis (ELA) Spec
-              </span>
-            </div>
-            <h2 className="font-headline font-black text-2xl md:text-3xl text-foreground">
-              💳 AI Image & UPI Payment Forensics
-            </h2>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              Pixel tampering (ELA), fake payment APK generators, 12-digit UTR validation & banking IFSC resolver
-            </p>
+          <div className="min-w-0">
+            <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Recipient VPA</div>
+            <div className="text-xs font-mono font-bold text-white truncate">{vpaHandle}</div>
           </div>
         </div>
 
-        {/* Big Verdict Dial */}
-        <div className="flex items-center gap-4 bg-background/80 backdrop-blur-md px-6 py-4 rounded-2xl border border-border shadow-sm">
-          <div className="text-right">
-            <div className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Transaction Legitimacy</div>
-            <div className={`text-3xl font-black ${trustScore >= 80 ? 'text-success' : trustScore >= 50 ? 'text-warning' : 'text-destructive'}`}>
-              {trustScore} / 100
-            </div>
-          </div>
-          <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${trustScore >= 80 ? 'bg-success/20 text-success' : 'bg-destructive/20 text-destructive'}`}>
-            <Icon name={trustScore >= 80 ? 'CheckBadgeIcon' : 'ExclamationTriangleIcon'} size={28} variant="solid" />
-          </div>
+        <div className="text-right flex-shrink-0">
+          <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Amount</div>
+          <div className="text-sm font-mono font-bold text-emerald-400">{amount}</div>
         </div>
       </div>
 
-      {/* 📊 Core Inspection Grid */}
-      <div className="p-6 md:p-8 space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          
-          {/* Card 1: 12-Digit UTR Ref */}
-          <div className="bg-muted/30 hover:bg-muted/40 transition-colors rounded-2xl p-5 border border-border flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                  <Icon name="HashtagIcon" size={16} className="text-emerald-400" />
-                  12-Digit UTR Ref
-                </span>
-                <span className="text-[10px] px-2 py-0.5 rounded font-bold bg-success/10 text-success border border-success/20">
-                  NPCI FORMAT
-                </span>
-              </div>
-              <div className="text-xl font-mono font-black text-foreground tracking-wider truncate">
-                {transactionId}
-              </div>
-              <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
-                Matches official NPCI transaction reference numbering structure.
-              </p>
+      {/* 2. Compact 2x2 Forensic Signal Cards */}
+      <div className="rounded-xl border border-white/[0.08] bg-[#0A0B0F] p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
+            UPI Forensic Signals
+          </span>
+          <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${
+            isSuspicious ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+          }`}>
+            {isSuspicious ? 'RISK DETECTED' : 'ALL SIGNALS PASSED'}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          {/* Signal 1: 12-Digit UTR */}
+          <div className="p-3 rounded-lg border border-white/[0.06] bg-white/[0.02] flex flex-col justify-between gap-1.5">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11px] font-mono text-muted-foreground flex items-center gap-1.5 truncate">
+                <Icon name="HashtagIcon" size={13} className="text-emerald-400 flex-shrink-0" />
+                12-Digit UTR Ref
+              </span>
+              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex-shrink-0">
+                NPCI FORMAT
+              </span>
             </div>
-            <div className="mt-4 pt-3 border-t border-border/50 text-[11px] font-mono text-emerald-400 flex items-center gap-1">
-              <Icon name="CheckCircleIcon" size={14} />
+            <div className="text-xs font-mono font-semibold text-white tracking-wide truncate">
+              {transactionId}
+            </div>
+            <div className="text-[10px] font-mono text-muted-foreground/70 flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
               Valid Numerical Syntax
             </div>
           </div>
 
-          {/* Card 2: Fake APK Font Splicing Check */}
-          <div className="bg-muted/30 hover:bg-muted/40 transition-colors rounded-2xl p-5 border border-border flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                  <Icon name="ShieldExclamationIcon" size={16} className="text-amber-400" />
-                  Fake APK Font Defense
-                </span>
-                <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${!isFakeApkDetected ? 'bg-success/10 text-success border border-success/20' : 'bg-destructive/10 text-destructive border border-destructive/20'}`}>
-                  {!isFakeApkDetected ? 'GENUINE UI' : 'SPLICED UI'}
-                </span>
-              </div>
-              <div className="text-base font-bold text-foreground">
-                {!isFakeApkDetected ? 'Consistent Typography' : 'Fake APK Trace'}
-              </div>
-              <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
-                {!isFakeApkDetected 
-                  ? `Rendered using original ${appDetected} UI styles without font weight or kerning anomalies.` 
-                  : 'Amount font size does not match application template standard. Likely fake APK.'}
-              </p>
+          {/* Signal 2: Fake APK Defense */}
+          <div className={`p-3 rounded-lg border flex flex-col justify-between gap-1.5 ${
+            isFakeApkDetected ? 'bg-red-500/[0.06] border-red-500/30' : 'bg-white/[0.02] border-white/[0.06]'
+          }`}>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11px] font-mono text-muted-foreground flex items-center gap-1.5 truncate">
+                <Icon name="DevicePhoneMobileIcon" size={13} className={isFakeApkDetected ? 'text-red-400' : 'text-emerald-400'} />
+                App UI Defense
+              </span>
+              <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded font-bold flex-shrink-0 ${
+                !isFakeApkDetected ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'
+              }`}>
+                {!isFakeApkDetected ? 'GENUINE UI' : 'SPLICED UI'}
+              </span>
             </div>
-            <div className="mt-4 pt-3 border-t border-border/50 text-[11px] font-mono text-emerald-400 flex items-center gap-1">
-              <Icon name="DevicePhoneMobileIcon" size={14} />
+            <div className={`text-xs font-headline font-semibold truncate ${
+              isFakeApkDetected ? 'text-red-400' : 'text-white'
+            }`}>
+              {!isFakeApkDetected ? 'Consistent Typography' : 'Fake APK Trace'}
+            </div>
+            <div className="text-[10px] font-mono text-muted-foreground/70 flex items-center gap-1">
+              <span className={`w-1.5 h-1.5 rounded-full ${!isFakeApkDetected ? 'bg-emerald-400' : 'bg-red-400'}`} />
               App UI: {appDetected}
             </div>
           </div>
 
-          {/* Card 3: Resolved Bank & IFSC */}
-          <div className="bg-muted/30 hover:bg-muted/40 transition-colors rounded-2xl p-5 border border-border flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                  <Icon name="BuildingLibraryIcon" size={16} className="text-blue-400" />
-                  Bank & Branch Resolver
-                </span>
-                <span className="text-[10px] px-2 py-0.5 rounded font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                  RBI DIRECTORY
-                </span>
-              </div>
-              <div className="text-base font-bold text-foreground truncate">
-                {bankName}
-              </div>
-              <p className="text-xs font-mono text-muted-foreground mt-2 leading-relaxed">
-                IFSC: <span className="font-bold text-foreground">{ifscCode}</span>
-              </p>
+          {/* Signal 3: Resolved Bank & IFSC */}
+          <div className="p-3 rounded-lg border border-white/[0.06] bg-white/[0.02] flex flex-col justify-between gap-1.5">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11px] font-mono text-muted-foreground flex items-center gap-1.5 truncate">
+                <Icon name="BuildingLibraryIcon" size={13} className="text-blue-400 flex-shrink-0" />
+                Bank & Branch
+              </span>
+              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20 flex-shrink-0">
+                RBI DIRECTORY
+              </span>
             </div>
-            <div className="mt-4 pt-3 border-t border-border/50 text-[11px] font-mono text-blue-400 flex items-center gap-1">
-              <Icon name="ShieldCheckIcon" size={14} />
-              Verified Banking Institution
+            <div className="text-xs font-headline font-semibold text-white truncate">
+              {bankName}
+            </div>
+            <div className="text-[10px] font-mono text-muted-foreground/70 truncate">
+              IFSC: <span className="text-white">{ifscCode}</span>
             </div>
           </div>
 
-          {/* Card 4: AI Generation + ELA Dual-Verdict Forensics */}
-          <div className={`hover:bg-muted/40 transition-colors rounded-2xl p-5 border flex flex-col justify-between ${
-            forensicVerdict === 'AI_GENERATED' || forensicVerdict === 'AI_GENERATED_AND_EDITED'
-              ? 'bg-purple-500/10 border-purple-500/30'
-              : forensicVerdict === 'TAMPERED_REAL_IMAGE'
-              ? 'bg-destructive/10 border-destructive/30'
-              : 'bg-muted/30 border-border'
+          {/* Signal 4: Mule & Fraud Watchlist */}
+          <div className={`p-3 rounded-lg border flex flex-col justify-between gap-1.5 ${
+            isSuspicious ? 'bg-red-500/[0.06] border-red-500/30' : 'bg-white/[0.02] border-white/[0.06]'
           }`}>
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                  <Icon name="PhotoIcon" size={16} className="text-purple-400" />
-                  AI Image & ELA Forensics
-                </span>
-                <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${
-                  forensicVerdict === 'CLEAN'
-                    ? 'bg-success/10 text-success border border-success/20'
-                    : forensicVerdict === 'AI_GENERATED'
-                    ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
-                    : forensicVerdict === 'AI_GENERATED_AND_EDITED'
-                    ? 'bg-red-600/20 text-red-300 border border-red-500/30'
-                    : 'bg-destructive/10 text-destructive border border-destructive/20'
-                }`}>
-                  {forensicVerdict === 'CLEAN' ? 'AUTHENTIC'
-                    : forensicVerdict === 'AI_GENERATED' ? 'AI GENERATED'
-                    : forensicVerdict === 'AI_GENERATED_AND_EDITED' ? 'AI + EDITED'
-                    : 'TAMPERED'}
-                </span>
-              </div>
-
-              {/* Dual Score Display */}
-              <div className="flex items-end gap-3 mb-2">
-                <div>
-                  <div className="text-[10px] text-muted-foreground uppercase tracking-wide">AI Gen Score</div>
-                  <div className={`text-xl font-mono font-black ${
-                    aiGenerationScore > 0.45 ? 'text-purple-400' : 'text-foreground'
-                  }`}>
-                    {Math.round(aiGenerationScore * 100)}%
-                  </div>
-                </div>
-                <div className="text-muted-foreground/40 text-lg mb-0.5">|</div>
-                <div>
-                  <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Tamper Score</div>
-                  <div className={`text-xl font-mono font-black ${
-                    forensicTamperScore > 35 ? 'text-destructive' : 'text-foreground'
-                  }`}>
-                    {forensicTamperScore}%
-                  </div>
-                </div>
-              </div>
-
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                {generatorFamilyHint
-                  ? `Spectral fingerprint: ${generatorFamilyHint}`
-                  : forensicTamperScore > 35
-                  ? 'High ELA variance — localized editing or pixel splicing detected.'
-                  : 'Authentic image spectrum. No AI generation or tampering detected.'}
-              </p>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11px] font-mono text-muted-foreground flex items-center gap-1.5 truncate">
+                <Icon name="ShieldCheckIcon" size={13} className={isSuspicious ? 'text-red-400' : 'text-emerald-400'} />
+                Mule Watchlist
+              </span>
+              <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded font-bold flex-shrink-0 ${
+                isSuspicious ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+              }`}>
+                {isSuspicious ? 'SUSPICIOUS' : 'CLEARED'}
+              </span>
             </div>
-            <div className="mt-4 pt-3 border-t border-border/50 text-[11px] font-mono text-purple-400 flex items-center gap-1">
-              <Icon name="SparklesIcon" size={14} />
-              FFT Spectral + ELA + DCT Analysis
+            <div className={`text-xs font-headline font-semibold truncate ${
+              isSuspicious ? 'text-red-400' : 'text-white'
+            }`}>
+              {isSuspicious ? 'Flagged Account Activity' : 'Clean Account Profile'}
             </div>
-          </div>
-
-        </div>
-
-        {/* 💳 Payment Details Summary Bar */}
-        <div className="bg-gradient-to-r from-emerald-500/10 via-background to-teal-500/10 border border-emerald-500/20 rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400">
-              <Icon name="BanknotesIcon" size={22} variant="solid" />
+            <div className="text-[10px] font-mono text-muted-foreground/70 flex items-center gap-1">
+              <span className={`w-1.5 h-1.5 rounded-full ${!isSuspicious ? 'bg-emerald-400' : 'bg-red-400'}`} />
+              NPCI Registry Queried
             </div>
-            <div>
-              <div className="text-sm font-bold text-foreground flex items-center gap-2">
-                Audited Transaction Amount & Recipient VPA
-              </div>
-              <div className="text-xs text-muted-foreground mt-0.5">
-                Recipient Handle: <span className="font-mono text-foreground font-semibold">{vpaHandle}</span>
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 bg-card px-5 py-2.5 rounded-xl border border-border">
-            <span className="text-xs text-muted-foreground">Amount:</span>
-            <span className="font-black text-lg text-emerald-400 tracking-wide">{amount}</span>
           </div>
         </div>
       </div>
