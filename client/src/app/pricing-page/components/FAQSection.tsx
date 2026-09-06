@@ -24,11 +24,11 @@ const FAQSection = ({ faqs }: FAQSectionProps) => {
       {faqs.map((faq, index) => (
         <div
           key={index}
-          className="bg-card border border-border rounded-lg overflow-hidden shadow-brand transition-all duration-300 hover:shadow-brand-elevated"
+          className="bg-card dark:bg-gradient-to-br dark:from-[#131726] dark:to-[#0F121E] border border-border dark:border-white/[0.08] hover:border-primary/30 rounded-xl overflow-hidden shadow-sm dark:shadow-lg transition-all duration-300"
         >
           <button
             onClick={() => toggleFAQ(index)}
-            className="w-full flex items-center justify-between p-6 text-left hover:bg-muted/50 transition-colors duration-200"
+            className="w-full flex items-center justify-between p-6 text-left hover:bg-muted/50 dark:hover:bg-white/[0.03] transition-colors duration-200"
           >
             <span className="font-headline font-semibold text-foreground pr-4">
               {faq.question}
@@ -43,7 +43,7 @@ const FAQSection = ({ faqs }: FAQSectionProps) => {
             />
           </button>
           {openIndex === index && (
-            <div className="px-6 pb-6 text-sm text-muted-foreground leading-relaxed animate-slide-in-right">
+            <div className="px-6 pb-6 text-sm text-muted-foreground leading-relaxed animate-slide-in-right border-t border-border dark:border-white/[0.04] pt-4">
               {faq.answer}
             </div>
           )}
