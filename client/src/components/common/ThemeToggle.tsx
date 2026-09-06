@@ -4,22 +4,38 @@ import * as React from 'react';
 import { useTheme } from 'next-themes';
 import Icon from '@/components/ui/AppIcon';
 
-export function ThemeToggle() {
-  const { theme, setTheme } = useTheme();
+export function ThemeToggle({ className = '' }: { className?: string }) {
+  const { theme, setTheme, resolvedTheme } = useTheme();
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return (
+      <div className={`w-9 h-9 p-2 rounded-lg bg-card border border-border flex items-center justify-center text-muted-foreground ${className}`}>
+        <Icon name="MoonIcon" size={16} />
+      </div>
+    );
+  }
+
+  const isDark = (theme === 'system' ? resolvedTheme : theme) === 'dark';
 
   return (
     <button
-      onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-      className="p-2 rounded-md hover:bg-muted transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-primary"
+      type="button"
+      onClick={() => setTheme(isDark ? 'light' : 'dark')}
+      className={`p-2 rounded-lg bg-card hover:bg-muted border border-border text-foreground hover:text-primary transition-all duration-200 cursor-pointer shadow-sm ${className}`}
       aria-label="Toggle theme"
+      title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
     >
-      <div className="relative w-5 h-5">
-        <span className="absolute inset-0 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0 text-foreground">
-           <Icon name="SunIcon" size={20} variant="outline" />
-        </span>
-        <span className="absolute inset-0 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100 text-foreground">
-          <Icon name="MoonIcon" size={20} variant="outline" />
-        </span>
+      <div className="w-5 h-5 flex items-center justify-center">
+        {isDark ? (
+          <Icon name="SunIcon" size={17} className="text-amber-400" />
+        ) : (
+          <Icon name="MoonIcon" size={17} className="text-indigo-600" />
+        )}
       </div>
     </button>
   );
