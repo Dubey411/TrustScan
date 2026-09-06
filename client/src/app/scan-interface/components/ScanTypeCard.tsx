@@ -12,15 +12,15 @@ export default function ScanTypeCard({ icon, title, description, isSelected, onC
   return (
     <button
       onClick={onClick}
-      className={`w-full p-6 rounded-lg border-2 transition-all duration-300 text-left hover:shadow-brand hover:-translate-y-1 ${
+      className={`w-full p-6 rounded-xl border-2 transition-all duration-300 text-left hover:-translate-y-0.5 ${
         isSelected
-          ? 'border-primary bg-primary/5 shadow-brand'
-          : 'border-border bg-card hover:border-primary/50'
+          ? 'border-primary bg-primary/[0.06] dark:bg-gradient-to-br dark:from-[#1E233D] dark:via-[#15192A] dark:to-[#121522] shadow-[0_0_22px_rgba(255,107,74,0.15)]'
+          : 'border-border bg-card dark:bg-gradient-to-br dark:from-[#131726] dark:to-[#0F121E] hover:border-primary/40 shadow-sm dark:shadow-md'
       }`}
       aria-pressed={isSelected}
     >
       <div className="flex items-start space-x-4">
-        <div className={`p-3 rounded-lg ${isSelected ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+        <div className={`p-3 rounded-xl transition-colors ${isSelected ? 'bg-primary text-white shadow-md shadow-primary/30' : 'bg-muted border border-border text-muted-foreground'}`}>
           <Icon name={icon as any} size={24} variant={isSelected ? 'solid' : 'outline'} />
         </div>
         <div className="flex-1">
