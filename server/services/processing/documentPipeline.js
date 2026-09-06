@@ -1,4 +1,3 @@
-
 import '../globals.js'; // MUST BE FIRST
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -100,7 +99,6 @@ async function renderPdfPageViaPython(fileBuffer, pageIndex, scale = 2.0) {
                     const buffer = Buffer.from(result.image, 'base64');
                     console.log(`   [Python Render] Success: ${buffer.length} bytes received.`);
                     
-                    // SKIP JIMP FOR BULET SPEED (Tesseract handles standard PNGs well)
                     resolve(buffer);
                 } catch (err) {
                     reject(new Error(`Parse error: ${err.message}\nOutput: ${stdout.substring(0, 100)}`));
@@ -139,7 +137,6 @@ async function analyzePdfStructure(buffer) {
         const page = await doc.getPage(i);
         const textContent = await page.getTextContent();
         
-        // Improved text extraction: Try to preserve some line structure
         let lastY = -1;
         let text = "";
         for (const item of textContent.items) {
@@ -163,16 +160,40 @@ async function analyzePdfStructure(buffer) {
 }
 
 /**
+ * Validates if buffer has standard image magic headers (JPEG, PNG, GIF, BMP, WEBP, TIFF)
+ */
+function isValidImageBuffer(buf) {
+    if (!buf || !Buffer.isBuffer(buf) || buf.length < 8) return false;
+    // PNG: 89 50 4E 47
+    if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4E && buf[3] === 0x47) return true;
+    // JPEG: FF D8 FF
+    if (buf[0] === 0xFF && buf[1] === 0xD8 && buf[2] === 0xFF) return true;
+    // GIF: 47 49 46
+    if (buf[0] === 0x47 && buf[1] === 0x49 && buf[2] === 0x46) return true;
+    // BMP: 42 4D
+    if (buf[0] === 0x42 && buf[1] === 0x4D) return true;
+    // WEBP: 52 49 46 46 (RIFF)
+    if (buf[0] === 0x52 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x46) return true;
+    // TIFF: 49 49 2A 00 or 4D 4D 00 2A
+    if ((buf[0] === 0x49 && buf[1] === 0x49) || (buf[0] === 0x4D && buf[1] === 0x4D)) return true;
+    return false;
+}
+
+/**
  * STEP 5: OCR
  */
 async function runMultiPassOCR(imageBuffer, worker) {
+    if (!isValidImageBuffer(imageBuffer)) {
+        console.warn(`   [OCR] Skipping Tesseract: buffer does not contain standard image binary headers.`);
+        return { text: "", confidence: 0 };
+    }
     console.log(`   [OCR] Starting Tesseract pass 1...`);
     try {
         const res = await worker.recognize(imageBuffer);
-        return { text: res.data.text, confidence: res.data.confidence };
+        return { text: res?.data?.text || "", confidence: res?.data?.confidence || 0 };
     } catch (err) {
-        console.error(`   [OCR] Failed:`, err.message);
-        throw err;
+        console.warn(`   [OCR] Recognition note:`, err.message);
+        return { text: "", confidence: 0 };
     }
 }
 
@@ -189,26 +210,20 @@ function extractStructures(text) {
 
 /**
  * Checks if text contains any items from the Red or Grey list
- * Updated with MongoDB support and stricter matching.
  */
 async function checkForFastPathFraud(text) {
     if (!text) return null;
     const lowerText = text.toLowerCase();
     const fuzzyText = lowerText.replace(/[^a-z0-9]/g, '');
     
-    // Fetch potential matches from DB
     const allEntities = await TrustEntity.find({}).lean();
     
-    // Helper for safe matching
     const isMatch = (entityName) => {
         const name = entityName.toLowerCase();
-        
-        // 1. Strict Boundary Match (Best for short/medium names)
         const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         const boundaryRegex = new RegExp(`\\b${escaped}\\b`, 'i');
         if (boundaryRegex.test(lowerText)) return true;
 
-        // 2. Fuzzy Match (Only for longer names to avoid accidential substring hits like "e for t")
         if (name.length > 7) {
             const fuzzyName = name.replace(/[^a-z0-9]/g, '');
             return fuzzyText.includes(fuzzyName);
@@ -217,11 +232,9 @@ async function checkForFastPathFraud(text) {
         return false;
     };
 
-    // 1. Check Blacklist (Red Flag)
     const blacklistedMatch = allEntities.find(b => b.category === 'red_flag' && isMatch(b.name));
     if (blacklistedMatch) return { type: 'RED', name: blacklistedMatch.name, reason: blacklistedMatch.type };
     
-    // 2. Check Greylist (Suspicious)
     const greylistMatch = allEntities.find(g => g.category === 'grey_list' && isMatch(g.name));
     if (greylistMatch) return { type: 'GREY', name: greylistMatch.name, reason: greylistMatch.type };
     
@@ -252,11 +265,8 @@ export async function runDocumentPipeline(fileBuffer, mimeType, depth = 'basic')
             pipelineResult.totalPages = pdfData.pages.length;
 
             const MAX_PAGES = getPageBudget(pdfData.docType, depth);
-
             const targetPages = pdfData.pages.slice(0, MAX_PAGES);
             
-            // ADAPTIVE CONCURRENCY: Render Free Tier has limited CPU/RAM. 
-            // 4 workers will cause "Thrashing" (swapping memory) which makes it 10x slower.
             const isProduction = isProductionRuntime();
             const WORKER_COUNT = isProduction ? 1 : Math.min(targetPages.length, 4); 
             
@@ -286,17 +296,12 @@ export async function runDocumentPipeline(fileBuffer, mimeType, depth = 'basic')
                     let isFraudMatch = false;
                     let fraudMatchReason = null;
 
-                    // Identification Check (Don't stop, just flag)
                     const fastFraud = await checkForFastPathFraud(pageText);
                     if (fastFraud) {
                         isFraudMatch = true;
                         fraudMatchReason = fastFraud;
                     }
 
-                    // OCR TRIGGER: 
-                    // 1. If page is marked scanned
-                    // 2. If page has almost no text
-                    // 3. ALWAYS OCR Page 1 in Deep/Standard scan (best for catching logos/letterheads)
                     const shouldOcr = page.type === 'SCANNED' || 
                                      page.charCount < 100 || 
                                      (page.pageIndex === 1 && (depth === 'deep' || depth === 'standard'));
@@ -310,10 +315,9 @@ export async function runDocumentPipeline(fileBuffer, mimeType, depth = 'basic')
                                 pipelineResult.firstImgBuffer = imgBuffer;
                             }
 
-                            // 🔥 PERFORMANCE: Try Sarvam Vision (Cloud OCR) first
                             const sarvamResult = await callSarvamVision(imgBuffer);
                             
-                            if (sarvamResult.success) {
+                            if (sarvamResult && sarvamResult.success) {
                                 pageText = sarvamResult.text;
                                 confidence = sarvamResult.confidence;
                                 method = "SARVAM_VISION";
@@ -328,7 +332,7 @@ export async function runDocumentPipeline(fileBuffer, mimeType, depth = 'basic')
                                 confidence = ocr.data.confidence;
                                 method = "LOCAL_FALLBACK_OCR";
                             }
-                            // Identification Check on OCR text
+                            
                             const ocrFraud = await checkForFastPathFraud(pageText);
                             if (ocrFraud) {
                                 isFraudMatch = true;
@@ -349,7 +353,6 @@ export async function runDocumentPipeline(fileBuffer, mimeType, depth = 'basic')
                     results.push(await processPage(page));
                 }
 
-                // IDENTIFICATION: Check if any part of the document hit our blacklist or greylist
                 const fraudTrigger = results.find(r => r.isFraud);
                 if (fraudTrigger) {
                     const hit = fraudTrigger.fraudMatch;
@@ -362,7 +365,6 @@ export async function runDocumentPipeline(fileBuffer, mimeType, depth = 'basic')
                     }
                 }
                 
-                // DATA HARVESTING: Group all text so ML can learn patterns
                 results.sort((a, b) => a.index - b.index);
 
                 let textAccumulator = "";
@@ -406,28 +408,45 @@ export async function runDocumentPipeline(fileBuffer, mimeType, depth = 'basic')
                     processedBuffer = await image.getBuffer('image/png');
                 }
             } catch (err) {
-                console.warn(`[Pipeline] Jimp preprocessing failed:`, err.message);
+                console.warn(`[Pipeline] Jimp preprocessing note:`, err.message);
             }
 
             const sarvamResult = await callSarvamVision(processedBuffer);
             
-            if (sarvamResult.success) {
-                pipelineResult.text = sarvamResult.text;
-                pipelineResult.confidence = sarvamResult.confidence;
+            if (sarvamResult && sarvamResult.success) {
+                pipelineResult.text = sarvamResult.text || "";
+                pipelineResult.confidence = sarvamResult.confidence || 90;
                 pipelineResult.extractionMethod.push("IMAGE_SARVAM");
-            } else {
+            } else if (isValidImageBuffer(processedBuffer)) {
                 console.log(`[Pipeline] Image falling back to local OCR...`);
-                const tesseract = await import('tesseract.js');
-                const tesseractWorker = await tesseract.createWorker('eng+hin');
-                const ocr = await runMultiPassOCR(processedBuffer, tesseractWorker);
-                
-                pipelineResult.text = ocr.text;
-                pipelineResult.confidence = ocr.confidence;
-                pipelineResult.extractionMethod.push("IMAGE_LOCAL_OCR");
-                await tesseractWorker.terminate();
+                let tesseractWorker = null;
+                try {
+                    const tesseract = await import('tesseract.js');
+                    tesseractWorker = await tesseract.createWorker('eng+hin', 1, {
+                        errorHandler: (ocrErr) => console.warn(`[Tesseract Worker] Handled:`, ocrErr?.message || ocrErr)
+                    });
+                    const ocr = await runMultiPassOCR(processedBuffer, tesseractWorker);
+                    
+                    pipelineResult.text = ocr.text || "";
+                    pipelineResult.confidence = ocr.confidence || 0;
+                    pipelineResult.extractionMethod.push("IMAGE_LOCAL_OCR");
+                } catch (ocrErr) {
+                    console.warn(`[Pipeline] Local OCR note:`, ocrErr.message);
+                    pipelineResult.text = "";
+                    pipelineResult.confidence = 0;
+                    pipelineResult.extractionMethod.push("IMAGE_OCR_FALLBACK");
+                } finally {
+                    if (tesseractWorker) {
+                        try {
+                            await tesseractWorker.terminate();
+                        } catch (e) {}
+                    }
+                }
+            } else {
+                console.log(`[Pipeline] Non-standard image buffer; skipping local OCR.`);
+                pipelineResult.extractionMethod.push("IMAGE_SKIPPED_LOCAL_OCR");
             }
 
-            // Flag Known Fraud but don't skip the data
             const finalFraud = await checkForFastPathFraud(pipelineResult.text);
             if (finalFraud) {
                 console.log(`🎯 [Database Hit] Identified ${finalFraud.name}. Harvesting data for ML...`);
@@ -455,4 +474,3 @@ export async function runDocumentPipeline(fileBuffer, mimeType, depth = 'basic')
 
     return pipelineResult;
 }
-
