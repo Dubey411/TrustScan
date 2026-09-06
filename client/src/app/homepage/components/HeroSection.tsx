@@ -16,166 +16,247 @@ const HeroSection = ({ onScanClick }: HeroSectionProps) => {
   }, []);
 
   return (
-    <section className="relative bg-gradient-to-br from-primary via-trust-blue to-secondary text-primary-foreground py-20 lg:py-32 overflow-hidden">
-      {/* Animated Background Pattern */}
-      <div className="absolute inset-0 opacity-10">
-        <div className="absolute top-0 left-0 w-96 h-96 bg-accent rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-0 right-0 w-96 h-96 bg-success-green rounded-full blur-3xl animate-pulse delay-1000"></div>
-      </div>
-
-      <div className="container mx-auto px-4 relative z-10">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
-          {/* Left Content */}
-          <div className="space-y-8">
-            <div className="inline-flex items-center space-x-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full">
-              <Icon name="ShieldCheckIcon" size={20} variant="solid" className="text-success-green" />
-              <span className="text-sm font-medium">India's Smartest AI Fraud & Credential Engine</span>
-            </div>
-
-            <h1 className="text-4xl lg:text-6xl font-headline font-bold leading-tight">
-              Verify Offers, Payments, <br />
-              <span className="text-success-green">Images & Companies</span> 
-            </h1>
-
-            <p className="text-lg lg:text-xl text-primary-foreground/90 leading-relaxed">
-              Instantly audit <strong>Job Offer Letters, UPI Payments, AI-Generated Images, and MCA CIN/GSTIN</strong> with deep forensic AI. Protect yourself from fake credentials and fraudulent transactions.
-            </p>
-
-            {/* Stats */}
-            <div className="grid grid-cols-3 gap-6 pt-4">
-              <div className="text-center lg:text-left">
-                <div className="text-3xl lg:text-4xl font-headline font-bold text-success-green">100K+</div>
-                <div className="text-sm text-primary-foreground/80 mt-1">Docs Verified</div>
-              </div>
-              <div className="text-center lg:text-left">
-                <div className="text-3xl lg:text-4xl font-headline font-bold text-success-green">50K+</div>
-                <div className="text-sm text-primary-foreground/80 mt-1">Entities Checked</div>
-              </div>
-              <div className="text-center lg:text-left">
-                <div className="text-3xl lg:text-4xl font-headline font-bold text-success-green">99.2%</div>
-                <div className="text-sm text-primary-foreground/80 mt-1">Accuracy Rate</div>
-              </div>
-            </div>
-
-            {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 pt-4">
-              <button
-                onClick={onScanClick}
-                className="flex items-center justify-center space-x-2 px-8 py-4 bg-accent text-accent-foreground rounded-lg font-headline font-semibold text-lg hover:bg-conversion-accent hover:shadow-brand-elevated hover:-translate-y-1 transition-all duration-300"
-              >
-                <Icon name="MagnifyingGlassIcon" size={24} variant="outline" />
-                <span>Scan Now - Free</span>
-              </button>
-              <Link
-                href="/pricing-page"
-                className="flex items-center justify-center space-x-2 px-8 py-4 bg-white/10 backdrop-blur-sm text-primary-foreground rounded-lg font-headline font-semibold text-lg hover:bg-white/20 hover:-translate-y-1 transition-all duration-300"
-              >
-                <span>View Pricing</span>
-                <Icon name="ArrowRightIcon" size={20} variant="outline" />
-              </Link>
-            </div>
+    <section className="relative pt-28 pb-20 md:pt-36 md:pb-28 overflow-hidden z-10">
+      <div className="container mx-auto px-4 max-w-7xl">
+        {/* Top Centered Hero Intro */}
+        <div className="text-center max-w-4xl mx-auto space-y-6">
+          {/* Badge Pill */}
+          <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-[#161922] border border-white/[0.08] shadow-[0_0_20px_rgba(255,107,74,0.15)] backdrop-blur-md">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FF6B4A] opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#FF6B4A]"></span>
+            </span>
+            <span className="text-xs font-mono font-medium text-foreground tracking-wide">
+              New · India's Smartest AI Fraud & Credential Engine
+            </span>
           </div>
 
-          {/* Right Content - Animated Shield */}
-          <div className="flex justify-center lg:justify-end">
-            <div className="relative w-80 h-80 lg:w-96 lg:h-96">
-              {/* Outer Ring */}
-              <div className="absolute inset-0 border-4 border-white/20 rounded-full animate-spin-slow"></div>
-              
-              {/* Middle Ring */}
-              <div className="absolute inset-8 border-4 border-success-green/30 rounded-full animate-spin-reverse"></div>
-              
-              {/* Shield Icon */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <svg
-                  width="200"
-                  height="200"
-                  viewBox="0 0 200 200"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="animate-shield-pulse"
-                >
-                  <path
-                    d="M100 10L20 50V90C20 139.706 54.2 179.18 100 190C145.8 179.18 180 139.706 180 90V50L100 10Z"
-                    fill="url(#shield-gradient)"
-                    stroke="white"
-                    strokeWidth="4"
-                  />
-                  <path
-                    d="M100 60L70 80V110C70 129.33 83.43 145.545 100 150C116.57 145.545 130 129.33 130 110V80L100 60Z"
-                    fill="white"
-                  />
-                  <path
-                    d="M85 105L95 115L115 95"
-                    stroke="#10B981"
-                    strokeWidth="6"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <defs>
-                    <linearGradient id="shield-gradient" x1="20" y1="10" x2="180" y2="190">
-                      <stop offset="0%" stopColor="#10B981" />
-                      <stop offset="100%" stopColor="#059669" />
-                    </linearGradient>
-                  </defs>
-                </svg>
+          {/* Display Headline */}
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-[68px] font-headline font-semibold tracking-[-0.03em] leading-[1.08] text-white">
+            Verify Offers, Payments, <br className="hidden sm:inline" />
+            <span className="text-gradient-sovereign font-bold">
+              Images & Companies
+            </span>
+          </h1>
+
+          {/* Subtext Paragraph */}
+          <p className="text-base sm:text-lg md:text-xl text-muted-foreground/90 max-w-2xl mx-auto font-body leading-relaxed">
+            Multi-modal fraud intelligence engineered for Indian job seekers, enterprises, and institutions. Detect fake offer letters, manipulated UPI receipts, forged CINs, and synthetic images in milliseconds.
+          </p>
+
+          {/* Two CTAs */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
+            <button
+              onClick={onScanClick}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-8 py-4 rounded-xl font-semibold text-base text-white bg-[#FF6B4A] hover:bg-[#FF7A5C] transition-all duration-300 shadow-[0_0_28px_rgba(255,107,74,0.4)] hover:shadow-[0_0_36px_rgba(255,107,74,0.6)] hover:-translate-y-0.5 active:translate-y-0"
+            >
+              <Icon name="MagnifyingGlassIcon" size={20} className="text-white" />
+              <span>Scan Now — Free</span>
+            </button>
+
+            <a
+              href="#how-it-works"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-4 rounded-xl font-medium text-base text-foreground bg-[#161922] hover:bg-[#1C202B] border border-white/[0.08] hover:border-white/20 transition-all duration-300 hover:-translate-y-0.5"
+            >
+              <span>How It Works</span>
+              <Icon name="ArrowDownIcon" size={18} className="text-muted-foreground" />
+            </a>
+          </div>
+
+          {/* Stats Row with Gradient Numbers */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-6 pt-6 max-w-2xl mx-auto border-t border-white/[0.06]">
+            <div className="text-center">
+              <div className="text-3xl sm:text-4xl font-headline font-bold text-gradient-coral">
+                100K+
               </div>
-              
-              {/* Floating Icons */}
-              {isHydrated && (
-                <>
-                  <div className="absolute top-0 right-0 bg-white/10 backdrop-blur-sm p-3 rounded-full animate-float">
-                    <Icon name="CheckBadgeIcon" size={24} variant="solid" className="text-success-green" />
+              <div className="text-xs sm:text-sm font-medium text-muted-foreground mt-1">
+                Docs Verified
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl sm:text-4xl font-headline font-bold text-gradient-indigo">
+                50K+
+              </div>
+              <div className="text-xs sm:text-sm font-medium text-muted-foreground mt-1">
+                Entities Checked
+              </div>
+            </div>
+            <div className="text-center col-span-2 sm:col-span-1">
+              <div className="text-3xl sm:text-4xl font-headline font-bold text-gradient-green">
+                99.2%
+              </div>
+              <div className="text-xs sm:text-sm font-medium text-muted-foreground mt-1">
+                Forensic Accuracy
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Scan Dashboard Mockup Card with Browser Chrome Bar */}
+        <div className="mt-14 max-w-5xl mx-auto relative">
+          {/* Floating Tag 1: Top Left - Bobbing */}
+          <div className="hidden lg:flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#161922]/90 border border-red-500/30 shadow-[0_8px_24px_rgba(239,68,68,0.2)] backdrop-blur-md absolute -top-5 -left-8 z-20 animate-float-bob">
+            <span className="flex h-2 w-2 rounded-full bg-red-400" />
+            <span className="text-xs font-mono font-medium text-red-300">
+              UTR Fraud Detected
+            </span>
+          </div>
+
+          {/* Floating Tag 2: Top Right - Bobbing */}
+          <div className="hidden lg:flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#161922]/90 border border-[#4ADE80]/30 shadow-[0_8px_24px_rgba(74,222,128,0.2)] backdrop-blur-md absolute -top-4 -right-6 z-20 animate-float-bob-delayed-1">
+            <Icon name="ShieldCheckIcon" size={16} className="text-[#4ADE80]" />
+            <span className="text-xs font-mono font-medium text-[#4ADE80]">
+              CIN Registry Verified
+            </span>
+          </div>
+
+          {/* Floating Tag 3: Bottom Left - Bobbing */}
+          <div className="hidden lg:flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#161922]/90 border border-[#818CF8]/30 shadow-[0_8px_24px_rgba(129,140,248,0.2)] backdrop-blur-md absolute -bottom-5 -left-6 z-20 animate-float-bob-delayed-2">
+            <Icon name="CpuChipIcon" size={16} className="text-[#818CF8]" />
+            <span className="text-xs font-mono font-medium text-[#818CF8]">
+              AI Forensics Active · 142ms
+            </span>
+          </div>
+
+          {/* The Main Mockup Window */}
+          <div className="rounded-2xl bg-[#161922] border border-white/[0.08] shadow-[0_24px_60px_rgba(0,0,0,0.6)] overflow-hidden transition-all duration-300 hover:border-white/[0.14]">
+            {/* Chrome Bar */}
+            <div className="bg-[#10121A] px-4 py-3 border-b border-white/[0.06] flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <div className="w-3 h-3 rounded-full bg-[#EF4444]/80" />
+                <div className="w-3 h-3 rounded-full bg-[#FBBF24]/80" />
+                <div className="w-3 h-3 rounded-full bg-[#4ADE80]/80" />
+              </div>
+              <div className="flex items-center gap-2 px-4 py-1 rounded-md bg-[#161922] border border-white/[0.06] text-xs font-mono text-muted-foreground/80">
+                <Icon name="LockClosedIcon" size={12} className="text-[#4ADE80]" />
+                <span>trustscan.ai/forensics/live-inspect</span>
+              </div>
+              <div className="flex items-center space-x-2 text-muted-foreground/50">
+                <span className="text-[10px] font-mono uppercase bg-white/[0.04] px-2 py-0.5 rounded border border-white/5">
+                  v4.4 Live
+                </span>
+              </div>
+            </div>
+
+            {/* Mockup Body: Split 2 Panels */}
+            <div className="p-6 md:p-8 grid grid-cols-1 md:grid-cols-2 gap-6 bg-gradient-to-b from-[#161922] to-[#12141C]">
+              {/* Left Panel: Uploaded File & Metadata */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
+                    Input Artifact
+                  </span>
+                  <span className="text-xs font-mono px-2 py-0.5 rounded bg-[#FF6B4A]/10 text-[#FF6B4A] border border-[#FF6B4A]/20">
+                    Payment Receipt
+                  </span>
+                </div>
+
+                {/* File Thumbnail & Meta Box */}
+                <div className="p-4 rounded-xl bg-[#0A0B0F]/60 border border-white/[0.06] space-y-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-[#FF6B4A]/15 border border-[#FF6B4A]/30 flex items-center justify-center text-[#FF6B4A]">
+                      <Icon name="DocumentIcon" size={20} />
+                    </div>
+                    <div className="overflow-hidden">
+                      <div className="text-sm font-semibold font-mono text-white truncate">
+                        upi_receipt_4500.jpg
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        Image / JPEG • 1.2 MB
+                      </div>
+                    </div>
                   </div>
-                  <div className="absolute bottom-0 left-0 bg-white/10 backdrop-blur-sm p-3 rounded-full animate-float delay-500">
-                    <Icon name="LockClosedIcon" size={24} variant="solid" className="text-accent" />
+
+                  {/* Metadata Rows */}
+                  <div className="pt-2 border-t border-white/[0.06] space-y-2 text-xs font-mono">
+                    <div className="flex justify-between py-1">
+                      <span className="text-muted-foreground">Document Type</span>
+                      <span className="text-white font-medium">UPI Payment Screenshot</span>
+                    </div>
+                    <div className="flex justify-between py-1">
+                      <span className="text-muted-foreground">Extracted UTR</span>
+                      <span className="text-red-400 font-semibold">429188291034 (Mismatch)</span>
+                    </div>
+                    <div className="flex justify-between py-1">
+                      <span className="text-muted-foreground">Stated Amount</span>
+                      <span className="text-white font-bold">₹4,500.00</span>
+                    </div>
+                    <div className="flex justify-between py-1">
+                      <span className="text-muted-foreground">Engine Latency</span>
+                      <span className="text-[#4ADE80]">142 ms (Realtime)</span>
+                    </div>
                   </div>
-                  <div className="absolute top-1/2 right-0 bg-white/10 backdrop-blur-sm p-3 rounded-full animate-float delay-1000">
-                    <Icon name="ShieldExclamationIcon" size={24} variant="solid" className="text-error" />
+                </div>
+
+                {/* Spectral ELA Preview Strip */}
+                <div className="p-3 rounded-xl bg-[#0A0B0F]/40 border border-white/[0.04] flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-[#FF6B4A] animate-ping" />
+                    <span className="text-muted-foreground font-mono">ELA Tamper Map:</span>
                   </div>
-                </>
-              )}
+                  <span className="font-mono text-red-400 font-semibold">
+                    Amount Font Altered (+8.4σ)
+                  </span>
+                </div>
+              </div>
+
+              {/* Right Panel: AI Forensic Analysis */}
+              <div className="space-y-4 md:border-l md:border-white/[0.06] md:pl-6">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
+                    Forensic Verdict
+                  </span>
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/15 border border-red-500/30 text-red-400 text-xs font-mono font-bold uppercase tracking-wider">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                    High Risk / Forgery
+                  </div>
+                </div>
+
+                {/* Animated Risk Score Bar */}
+                <div className="p-4 rounded-xl bg-[#0A0B0F]/60 border border-white/[0.06] space-y-2">
+                  <div className="flex justify-between items-baseline">
+                    <span className="text-xs font-mono text-muted-foreground">
+                      Calculated Risk Score
+                    </span>
+                    <div className="text-lg font-headline font-bold text-red-400">
+                      72 <span className="text-xs font-mono text-muted-foreground">/ 100</span>
+                    </div>
+                  </div>
+
+                  {/* Progress Bar Container */}
+                  <div className="w-full h-2.5 rounded-full bg-[#1C202B] overflow-hidden p-0.5 border border-white/5">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-[#FBBF24] via-[#FF6B4A] to-[#EF4444] animate-risk-bar"
+                      style={{ width: '72%' }}
+                    />
+                  </div>
+                  <div className="flex justify-between text-[10px] font-mono text-muted-foreground/70">
+                    <span>Safe (0-30)</span>
+                    <span>Review (31-60)</span>
+                    <span className="text-red-400 font-semibold">Critical (61-100)</span>
+                  </div>
+                </div>
+
+                {/* Red / Green Flags Checklist */}
+                <div className="space-y-2">
+                  <div className="flex items-start gap-2.5 text-xs font-mono p-2 rounded-lg bg-red-500/[0.06] border border-red-500/15 text-red-300">
+                    <Icon name="ExclamationTriangleIcon" size={16} className="text-red-400 flex-shrink-0 mt-0.5" />
+                    <span>Pixel-level ELA compression anomaly on amount text string</span>
+                  </div>
+                  <div className="flex items-start gap-2.5 text-xs font-mono p-2 rounded-lg bg-red-500/[0.06] border border-red-500/15 text-red-300">
+                    <Icon name="XCircleIcon" size={16} className="text-red-400 flex-shrink-0 mt-0.5" />
+                    <span>12-digit UTR failed NPCI issuer timestamp sequence verification</span>
+                  </div>
+                  <div className="flex items-start gap-2.5 text-xs font-mono p-2 rounded-lg bg-[#4ADE80]/[0.06] border border-[#4ADE80]/15 text-[#86EFAC]">
+                    <Icon name="CheckCircleIcon" size={16} className="text-[#4ADE80] flex-shrink-0 mt-0.5" />
+                    <span>Bank IFSC structure resolves to active RBI clearing code</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
-
-      <style jsx>{`
-        @keyframes spin-slow {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        @keyframes spin-reverse {
-          from { transform: rotate(360deg); }
-          to { transform: rotate(0deg); }
-        }
-        @keyframes shield-pulse {
-          0%, 100% { transform: scale(1); }
-          50% { transform: scale(1.05); }
-        }
-        @keyframes float {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-20px); }
-        }
-        .animate-spin-slow {
-          animation: spin-slow 20s linear infinite;
-        }
-        .animate-spin-reverse {
-          animation: spin-reverse 15s linear infinite;
-        }
-        .animate-shield-pulse {
-          animation: shield-pulse 3s ease-in-out infinite;
-        }
-        .animate-float {
-          animation: float 3s ease-in-out infinite;
-        }
-        .delay-500 {
-          animation-delay: 0.5s;
-        }
-        .delay-1000 {
-          animation-delay: 1s;
-        }
-      `}</style>
     </section>
   );
 };
