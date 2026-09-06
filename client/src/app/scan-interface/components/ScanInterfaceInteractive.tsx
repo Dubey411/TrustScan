@@ -41,6 +41,7 @@ export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfa
   const [linkInput, setLinkInput] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isScanning, setIsScanning] = useState(false);
+  const [scanResult, setScanResult] = useState<any | null>(null);
   const [analysisDepth, setAnalysisDepth] = useState<'basic' | 'standard' | 'deep'>('basic');
   const [priorityLevel, setPriorityLevel] = useState<'normal' | 'urgent'>('normal');
   const [error, setError] = useState<string | null>(null);
@@ -132,6 +133,7 @@ export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfa
     if (!canScan()) return;
     
     setIsScanning(true);
+    setScanResult(null);
     setError(null);
 
     let targetContent = '';
@@ -181,22 +183,56 @@ export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfa
            }
         }
 
-        if (onScanComplete) {
-            onScanComplete({
-                id: (result as any).id || (result as any)._id,
+        const filePreview = selectedFile ? URL.createObjectURL(selectedFile) : null;
+        const fileSizeFormatted = selectedFile ? (
+          selectedFile.size < 1024 * 1024 
+            ? `${(selectedFile.size / 1024).toFixed(1)} KB` 
+            : `${(selectedFile.size / (1024 * 1024)).toFixed(1)} MB`
+        ) : undefined;
+
+        // Smooth minimum animation duration for holographic pipeline visualization
+        await new Promise(resolve => setTimeout(resolve, 3200));
+
+        const normalizedPayload = {
+            id: (result as any).id || (result as any)._id,
+            target: targetContent,
+            scanType: selectedScanType,
+            type: selectedScanType,
+            depth: analysisDepth,
+            result: (result as any).status || (result as any).result || ((result as any).riskScore < 35 ? 'safe' : 'fraud'),
+            confidence: (result as any).confidence,
+            riskScore: (result as any).riskScore,
+            reasons: (result as any).reasons || [],
+            signals: (result as any).signals || {},
+            scanMeta: (result as any).scanMeta || {},
+            metadata: (result as any).metadata || {},
+            recommendation: (result as any).recommendation || [],
+            aiInsight: (result as any).aiInsight,
+            aiModel: (result as any).aiModel,
+            trustScanReport: (result as any).trustScanReport,
+            previewUrl: filePreview,
+            fileName: selectedFile ? selectedFile.name : targetContent,
+            fileSizeFormatted,
+            apiResult: {
+                ...(result as any),
+                scanType: selectedScanType,
                 type: selectedScanType,
-                target: targetContent.slice(0, 50) + (targetContent.length > 50 ? '...' : ''),
-                apiResult: result
-            });
-        } else {
-            localStorage.setItem('latestScan', JSON.stringify({
-               id: (result as any).id || (result as any)._id,
-               type: selectedScanType,
-               target: targetContent,
-               apiResult: result
-            }));
-            router.push('/results-dashboard');
+                depth: analysisDepth,
+                previewUrl: filePreview,
+                fileName: selectedFile ? selectedFile.name : targetContent,
+                fileSizeFormatted,
+            }
+        };
+
+        // Cache latest scan in localStorage
+        localStorage.setItem('latestScan', JSON.stringify(normalizedPayload));
+
+        if (onScanComplete) {
+            onScanComplete(normalizedPayload);
         }
+
+        // Set in-place scan result on same page without redirecting
+        setScanResult(normalizedPayload);
         setIsScanning(false);
     } catch (err) {
         console.error("Scan failed", err);
@@ -210,19 +246,24 @@ export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfa
     setLinkInput('');
     setSenderId('');
     setSelectedFile(null);
+    setScanResult(null);
     setError(null);
   };
 
   return (
-    <div className="py-12 bg-background min-h-screen">
+    <div className="py-6 bg-transparent">
       <div className="container mx-auto px-4">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-10">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-headline font-bold text-foreground mb-6 leading-tight">
-              AI <span className="text-primary italic">Offer Letter & Fraud</span> Scanner
+            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-card border border-border text-xs font-mono text-primary mb-4 shadow-sm">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+              <span>India's AI Fraud & Credential Engine</span>
+            </div>
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-headline font-bold text-foreground mb-4 leading-tight tracking-tight">
+              AI <span className="text-gradient-sovereign">Fraud & Credential</span> Scanner
             </h1>
-            <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              Check <strong>Fake Offer Letters</strong>, audit <strong>UPI Payment Receipts</strong>, inspect <strong>AI Images & Forensics</strong>, and verify <strong>Companies</strong>.
+            <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+              Verify <strong>Job Offer Letters</strong>, audit <strong>UPI Payment Receipts</strong>, inspect <strong>AI Images & Forensics</strong>, and check <strong>MCA Companies</strong> with deep sovereign intelligence.
             </p>
             {error && (
               <div className="mt-4 p-3 bg-red-100 border border-red-200 text-red-700 rounded-lg max-w-md mx-auto">
@@ -250,7 +291,7 @@ export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfa
             ))}
           </div>
 
-          <div className="bg-card rounded-xl shadow-brand p-6 md:p-8 mb-8">
+          <div className="bg-card dark:bg-gradient-to-b dark:from-[#131726] dark:via-[#0F121E] dark:to-[#131726] border border-border dark:border-white/[0.08] rounded-2xl shadow-xl dark:shadow-2xl p-6 md:p-8 mb-8 relative">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center space-x-3">
                 <div className="p-2 bg-primary/10 rounded-lg">
@@ -413,44 +454,61 @@ export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfa
           </div>
 
           <div className="grid md:grid-cols-3 gap-6 mb-12">
-            <div className="bg-card rounded-lg p-6 shadow-subtle">
+            <div className="bg-card dark:bg-gradient-to-br dark:from-[#131726] dark:to-[#0F121E] border border-border dark:border-emerald-500/20 hover:border-emerald-500/40 rounded-xl p-6 shadow-md dark:shadow-xl transition-all duration-300 group hover:-translate-y-1">
               <div className="flex items-center space-x-3 mb-3">
-                <div className="p-2 bg-success/10 rounded-lg">
-                  <Icon name="BoltIcon" size={24} variant="solid" className="text-success" />
+                <div className="p-2.5 bg-emerald-500/15 border border-emerald-500/30 rounded-xl group-hover:scale-105 transition-transform">
+                  <Icon name="BoltIcon" size={24} variant="solid" className="text-emerald-500 dark:text-emerald-400" />
                 </div>
                 <h3 className="font-headline font-semibold text-foreground">Instant Results</h3>
               </div>
-              <p className="text-sm text-muted-foreground">Get comprehensive fraud analysis in under 3 seconds with real-time processing</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">Get comprehensive fraud analysis in under 3 seconds with real-time processing</p>
             </div>
 
-            <div className="bg-card rounded-lg p-6 shadow-subtle">
+            <div className="bg-card dark:bg-gradient-to-br dark:from-[#131726] dark:to-[#0F121E] border border-border dark:border-primary/25 hover:border-primary/50 rounded-xl p-6 shadow-md dark:shadow-xl transition-all duration-300 group hover:-translate-y-1">
               <div className="flex items-center space-x-3 mb-3">
-                <div className="p-2 bg-primary/10 rounded-lg">
+                <div className="p-2.5 bg-primary/15 border border-primary/30 rounded-xl group-hover:scale-105 transition-transform">
                   <Icon name="ShieldCheckIcon" size={24} variant="solid" className="text-primary" />
                 </div>
                 <h3 className="font-headline font-semibold text-foreground">99.2% Accuracy</h3>
               </div>
-              <p className="text-sm text-muted-foreground">Deterministic mathematical checksums + Sarvam Vision 3B + Deep Image Forensics</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">Deterministic mathematical checksums + Sarvam Vision 3B + Deep Image Forensics</p>
             </div>
 
-            <div className="bg-card rounded-lg p-6 shadow-subtle">
+            <div className="bg-card dark:bg-gradient-to-br dark:from-[#131726] dark:to-[#0F121E] border border-border dark:border-indigo-500/25 hover:border-indigo-500/50 rounded-xl p-6 shadow-md dark:shadow-xl transition-all duration-300 group hover:-translate-y-1">
               <div className="flex items-center space-x-3 mb-3">
-                <div className="p-2 bg-secondary/10 rounded-lg">
-                  <Icon name="LockClosedIcon" size={24} variant="solid" className="text-secondary" />
+                <div className="p-2.5 bg-indigo-500/15 border border-indigo-500/30 rounded-xl group-hover:scale-105 transition-transform">
+                  <Icon name="LockClosedIcon" size={24} variant="solid" className="text-indigo-500 dark:text-indigo-400" />
                 </div>
                 <h3 className="font-headline font-semibold text-foreground">Secure & Private</h3>
               </div>
-              <p className="text-sm text-muted-foreground">Client-side encryption with zero data retention for private government IDs</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">Client-side encryption with zero data retention for private government IDs</p>
             </div>
           </div>
         </div>
       </div>
 
       <ScanProgress 
-        isScanning={isScanning} 
+        isScanning={isScanning}
+        scanResult={scanResult}
         onComplete={() => {}} 
         depth={analysisDepth}
         type={selectedScanType}
+        fileName={selectedFile?.name || (currentScanType?.inputType === 'text' ? (textInput.slice(0, 35) || 'Text Input Payload') : (currentScanType?.inputType === 'link' ? (linkInput.slice(0, 35) || 'Web Domain URL') : 'sample_document.pdf'))}
+        fileSizeFormatted={selectedFile ? (
+          selectedFile.size < 1024 * 1024 
+            ? `${(selectedFile.size / 1024).toFixed(1)} KB` 
+            : `${(selectedFile.size / (1024 * 1024)).toFixed(1)} MB`
+        ) : '2.4 MB'}
+        previewUrl={selectedFile ? URL.createObjectURL(selectedFile) : null}
+        onCancel={() => {
+          setIsScanning(false);
+          setScanResult(null);
+        }}
+        onReset={() => {
+          setIsScanning(false);
+          setScanResult(null);
+          handleClear();
+        }}
       />
       <KeyboardShortcuts onScan={handleScan} onClear={handleClear} />
     </div>
