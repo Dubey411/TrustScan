@@ -17,13 +17,13 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 process.on('uncaughtException', (err) => {
-  console.error('CRASH (Uncaught Exception):', err.message, err.stack);
-  process.exit(1);
+  console.error('⚠️ [Uncaught Exception caught]:', err.message, err.stack);
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('CRASH (Unhandled Rejection):', reason);
+  console.error('⚠️ [Unhandled Rejection caught]:', reason);
 });
+
 
 const app = express();
 
