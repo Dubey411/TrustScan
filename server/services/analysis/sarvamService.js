@@ -102,34 +102,37 @@ export async function callSarvamVision(imageBuffer, language = "en-IN") {
     // High-precision Gemini Flash Vision Fallback
     const geminiKey = process.env.GEMINI_API_KEY;
     if (geminiKey && !geminiKey.includes('PASTE')) {
-        try {
-            console.log(`🌐 [Gemini Vision Fallback] Extracting structured document layout...`);
-            const genAI = new GoogleGenerativeAI(geminiKey);
-            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }, { apiVersion: 'v1beta' }); 
-            const base64Image = imageBuffer.toString('base64');
-            const prompt = "Extract all text accurately from this document image preserving structure, headers, and numbers. Return ONLY clean extracted text.";
+        const visionModels = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+        for (const modelName of visionModels) {
+            try {
+                console.log(`🌐 [Gemini Vision Fallback] Extracting structured document layout with ${modelName}...`);
+                const genAI = new GoogleGenerativeAI(geminiKey);
+                const model = genAI.getGenerativeModel({ model: modelName }); 
+                const base64Image = imageBuffer.toString('base64');
+                const prompt = "Extract all text accurately from this document image preserving structure, headers, and numbers. Return ONLY clean extracted text.";
 
-            const result = await model.generateContent([
-                {
-                    inlineData: {
-                        data: base64Image,
-                        mimeType: "image/png"
-                    }
-                },
-                { text: prompt }
-            ]);
+                const result = await model.generateContent([
+                    {
+                        inlineData: {
+                            data: base64Image,
+                            mimeType: "image/png"
+                        }
+                    },
+                    { text: prompt }
+                ]);
 
-            const responseText = result.response.text();
-            if (responseText && responseText.trim().length > 0) {
-                return {
-                    success: true,
-                    text: responseText.trim(),
-                    confidence: 95,
-                    engine: 'Gemini 1.5 Flash Vision'
-                };
+                const responseText = result.response.text();
+                if (responseText && responseText.trim().length > 0) {
+                    return {
+                        success: true,
+                        text: responseText.trim(),
+                        confidence: 95,
+                        engine: `Gemini Vision (${modelName})`
+                    };
+                }
+            } catch (err) {
+                console.warn(`[Gemini Vision] ${modelName} flow note: ${err.message}`);
             }
-        } catch (err) {
-            console.error(`❌ [Gemini Vision] Request failed: ${err.message}`);
         }
     }
 
@@ -204,15 +207,18 @@ ${JSON.stringify(contextPayload, null, 2)}
     // 2. Gemini Fallback with identical structured JSON contract
     const geminiKey = process.env.GEMINI_API_KEY;
     if (geminiKey && !geminiKey.includes('PASTE')) {
-        try {
-            const genAI = new GoogleGenerativeAI(geminiKey);
-            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-            const result = await model.generateContent(prompt);
-            const text = result.response.text();
-            const cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim();
-            return JSON.parse(cleaned);
-        } catch (gErr) {
-            console.error(`❌ [Gemini LLM Fallback] Error: ${gErr.message}`);
+        const geminiModels = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+        for (const modelName of geminiModels) {
+            try {
+                const genAI = new GoogleGenerativeAI(geminiKey);
+                const model = genAI.getGenerativeModel({ model: modelName });
+                const result = await model.generateContent(prompt);
+                const text = result.response.text();
+                const cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim();
+                return JSON.parse(cleaned);
+            } catch (gErr) {
+                console.warn(`[Gemini LLM Fallback] ${modelName} note: ${gErr.message}`);
+            }
         }
     }
 
