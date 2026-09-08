@@ -18,8 +18,11 @@ export default function AiCompletionChecksBanner({ scanData, onShare, onDownload
   const isCritical = riskScore >= 65;
 
   const imageForensics = scanData?.metadata?.imageForensics || {};
-  const isAiGenerated = Boolean(imageForensics.isAiGenerated) || scanData?.scanMeta?.forensicAiScore >= 50;
-  const isTampered = Boolean(imageForensics.isTampered) || scanData?.scanMeta?.forensicTamperScore >= 40 || scanData?.reasons?.some((r: string) => r.toLowerCase().includes('tamper') || r.toLowerCase().includes('ela') || r.toLowerCase().includes('altered'));
+  const forensicAi = scanData?.scanMeta?.forensicAiScore ?? (imageForensics?.aiGenerationScore !== undefined ? Math.round(imageForensics.aiGenerationScore * 100) : 0);
+  const forensicTamper = scanData?.scanMeta?.forensicTamperScore ?? (imageForensics?.tamperingConfidence !== undefined ? Math.round(imageForensics.tamperingConfidence * 100) : 0);
+  const isAiGenerated = Boolean(imageForensics.isAiGenerated) || forensicAi >= 50;
+  const isUncertainAi = imageForensics.forensicVerdict === 'UNCERTAIN' || (forensicAi >= 30 && forensicAi < 50);
+  const isTampered = Boolean(imageForensics.isTampered) || forensicTamper >= 40 || scanData?.reasons?.some((r: string) => r.toLowerCase().includes('tamper') || r.toLowerCase().includes('ela') || r.toLowerCase().includes('altered'));
 
   const scanId = String(scanData?.id || scanData?._id || `SCN-${Date.now().toString().slice(-6)}`);
 
@@ -98,10 +101,12 @@ export default function AiCompletionChecksBanner({ scanData, onShare, onDownload
             <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-mono font-semibold ${
               isAiGenerated
                 ? 'bg-purple-500/15 border-purple-500/30 text-purple-300'
+                : isUncertainAi
+                ? 'bg-amber-500/15 border-amber-500/30 text-amber-300'
                 : 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
             }`}>
-              <Icon name={isAiGenerated ? 'SparklesIcon' : 'CheckCircleIcon'} size={14} />
-              <span>AI Origin: {isAiGenerated ? 'AI-Generated / Altered' : 'Real & Genuine Artifact'}</span>
+              <Icon name={isAiGenerated ? 'SparklesIcon' : isUncertainAi ? 'ExclamationCircleIcon' : 'CheckCircleIcon'} size={14} />
+              <span>AI Origin: {isAiGenerated ? 'AI-Generated / Synthetic Artifact' : isUncertainAi ? 'Inconclusive / Synthetic Signals' : 'Real & Genuine Artifact'}</span>
             </div>
 
             {/* ELA Tampering Check */}
@@ -114,14 +119,18 @@ export default function AiCompletionChecksBanner({ scanData, onShare, onDownload
               <span>Pixel Integrity: {isTampered ? 'Tampered / Modified' : 'Clean & Unaltered'}</span>
             </div>
 
-            {/* Registry / Invariant Check */}
+            {/* Registry / Sensor Invariant Check */}
             <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-mono font-semibold ${
-              isCritical
+              isCritical || (scanType === 'image' && isAiGenerated)
                 ? 'bg-red-500/15 border-red-500/30 text-red-300'
                 : 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
             }`}>
-              <Icon name={isCritical ? 'XCircleIcon' : 'ShieldCheckIcon'} size={14} />
-              <span>Entity Validation: {isCritical ? 'Failed Rules' : 'MCA / NPCI Conforming'}</span>
+              <Icon name={isCritical || (scanType === 'image' && isAiGenerated) ? 'XCircleIcon' : 'ShieldCheckIcon'} size={14} />
+              <span>
+                {scanType === 'image'
+                  ? (isAiGenerated || isCritical ? 'Spectral Optics: Synthetic Lattice' : 'Spectral Optics: Natural 1/f Sensor')
+                  : (isCritical ? 'Entity Validation: Failed Rules' : 'Entity Validation: MCA / NPCI Conforming')}
+              </span>
             </div>
           </div>
         </div>
