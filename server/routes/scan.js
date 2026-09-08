@@ -185,12 +185,21 @@ router.post("/scan", upload.single('file'), async (req, res) => {
                   generatorFamilyHint: null
               };
 
-              const aiRiskScore = Math.round(
-                  (forensics.aiGenerationScore || 0) * 60 +
-                  (forensics.tamperingConfidence || 0) * 40
-              );
+              const aiPct = Math.round((forensics.aiGenerationScore || 0) * 100);
+              const tamperPct = Math.round((forensics.tamperingConfidence || 0) * 100);
 
-              const scanStatus = aiRiskScore > 45 ? 'fraud' : 'safe';
+              let aiRiskScore = 0;
+              if (forensics.isAiGenerated || aiPct >= 50) {
+                  aiRiskScore = Math.max(aiPct, 65);
+              } else if (forensics.forensicVerdict === 'UNCERTAIN' || (aiPct >= 32 && aiPct < 50)) {
+                  aiRiskScore = Math.max(aiPct, 45);
+              } else if (forensics.isTampered || tamperPct >= 40) {
+                  aiRiskScore = Math.max(tamperPct, 50);
+              } else {
+                  aiRiskScore = Math.min(Math.max(aiPct, tamperPct), 15);
+              }
+
+              const scanStatus = aiRiskScore >= 65 ? 'fraud' : aiRiskScore >= 35 ? 'suspicious' : 'safe';
               const scanDocType = isPaymentReceipt ? 'payment' : 'image';
 
               const savedScan = await new Scan({
@@ -205,11 +214,13 @@ router.post("/scan", upload.single('file'), async (req, res) => {
                   content: `[Image File: ${req.file.originalname}]`,
                   riskScore: aiRiskScore,
                   reasons: [
-                      forensics.isAiGenerated
-                          ? `AI-generated image detected (${Math.round(forensics.aiGenerationScore * 100)}% confidence). Generator: ${forensics.generatorFamilyHint || 'Unknown model family'}.`
+                      (forensics.isAiGenerated || aiPct >= 50)
+                          ? `AI-generated image detected (${aiPct}% confidence). Generator: ${forensics.generatorFamilyHint || 'Pretrained Vision Ensemble'}.`
+                          : (forensics.forensicVerdict === 'UNCERTAIN' || (aiPct >= 32 && aiPct < 50))
+                          ? `Ambiguous synthetic artifacts detected (${aiPct}% score). Multi-signal analysis found generative / digital rendering indicators.`
                           : 'No AI generation signatures detected in this image.',
-                      forensics.isTampered
-                          ? `Image tampering detected (${Math.round(forensics.tamperingConfidence * 100)}% tamper confidence). ELA analysis found pixel-level editing.`
+                      (forensics.isTampered || tamperPct >= 40)
+                          ? `Image tampering detected (${tamperPct}% tamper confidence). ELA and pixel-level analysis found modifications.`
                           : 'No manual editing or pixel tampering detected.',
                   ].filter(Boolean),
                   signals: {},
@@ -220,18 +231,18 @@ router.post("/scan", upload.single('file'), async (req, res) => {
                   scanMeta: {
                       source: 'IMAGE_UPLOAD',
                       mimeType: req.file.mimetype,
-                      forensicTamperScore: Math.round((forensics.tamperingConfidence || 0) * 100),
-                      forensicAiScore: Math.round((forensics.aiGenerationScore || 0) * 100),
+                      forensicTamperScore: tamperPct,
+                      forensicAiScore: aiPct,
                       forensicVerdict: forensics.forensicVerdict,
                       generatorFamilyHint: forensics.generatorFamilyHint,
-                      verdictLabel: forensics.isAiGenerated || forensics.forensicVerdict === 'AI_GENERATED'
+                      verdictLabel: (forensics.isAiGenerated || aiPct >= 50 || forensics.forensicVerdict === 'AI_GENERATED' || forensics.forensicVerdict === 'AI_GENERATED_AND_EDITED')
                           ? `AI-Generated Image Detected`
-                          : forensics.isTampered || forensics.forensicVerdict === 'TAMPERED_REAL_IMAGE'
+                          : (forensics.isTampered || tamperPct >= 40 || forensics.forensicVerdict === 'TAMPERED_REAL_IMAGE')
                           ? 'Tampered Image Detected'
                           : forensics.forensicVerdict === 'UNCERTAIN'
                           ? 'Inconclusive / Uncertain AI Signal'
                           : 'Authentic Image',
-                      confidence: aiRiskScore > 60 ? 'High' : 'Medium',
+                      confidence: aiRiskScore >= 60 ? 'High' : 'Medium',
                   }
               }).save();
 
@@ -239,7 +250,7 @@ router.post("/scan", upload.single('file'), async (req, res) => {
                   id: savedScan._id,
                   scanType: isPaymentReceipt ? 'payment' : 'image',
                   target: req.file.originalname,
-                  result: aiRiskScore > 45 ? 'fraud' : 'safe',
+                  result: scanStatus,
                   riskScore: aiRiskScore,
                   reasons: savedScan.reasons,
                   signals: {},
