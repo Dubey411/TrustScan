@@ -54,7 +54,7 @@ ensureForensicsDaemonRunning();
  * @param {Buffer} imageBuffer - Raw image bytes
  * @returns {Promise<Object>} Full forensic report with tamper AND AI-generation verdicts
  */
-export async function analyzeDocumentForensics(imageBuffer) {
+export async function analyzeDocumentForensics(imageBuffer, originalFilename = '') {
     if (!imageBuffer || imageBuffer.length === 0) {
         return {
             tamperingConfidence: 0.0,
@@ -68,9 +68,10 @@ export async function analyzeDocumentForensics(imageBuffer) {
         };
     }
 
+    const ext = path.extname(originalFilename || '') || '.png';
     const tempFilePath = path.join(
         os.tmpdir(),
-        `forensic_${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`
+        `forensic_${Date.now()}_${Math.random().toString(36).substring(7)}${ext}`
     );
 
     try {
@@ -84,7 +85,7 @@ export async function analyzeDocumentForensics(imageBuffer) {
                 const daemonResp = await fetch('http://127.0.0.1:5005', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ filePath: tempFilePath }),
+                    body: JSON.stringify({ filePath: tempFilePath, originalName: originalFilename }),
                     signal: AbortSignal.timeout(20000)
                 });
                 if (daemonResp.ok) {
@@ -105,7 +106,7 @@ export async function analyzeDocumentForensics(imageBuffer) {
         if (!parsed) {
             const pyCommand = process.platform === 'win32' ? 'python' : 'python3';
             const stdoutData = await new Promise((resolve) => {
-                const pythonProcess = spawn(pyCommand, [SCRIPT_PATH, tempFilePath]);
+                const pythonProcess = spawn(pyCommand, [SCRIPT_PATH, tempFilePath, originalFilename || '']);
                 let dataChunks = '';
 
                 pythonProcess.stdout.on('data', (data) => {
