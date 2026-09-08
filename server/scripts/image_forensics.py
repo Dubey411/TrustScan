@@ -245,16 +245,30 @@ def analyze_frequency_domain(image_path_or_bytes):
         actual = np.array(ring_energies)
         corr = float(np.corrcoef(expected_slope, actual)[0, 1]) if np.std(actual) > 0 and np.std(expected_slope) > 0 else 0.0
         
+        # Detect strong regular-grid images (treemaps, UI screenshots, data visualizations).
+        # These have strong periodic FFT spikes due to rectangular block structures — NOT AI lattice.
+        # A true AI diffusion lattice has spikes in the VAE harmonic zone (center crop of the FFT),
+        # but screenshots have them broadly distributed, and also have a HIGH hfer (lots of sharp edges).
+        is_likely_digital_graphic = bool(hfer >= 0.12 and grid_spike_ratio > 10)
+
         ai_score = 0.0
         if hfer < 0.05: ai_score += 0.50
         elif hfer < 0.08: ai_score += 0.35
         elif hfer < 0.11: ai_score += 0.15
+        # Note: hfer >= 0.12 means lots of high-freq energy = natural photograph or screenshot (sharp edges)
+        # — no penalty added for those cases
         
-        if grid_spike_ratio > 35: ai_score += 0.40
-        elif grid_spike_ratio > 22: ai_score += 0.25
-        elif grid_spike_ratio > 14: ai_score += 0.10
+        # Grid spike from AI upsampling (VAE decoder) vs. regular data-viz grid:
+        # Screenshots/treemaps have high grid_spike_ratio but also high hfer — skip penalty for those
+        if not is_likely_digital_graphic:
+            if grid_spike_ratio > 35: ai_score += 0.40
+            elif grid_spike_ratio > 22: ai_score += 0.25
+            elif grid_spike_ratio > 14: ai_score += 0.10
+        else:
+            # Treemap/screenshot: only add mild penalty if spike is truly extreme and hfer still low
+            if grid_spike_ratio > 50 and hfer < 0.10: ai_score += 0.15
         
-        if abs(corr) < 0.35: ai_score += 0.15
+        if abs(corr) < 0.35 and not is_likely_digital_graphic: ai_score += 0.15
         ai_score = float(min(1.0, ai_score))
         is_ai_generated = ai_score >= 0.40
         
@@ -274,6 +288,7 @@ def analyze_frequency_domain(image_path_or_bytes):
             "ring_energies": [round(e, 3) for e in ring_energies],
             "ai_generation_score": round(ai_score, 3),
             "is_ai_generated": is_ai_generated,
+            "is_likely_digital_graphic": is_likely_digital_graphic,
             "generator_family_hint": generator_hint
         }
     except Exception as e:
@@ -370,6 +385,9 @@ def run_full_forensics(image_path, filename=None):
     models_eval = ml.get("models_evaluated", {})
     vit_s = models_eval.get("general_vit_detector", {}).get("score", ml_score)
 
+    # Flag: is this image a digital graphic / screenshot / data viz (not a photo, not AI art)?
+    is_digital_graphic = fft.get("is_likely_digital_graphic", False)
+
     # 3. Calibrated Evidence Fusion Layer
     if has_filename_ai or has_metadata_ai:
         # Invariant 1: Direct ground truth export filename or metadata prompt trace
@@ -383,10 +401,18 @@ def run_full_forensics(image_path, filename=None):
         # Invariant 3: Verified Physical Camera Sensor (Hardware EXIF metadata + natural 1/f optics + high Laplacian kurtosis)
         final_ai_score = min(0.18, vit_s * 0.5)
         confidence = "HIGH"
-    elif vit_s <= 0.30 and not has_camera_tags and exif.get("has_stripped_metadata", False):
-        # Invariant 4: Digital Graphic / Synthetic 2D Illustration with no camera sensor origin -> Dynamic UNCERTAIN Band
-        final_ai_score = round(min(0.48, max(0.34, 0.34 + (vit_s * 0.25) + (fft_score * 0.15))), 3)
+    elif (vit_s <= 0.30 or is_digital_graphic) and not has_camera_tags and exif.get("has_stripped_metadata", False):
+        # Invariant 4: Digital Graphic / Screenshot / 2D Illustration with no camera sensor origin
+        # These include treemaps, UI screenshots, diagrams, data visualizations — route to UNCERTAIN band
+        final_ai_score = round(min(0.45, max(0.25, 0.28 + (vit_s * 0.20) + (fft_score * 0.08))), 3)
         confidence = "LOW"
+    elif is_digital_graphic and not has_metadata_ai and vit_s < 0.60:
+        # Invariant 5: High-frequency-rich digital graphic (screenshot, treemap, diagram) with ambiguous ViT
+        # FFT grid pattern is from the data structure, NOT a diffusion model lattice.
+        # Cap score in the UNCERTAIN band — do not declare AI_GENERATED.
+        calibrated_score = (vit_s * 0.65) + (dct_score * 0.20) + (tamper_score * 0.15)
+        final_ai_score = float(min(0.46, max(0.0, calibrated_score)))
+        confidence = "MEDIUM"
     else:
         # Calibrated Sigmoid-Normalized Evidence Score
         # Weights fitted over multi-signal distribution: ViT (0.55), FFT (0.25), DCT (0.10), ELA (0.10)

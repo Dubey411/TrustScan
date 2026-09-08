@@ -207,15 +207,19 @@ router.post("/scan", upload.single('file'), async (req, res) => {
 
               let aiRiskScore = 0;
               if (hasAiFilename || forensics.isAiGenerated || aiPct >= 50) {
-                  aiRiskScore = Math.max(aiPct, 75);
-                  if (hasAiFilename) aiRiskScore = Math.max(aiRiskScore, 99);
-              } else if (forensics.forensicVerdict === 'UNCERTAIN' || (aiPct >= 32 && aiPct < 50)) {
-                  aiRiskScore = Math.max(aiPct, 45);
+                  // Use actual score from forensics — do NOT artificially floor to 75.
+                  // If the forensics engine says 52%, display 52%, not 75%.
+                  // Only hard-flag filename self-declared AI generators.
+                  aiRiskScore = hasAiFilename ? Math.max(aiPct, 92) : aiPct;
+              } else if (forensics.forensicVerdict === 'UNCERTAIN' || (aiPct >= 28 && aiPct < 50)) {
+                  // Uncertain/ambiguous digital graphic — show actual score (28-49 range)
+                  aiRiskScore = aiPct;
               } else if (forensics.isTampered || tamperPct >= 40) {
-                  aiRiskScore = Math.max(tamperPct, 50);
+                  aiRiskScore = tamperPct;
               } else {
-                  aiRiskScore = Math.min(Math.max(aiPct, tamperPct), 15);
+                  aiRiskScore = Math.max(aiPct, tamperPct);
               }
+              aiRiskScore = Math.min(100, Math.max(0, Math.round(aiRiskScore)));
 
               const scanStatus = aiRiskScore >= 65 ? 'fraud' : aiRiskScore >= 35 ? 'suspicious' : 'safe';
               const scanDocType = isPaymentReceipt ? 'payment' : 'image';
