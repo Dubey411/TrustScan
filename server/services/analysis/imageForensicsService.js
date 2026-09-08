@@ -79,7 +79,7 @@ export async function analyzeDocumentForensics(imageBuffer) {
         let parsed = null;
 
         // 🚀 Strategy 1: Ultra-fast Warm Python ML Daemon (with startup retry)
-        for (let attempt = 1; attempt <= 3; attempt++) {
+        for (let attempt = 1; attempt <= 6; attempt++) {
             try {
                 const daemonResp = await fetch('http://127.0.0.1:5005', {
                     method: 'POST',
@@ -92,11 +92,11 @@ export async function analyzeDocumentForensics(imageBuffer) {
                     break;
                 }
             } catch (daemonErr) {
-                if (attempt < 3) {
-                    // Daemon may be finishing its initial 3s weight load, wait and retry
-                    await new Promise(r => setTimeout(r, 1200));
+                if (attempt < 6) {
+                    // Daemon may be finishing its initial weight load, wait and retry
+                    await new Promise(r => setTimeout(r, 1500));
                 } else {
-                    console.warn(`⚠️ [ImageForensics] Daemon fetch note after 3 attempts: ${daemonErr.message}, falling back to CLI spawn.`);
+                    console.warn(`⚠️ [ImageForensics] Daemon fetch note after 6 attempts: ${daemonErr.message}, falling back to CLI spawn.`);
                 }
             }
         }
