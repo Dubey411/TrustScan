@@ -144,10 +144,24 @@ export default function ScanProgress({
   useEffect(() => {
     if (scanResult) {
       const apiResult = scanResult?.apiResult || scanResult;
-      const risk = apiResult?.riskScore ?? 50;
-      const aiGen = Math.min(Math.round(risk * 0.52), 82);
-      const edited = Math.min(Math.round(risk * 0.38), 55);
-      const original = Math.max(0, 100 - aiGen - edited);
+      const forensics = apiResult?.metadata?.imageForensics;
+      const forensicAiScore = apiResult?.scanMeta?.forensicAiScore ?? (forensics?.aiGenerationScore !== undefined ? Math.round(forensics.aiGenerationScore * 100) : undefined);
+      const forensicTamperScore = apiResult?.scanMeta?.forensicTamperScore ?? (forensics?.tamperingConfidence !== undefined ? Math.round(forensics.tamperingConfidence * 100) : undefined);
+
+      let aiGen = 0;
+      let edited = 0;
+      let original = 0;
+
+      if (forensicAiScore !== undefined) {
+        aiGen = forensicAiScore;
+        edited = forensicTamperScore ?? 0;
+        original = Math.max(0, 100 - Math.max(aiGen, edited));
+      } else {
+        const risk = apiResult?.riskScore ?? 50;
+        aiGen = Math.round(risk);
+        edited = Math.round(risk * 0.4);
+        original = Math.max(0, 100 - aiGen);
+      }
       setScanScores({ aiGen, edited, original });
       return;
     }
