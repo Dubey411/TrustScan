@@ -24,14 +24,16 @@ class ForensicsHandler(BaseHTTPRequestHandler):
             content_length = int(self.headers.get('Content-Length', 0))
             body = self.rfile.read(content_length)
             
-            # Request can either be JSON with {"filePath": "..."} or raw image bytes
+            # Request can either be JSON with {"filePath": "...", "originalName": "..."} or raw image bytes
+            orig_name = None
             try:
                 data = json.loads(body.decode('utf-8'))
                 target = data.get('filePath')
+                orig_name = data.get('originalName') or data.get('filename')
             except Exception:
                 target = body
 
-            report = run_full_forensics(target)
+            report = run_full_forensics(target, orig_name)
             resp_bytes = json.dumps(report).encode('utf-8')
 
             self.send_response(200)
