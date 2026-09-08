@@ -94,15 +94,44 @@ def analyze_noise_inconsistency(image_path_or_bytes, grid_size=8):
     except Exception as e:
         return {"error": str(e), "has_noise_anomaly": False, "has_inpainting_anomaly": False}
 
-def scan_exif_metadata(image_path_or_bytes):
+def check_filename_ai_signatures(filename):
+    """
+    Detects self-declared or standard export patterns used by commercial AI generators:
+    - Google Gemini / Imagen (Gemini_Generated_Image_...)
+    - OpenAI DALL-E / ChatGPT (ChatGPT_Image_..., DALL·E...)
+    - Midjourney, Stable Diffusion, ComfyUI, FLUX, Leonardo, Bing/Copilot, Adobe Firefly
+    """
+    if not filename:
+        return None
+    import re
+    fn_lower = str(filename).lower()
+    patterns = [
+        ("Google Gemini / Imagen", [r'gemini[_-]?generated[_-]?image', r'gemini.*image', r'imagen[_-]?\d+']),
+        ("OpenAI DALL-E / ChatGPT", [r'chatgpt[_-]?image', r'dall[·\-e]e?', r'dalle[_-]?\d+']),
+        ("Midjourney", [r'midjourney', r'mj[_-]?\d+', r'_grid_\d+']),
+        ("Stable Diffusion / SDXL / FLUX", [r'stable[_-]?diffusion', r'sdxl', r'comfyui', r'flux[_-]?\d?', r'automatic1111', r'novelai']),
+        ("Microsoft Copilot / Designer", [r'bing[_-]?image[_-]?creator', r'imagefx', r'copilot[_-]?designer', r'oig[0-9a-z]{4,}']),
+        ("Leonardo AI", [r'leonardo[_-]?(creative|diffusion|select)?']),
+        ("Adobe Firefly", [r'adobe[_-]?firefly', r'firefly']),
+        ("Craiyon / NightCafe", [r'craiyon', r'nightcafe']),
+    ]
+    for generator, regexes in patterns:
+        for p in regexes:
+            if re.search(p, fn_lower):
+                return generator
+    return None
+
+def scan_exif_metadata(image_path_or_bytes, filename=None):
     """
     Stage 1: Metadata & Prompt Extraction
-    Extracts embedded generation parameters (A1111, ComfyUI, Midjourney, DALL-E, Fooocus)
-    and physical camera hardware tags (Make, Model, FNumber, ISO).
+    Extracts embedded generation parameters (A1111, ComfyUI, Midjourney, DALL-E, Fooocus),
+    filename AI generator export patterns, and physical camera hardware tags.
     """
     try:
         if isinstance(image_path_or_bytes, str):
             img = Image.open(image_path_or_bytes)
+            if not filename:
+                filename = os.path.basename(image_path_or_bytes)
         else:
             img = Image.open(io.BytesIO(image_path_or_bytes))
         info = img.info or {}
@@ -115,7 +144,6 @@ def scan_exif_metadata(image_path_or_bytes):
         try:
             exif_data = img.getexif()
             if exif_data:
-                # Standard EXIF tags: 271=Make, 272=Model, 306=DateTime, 33434=ExposureTime, 33437=FNumber, 34855=ISOSpeed
                 maker = exif_data.get(271)
                 model = exif_data.get(272)
                 if maker or model:
@@ -125,11 +153,17 @@ def scan_exif_metadata(image_path_or_bytes):
         except Exception:
             pass
 
-        ai_generators = ["midjourney", "dall-e", "stable diffusion", "sdxl", "flux", "firefly", "ideogram", "leonardo", "runway", "pika", "imagen", "craiyon", "artbreeder", "nightcafe", "bing image creator", "invoke ai", "automatic1111", "comfyui", "fooocus"]
+        ai_generators = ["midjourney", "dall-e", "stable diffusion", "sdxl", "flux", "firefly", "ideogram", "leonardo", "runway", "pika", "imagen", "craiyon", "artbreeder", "nightcafe", "bing image creator", "invoke ai", "automatic1111", "comfyui", "fooocus", "gemini"]
         tampering_tools = ["photoshop", "canva", "gimp", "acrobat", "coreldraw", "illustrator", "affinity", "paint.net"]
         
         detected_ai = [g for g in ai_generators if g in raw_text]
         detected_editors = [t for t in tampering_tools if t in raw_text]
+
+        # Check filename export patterns (e.g. Gemini_Generated_Image_...)
+        fn_generator = check_filename_ai_signatures(filename)
+        if fn_generator and fn_generator.lower() not in [x.lower() for x in detected_ai]:
+            detected_ai.append(fn_generator)
+
         sd_prompt = info.get('parameters', '') or info.get('prompt', '')
         has_sd_prompt = bool(sd_prompt and len(sd_prompt) > 20)
         has_stripped_metadata = len(info) == 0 and not has_camera_tags
@@ -137,7 +171,8 @@ def scan_exif_metadata(image_path_or_bytes):
         return {
             "detected_ai_generators": detected_ai,
             "detected_editing_software": detected_editors,
-            "has_ai_signature": len(detected_ai) > 0 or has_sd_prompt,
+            "has_ai_signature": len(detected_ai) > 0 or has_sd_prompt or bool(fn_generator),
+            "filename_generator": fn_generator,
             "has_software_signature": len(detected_editors) > 0,
             "has_camera_tags": has_camera_tags,
             "camera_maker": camera_maker,
@@ -147,10 +182,12 @@ def scan_exif_metadata(image_path_or_bytes):
             "sd_prompt_preview": sd_prompt[:120] if has_sd_prompt else None
         }
     except Exception as e:
+        fn_gen = check_filename_ai_signatures(filename)
         return {
-            "detected_ai_generators": [],
+            "detected_ai_generators": [fn_gen] if fn_gen else [],
             "detected_editing_software": [],
-            "has_ai_signature": False,
+            "has_ai_signature": bool(fn_gen),
+            "filename_generator": fn_gen,
             "has_software_signature": False,
             "has_camera_tags": False,
             "has_stripped_metadata": True
@@ -290,19 +327,26 @@ def analyze_dct_uniformity(image_path_or_bytes):
     except Exception as e:
         return {"error": str(e), "dct_ai_score": 0.0, "is_gaussian_like": False}
 
-def run_full_forensics(image_path):
+def run_full_forensics(image_path, filename=None):
     """
-    Stage 6 & 7: Evidence-Based Multi-Signal Feature Fusion & Confidence Calibration (v4.4)
+    Stage 6 & 7: Evidence-Based Multi-Signal Feature Fusion & Confidence Calibration (v4.5)
     Integrates:
+    - Generator filename signatures (Gemini, DALL-E, Midjourney, SDXL, FLUX, Firefly)
     - Metadata ground truth & camera hardware tags
     - High-Resolution 512px FFT spectral decay & VAE lattice spikes
     - Vectorized 2D DCT Laplacian kurtosis
     - Localized inpainting / splice patch variance
     - Pretrained Vision Model (General ViT)
     """
+    if not filename and isinstance(image_path, str):
+        filename = os.path.basename(image_path)
+
+    fn_generator = check_filename_ai_signatures(filename)
+    has_filename_ai = bool(fn_generator)
+
     ela   = analyze_ela(image_path)
     noise = analyze_noise_inconsistency(image_path)
-    exif  = scan_exif_metadata(image_path)
+    exif  = scan_exif_metadata(image_path, filename)
     fft   = analyze_frequency_domain(image_path)
     dct   = analyze_dct_uniformity(image_path)
     ml    = predict_sdxl_detector(image_path)
@@ -319,7 +363,7 @@ def run_full_forensics(image_path):
     ml_score = ml.get("score", 0.0)
     fft_score = fft.get("ai_generation_score", 0.0)
     dct_score = dct.get("dct_ai_score", 0.0)
-    has_metadata_ai = exif.get("has_ai_signature", False)
+    has_metadata_ai = exif.get("has_ai_signature", False) or has_filename_ai
     has_camera_tags = exif.get("has_camera_tags", False)
 
     # Models evaluated
@@ -327,9 +371,9 @@ def run_full_forensics(image_path):
     vit_s = models_eval.get("general_vit_detector", {}).get("score", ml_score)
 
     # 3. Calibrated Evidence Fusion Layer
-    if has_metadata_ai:
-        # Invariant 1: Direct ground truth prompt trace in metadata
-        final_ai_score = max(0.92, ml_score)
+    if has_filename_ai or has_metadata_ai:
+        # Invariant 1: Direct ground truth export filename or metadata prompt trace
+        final_ai_score = max(0.99 if has_filename_ai else 0.92, ml_score)
         confidence = "HIGH"
     elif vit_s >= 0.70 or ml_score >= 0.80:
         # Invariant 2: Strong deep learning visual recognition (Midjourney, DALL-E, SDXL, FLUX)
@@ -374,7 +418,9 @@ def run_full_forensics(image_path):
     # Generator Family & Tampering Attribution
     generator_hint = "Natural Camera Photograph"
     if is_ai_generated:
-        if has_metadata_ai:
+        if has_filename_ai:
+            generator_hint = f"{fn_generator} (Self-Declared AI Generator Filename)"
+        elif exif.get("sd_prompt_found"):
             generator_hint = "Latent Diffusion Model (Verified Prompt Metadata Found)"
         elif ml_score >= 0.50:
             generator_hint = f"Pretrained Vision Ensemble ({int(ml_score * 100)}% AI probability)"
@@ -405,6 +451,7 @@ def run_full_forensics(image_path):
             "fft_frequency_score": round(fft_score, 3),
             "dct_kurtosis_score": round(dct_score, 3),
             "metadata_ai_score": 1.0 if has_metadata_ai else 0.0,
+            "filename_ai_score": 1.0 if has_filename_ai else 0.0,
             "ela_tamper_score": round(tamper_score, 3)
         },
         "detected_ai_generators": exif.get("detected_ai_generators", []),
@@ -422,8 +469,9 @@ def run_full_forensics(image_path):
 if __name__ == '__main__':
     if len(sys.argv) > 1:
         target = sys.argv[1]
+        orig_name = sys.argv[2] if len(sys.argv) > 2 else os.path.basename(target)
         if os.path.exists(target):
-            report = run_full_forensics(target)
+            report = run_full_forensics(target, orig_name)
             print(json.dumps(report, indent=2))
         else:
             print(json.dumps({"error": "File not found"}))
