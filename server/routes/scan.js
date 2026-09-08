@@ -126,7 +126,7 @@ router.post("/scan", upload.single('file'), async (req, res) => {
       if (originalType === 'image') {
           try {
               const { analyzeDocumentForensics } = await import('../services/analysis/imageForensicsService.js');
-              imageForensicsData = await analyzeDocumentForensics(req.file.buffer);
+              imageForensicsData = await analyzeDocumentForensics(req.file.buffer, req.file.originalname);
               console.log(`🔬 [API Scan] Fast Image Forensics Executed in Sub-Second: Verdict=${imageForensicsData?.forensicVerdict}, AI Score=${imageForensicsData?.aiGenerationScore}`);
           } catch (fErr) {
               console.warn(`⚠️ [API Scan] Image forensics error: ${fErr.message}`);
@@ -135,7 +135,7 @@ router.post("/scan", upload.single('file'), async (req, res) => {
           // Concurrent Execution for Documents/Certificates
           const { analyzeDocumentForensics } = await import('../services/analysis/imageForensicsService.js');
           const [forensicsRes, docRes] = await Promise.all([
-              isImageFile ? analyzeDocumentForensics(req.file.buffer).catch(() => null) : Promise.resolve(null),
+              isImageFile ? analyzeDocumentForensics(req.file.buffer, req.file.originalname).catch(() => null) : Promise.resolve(null),
               processDocument(req.file.buffer, req.file.mimetype, req.file.originalname, ocrDepth)
           ]);
           imageForensicsData = forensicsRes;
@@ -176,6 +176,9 @@ router.post("/scan", upload.single('file'), async (req, res) => {
           if (originalType === 'payment' || originalType === 'image' || isImageFile) {
               console.log(`🔍 [Scan] Minimal text found (${textLength} chars) → returning image forensics verdict.`);
 
+              const AI_FILENAME_REGEX = /(gemini[_-]?generated[_-]?image|chatgpt[_-]?image|dall[·\-_]?e|midjourney|stable[_-]?diffusion|sdxl|comfyui|flux[_-]?\d?|automatic1111|novelai|bing[_-]?image|imagefx|copilot[_-]?designer|oig[0-9a-z]{4,}|leonardo[_-]?(creative|diffusion|select)?|adobe[_-]?firefly|firefly|craiyon|nightcafe)/i;
+              const hasAiFilename = Boolean(req.file.originalname && AI_FILENAME_REGEX.test(req.file.originalname));
+
               const forensics = imageForensicsData || {
                   forensicVerdict: 'CLEAN',
                   aiGenerationScore: 0,
@@ -185,12 +188,27 @@ router.post("/scan", upload.single('file'), async (req, res) => {
                   generatorFamilyHint: null
               };
 
-              const aiPct = Math.round((forensics.aiGenerationScore || 0) * 100);
+              if (hasAiFilename) {
+                  forensics.isAiGenerated = true;
+                  forensics.aiGenerationScore = Math.max(forensics.aiGenerationScore || 0, 0.99);
+                  forensics.forensicVerdict = forensics.isTampered ? 'AI_GENERATED_AND_EDITED' : 'AI_GENERATED';
+                  const fnLower = req.file.originalname.toLowerCase();
+                  const detectedName = fnLower.includes('gemini') ? 'Google Gemini / Imagen'
+                      : fnLower.includes('dall') || fnLower.includes('chatgpt') ? 'OpenAI DALL-E / ChatGPT'
+                      : fnLower.includes('midjourney') ? 'Midjourney'
+                      : fnLower.includes('firefly') ? 'Adobe Firefly'
+                      : fnLower.includes('leonardo') ? 'Leonardo AI'
+                      : 'Commercial AI Image Generator';
+                  forensics.generatorFamilyHint = `${detectedName} (Self-Declared AI Generator Filename)`;
+              }
+
+              let aiPct = Math.round((forensics.aiGenerationScore || 0) * 100);
               const tamperPct = Math.round((forensics.tamperingConfidence || 0) * 100);
 
               let aiRiskScore = 0;
-              if (forensics.isAiGenerated || aiPct >= 50) {
-                  aiRiskScore = Math.max(aiPct, 65);
+              if (hasAiFilename || forensics.isAiGenerated || aiPct >= 50) {
+                  aiRiskScore = Math.max(aiPct, 75);
+                  if (hasAiFilename) aiRiskScore = Math.max(aiRiskScore, 99);
               } else if (forensics.forensicVerdict === 'UNCERTAIN' || (aiPct >= 32 && aiPct < 50)) {
                   aiRiskScore = Math.max(aiPct, 45);
               } else if (forensics.isTampered || tamperPct >= 40) {
