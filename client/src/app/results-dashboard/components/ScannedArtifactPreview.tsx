@@ -19,14 +19,16 @@ export default function ScannedArtifactPreview({ scanData }: ScannedArtifactPrev
   const isCritical = riskScore >= 65;
 
   const imageForensics = scanData?.metadata?.imageForensics || {};
-  const isAiGenerated = Boolean(imageForensics.isAiGenerated) || scanData?.scanMeta?.forensicAiScore >= 50;
-  const isTampered = Boolean(imageForensics.isTampered) || scanData?.scanMeta?.forensicTamperScore >= 40 || scanData?.reasons?.some((r: string) => r.toLowerCase().includes('tamper') || r.toLowerCase().includes('ela') || r.toLowerCase().includes('altered'));
+  const forensicAi = scanData?.scanMeta?.forensicAiScore ?? (imageForensics?.aiGenerationScore !== undefined ? Math.round(imageForensics.aiGenerationScore * 100) : undefined);
+  const forensicTamper = scanData?.scanMeta?.forensicTamperScore ?? (imageForensics?.tamperingConfidence !== undefined ? Math.round(imageForensics.tamperingConfidence * 100) : undefined);
+  const isAiGenerated = Boolean(imageForensics.isAiGenerated) || (forensicAi !== undefined && forensicAi >= 50);
+  const isTampered = Boolean(imageForensics.isTampered) || (forensicTamper !== undefined && forensicTamper >= 40) || scanData?.reasons?.some((r: string) => r.toLowerCase().includes('tamper') || r.toLowerCase().includes('ela') || r.toLowerCase().includes('altered'));
 
   // Classification label
   const classification = isCritical
-    ? (isAiGenerated ? 'AI Generated' : 'Edited / Manipulated')
+    ? (isAiGenerated ? 'Synthetic / AI Generated' : 'Edited / Manipulated')
     : isSuspicious
-    ? 'Suspicious / Altered'
+    ? (isAiGenerated ? 'Synthetic / AI Graphic' : isTampered ? 'Suspicious / Altered' : 'Uncertain Signal')
     : 'Real & Authentic';
 
   const classificationColor = isCritical
@@ -35,7 +37,9 @@ export default function ScannedArtifactPreview({ scanData }: ScannedArtifactPrev
     ? 'text-amber-400'
     : 'text-emerald-400';
 
-  const aiProbability = isAiGenerated
+  const aiProbability = forensicAi !== undefined
+    ? forensicAi
+    : isAiGenerated
     ? (scanData?.scanMeta?.forensicAiScore || 92)
     : isTampered
     ? (scanData?.scanMeta?.forensicTamperScore || 78)
