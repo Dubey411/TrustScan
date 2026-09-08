@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import Icon from '@/components/ui/AppIcon';
 
 const FooterSection = () => {
@@ -47,28 +48,18 @@ const FooterSection = () => {
           {/* Brand Col */}
           <div className="lg:col-span-2 space-y-4">
             <Link href="/" className="flex items-center space-x-3 group inline-block">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary/20 to-secondary/10 p-0.5 border border-border">
-                <div className="w-full h-full rounded-[10px] bg-background flex items-center justify-center">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                    <path
-                      d="M12 2L4 5.5V11.5C4 16.5 7.5 20.9 12 22C16.5 20.9 20 16.5 20 11.5V5.5L12 2Z"
-                      fill="#FF6B4A"
-                    />
-                    <path
-                      d="M9 11.8L11.2 14L15.5 9.5"
-                      stroke="#FFFFFF"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </div>
-              </div>
+              <Image
+                src="/Logo-mark.png"
+                alt="TrustScan Logo"
+                width={36}
+                height={36}
+                className="w-9 h-9 object-contain drop-shadow-xs transition-transform duration-300 group-hover:scale-105"
+              />
               <div className="flex items-center gap-1.5">
                 <span className="text-xl font-headline font-bold text-foreground tracking-tight">
                   TrustScan
                 </span>
-                <span className="text-xs font-mono font-semibold px-1.5 py-0.5 rounded bg-[#FF6B4A]/15 text-[#FF6B4A] border border-[#FF6B4A]/30">
+                <span className="text-xs font-mono font-semibold px-1.5 py-0.5 rounded bg-primary/15 text-primary border border-primary/30">
                   AI
                 </span>
               </div>
