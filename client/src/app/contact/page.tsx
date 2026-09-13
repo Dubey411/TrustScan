@@ -12,6 +12,7 @@ import { useState, FormEvent } from 'react';
 
 export default function ContactPage() {
   const [form, setForm] = useState({ name: '', email: '', subject: 'Support Request', message: '' });
+  const [submittedEmail, setSubmittedEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
 
   const handleSubmit = async (e: FormEvent) => {
@@ -24,6 +25,7 @@ export default function ContactPage() {
         body: JSON.stringify(form),
       });
       if (res.ok) {
+        setSubmittedEmail(form.email);
         setStatus('sent');
         setForm({ name: '', email: '', subject: 'Support Request', message: '' });
       } else {
@@ -59,7 +61,7 @@ export default function ContactPage() {
                       <Icon name="CheckCircleIcon" size={36} />
                     </div>
                     <h2 className="text-2xl font-headline font-bold text-foreground mb-2">Message Sent!</h2>
-                    <p className="text-muted-foreground">We&apos;ll get back to you at <strong>{form.email || 'your email'}</strong> within 24 hours.</p>
+                    <p className="text-muted-foreground">We&apos;ll get back to you at <strong className="text-foreground">{submittedEmail || 'your email'}</strong> within 24 hours.</p>
                     <button onClick={() => setStatus('idle')} className="mt-6 text-primary font-bold hover:underline">Send another message</button>
                   </div>
                 ) : (
