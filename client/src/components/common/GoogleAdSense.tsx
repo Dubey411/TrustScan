@@ -1,10 +1,8 @@
 import Script from 'next/script';
 
 const GoogleAdSense = () => {
-  // Option A: Set NEXT_PUBLIC_ADSENSE_CLIENT_ID in .env.local or production host
-  // Option B: Paste your ID below (e.g. 'ca-pub-1234567890123456')
   const clientPublisherId =
-    process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID || '';
+    process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID || 'ca-pub-5575657922634928';
 
   if (!clientPublisherId) return null;
 
