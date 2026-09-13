@@ -5,7 +5,15 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: '*',
       allow: '/',
-      disallow: ['/api/', '/admin/'],
+      disallow: [
+        '/api/',
+        '/admin/',
+        '/login',
+        '/forgot-password',
+        '/results-dashboard',
+        '/user-dashboard',
+        '/results/',
+      ],
     },
     sitemap: 'https://www.trustscanai.in/sitemap.xml',
   };

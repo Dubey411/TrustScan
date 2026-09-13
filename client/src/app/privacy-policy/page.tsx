@@ -64,9 +64,13 @@ export default function PrivacyPolicy() {
               <p className="text-sm text-muted-foreground mb-4">
                 Have questions about your data? Reach out to our dedicated privacy officer.
               </p>
-              <a href="mailto:privacy@trustscan.ai" className="text-primary font-bold hover:underline">
+              <a href="mailto:trustscan.ai@gmail.com" className="text-primary font-bold hover:underline">
                 trustscan.ai@gmail.com
               </a>
+              <p className="text-sm text-muted-foreground mt-3">
+                Phone: <a href="tel:+918591694920" className="text-primary hover:underline">+91 85916 94920</a>
+                &nbsp;·&nbsp; Navi Mumbai, Maharashtra, India
+              </p>
             </section>
           </div>
         </div>

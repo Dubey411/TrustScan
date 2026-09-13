@@ -88,6 +88,7 @@ export default function RootLayout({
               "operatingSystem": "All",
               "applicationCategory": "SecurityApplication",
               "description": "India's most advanced AI fraud detection engine. Perform a fake job offer check, verify if this link is safe, and detect UPI fraud messages instantly.",
+              "url": "https://www.trustscanai.in",
               "offers": {
                 "@type": "Offer",
                 "price": "0",
@@ -95,7 +96,23 @@ export default function RootLayout({
               },
               "author": {
                 "@type": "Organization",
-                "name": "TrustScan AI India"
+                "name": "TrustScan AI",
+                "url": "https://www.trustscanai.in",
+                "logo": "https://www.trustscanai.in/image.png",
+                "email": "trustscan.ai@gmail.com",
+                "telephone": "+91-8591694920",
+                "address": {
+                  "@type": "PostalAddress",
+                  "addressLocality": "Navi Mumbai",
+                  "addressRegion": "Maharashtra",
+                  "addressCountry": "IN"
+                },
+                "founder": {
+                  "@type": "Person",
+                  "name": "Shubham Dubey",
+                  "jobTitle": "Founder & Lead AI Engineer",
+                  "url": "https://www.linkedin.com/in/shubham-dubey-1a0293352/"
+                }
               },
               "areaServed": "IN"
             })

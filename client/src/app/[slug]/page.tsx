@@ -4,6 +4,8 @@ import FooterSection from '../homepage/components/FooterSection';
 import Icon from '@/components/ui/AppIcon';
 import { Metadata } from 'next';
 
+// Note: /cookie-policy and /disclaimer now have real dedicated pages.
+// Remaining slugs are "coming soon" and are noindexed until real content is published.
 const pageData: Record<string, { title: string; desc: string }> = {
   'blog': { 
     title: 'TrustScan Blog', 
@@ -17,14 +19,6 @@ const pageData: Record<string, { title: string; desc: string }> = {
     title: 'Press & Media', 
     desc: 'Official news, media assets, and press contact information for TrustScan AI.' 
   },
-  'cookie-policy': { 
-    title: 'Cookie Policy', 
-    desc: 'Information about how TrustScan uses cookies to improve your security experience.' 
-  },
-  'disclaimer': { 
-    title: 'Legal Disclaimer', 
-    desc: 'Important legal notices regarding the use of TrustScan AI results and data.' 
-  },
 };
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -36,6 +30,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return {
     title: `${page.title} | TrustScan AI`,
     description: page.desc,
+    // Noindex these pages until real content is published — prevents thin-content AdSense rejection
+    robots: { index: false, follow: false },
     alternates: {
       canonical: `/${slug}`,
     },
