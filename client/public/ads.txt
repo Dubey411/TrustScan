@@ -1,0 +1,5 @@
+# Google AdSense ads.txt for TrustScan AI (https://trustscanai.in)
+# Replace ca-pub-XXXXXXXXXXXXXXXX with your actual Google AdSense Publisher ID
+# Format: google.com, pub-XXXXXXXXXXXXXXXX, DIRECT, f08c47fec0942fa0
+# Example:
+# google.com, pub-0000000000000000, DIRECT, f08c47fec0942fa0
