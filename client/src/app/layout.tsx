@@ -4,7 +4,6 @@ import '../styles/index.css';
 import { ThemeProvider } from '@/components/providers/ThemeProvider';
 import { AuthProvider } from '@/context/AuthContext';
 import CookieConsent from '@/components/common/CookieConsent';
-import GoogleAdSense from '@/components/common/GoogleAdSense';
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -68,6 +67,9 @@ export const metadata: Metadata = {
     apple: '/image.png',
   },
   manifest: '/site.webmanifest',
+  other: {
+    'google-adsense-account': 'ca-pub-5575657922634928',
+  },
 };
 
 export default function RootLayout({
@@ -78,6 +80,11 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
       <head>
+        <script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5575657922634928"
+          crossOrigin="anonymous"
+        />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
@@ -129,7 +136,6 @@ export default function RootLayout({
           <AuthProvider>
             {children}
             <CookieConsent />
-            <GoogleAdSense />
           </AuthProvider>
         </ThemeProvider>
       </body>
