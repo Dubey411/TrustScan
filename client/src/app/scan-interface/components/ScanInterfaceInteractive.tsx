@@ -29,14 +29,15 @@ interface ScanType {
 
 interface ScanInterfaceInteractiveProps {
   onScanComplete?: (data: any) => void;
+  initialScanType?: 'document' | 'payment' | 'image' | 'company';
 }
 
-export default function ScanInterfaceInteractive({ onScanComplete }: ScanInterfaceInteractiveProps) {
+export default function ScanInterfaceInteractive({ onScanComplete, initialScanType = 'document' }: ScanInterfaceInteractiveProps) {
   const router = useRouter(); 
   const { user } = useAuth();
   const [isHydrated, setIsHydrated] = useState(false);
 
-  const [selectedScanType, setSelectedScanType] = useState<string>('document');
+  const [selectedScanType, setSelectedScanType] = useState<string>(initialScanType);
   const [textInput, setTextInput] = useState('');
   const [linkInput, setLinkInput] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);

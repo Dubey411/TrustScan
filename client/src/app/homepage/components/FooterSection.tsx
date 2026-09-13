@@ -16,10 +16,10 @@ const FooterSection = () => {
 
   const footerLinks = {
     Product: [
-      { label: 'UPI & Payment Forensics', href: '/scan-interface' },
       { label: 'Offer Letter & CTC Audit', href: '/scan-interface' },
-      { label: 'Company & CIN Registry', href: '/scan-interface' },
-      { label: 'AI Image Tamper Detection', href: '/scan-interface' },
+      { label: 'AI Image Tamper Detection', href: '/image-verification' },
+      { label: 'Company & CIN Registry', href: '/company-verification' },
+      { label: 'UPI & Payment Forensics', href: '/payment-verification' },
       { label: 'Pricing Plans', href: '/pricing-page' },
     ],
     Resources: [

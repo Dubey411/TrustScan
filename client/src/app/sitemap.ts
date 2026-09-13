@@ -18,6 +18,24 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.9, // Core functionality
     },
     {
+      url: `${baseUrl}/image-verification`,
+      lastModified: now,
+      changeFrequency: 'always',
+      priority: 0.9, // High-volume SEO
+    },
+    {
+      url: `${baseUrl}/company-verification`,
+      lastModified: now,
+      changeFrequency: 'always',
+      priority: 0.9, // High-volume SEO
+    },
+    {
+      url: `${baseUrl}/payment-verification`,
+      lastModified: now,
+      changeFrequency: 'always',
+      priority: 0.9, // High-volume SEO
+    },
+    {
       url: `${baseUrl}/company-report`,
       lastModified: now,
       changeFrequency: 'always',
