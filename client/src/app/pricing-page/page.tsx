@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Header from '@/components/common/Header';
+import FooterSection from '../homepage/components/FooterSection';
 import PricingInteractive from './components/PricingInteractive';
 
 export const metadata: Metadata = {
@@ -18,9 +19,12 @@ export const metadata: Metadata = {
 
 export default function PricingPage() {
   return (
-    <>
+    <div className="min-h-screen flex flex-col bg-background">
       <Header />
-      <PricingInteractive />
-    </>
+      <main className="flex-grow">
+        <PricingInteractive />
+      </main>
+      <FooterSection />
+    </div>
   );
 }

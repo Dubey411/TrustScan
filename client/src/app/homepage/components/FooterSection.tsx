@@ -31,13 +31,14 @@ const FooterSection = () => {
     Company: [
       { label: 'About TrustScan AI', href: '/about-page' },
       { label: 'Contact Support', href: '/contact' },
-      { label: 'Security Practices', href: '/about-page' },
-      { label: 'Press & Media', href: '/about-page' },
+      { label: 'Security Practices', href: '/safety-guide' },
+      { label: 'Frequently Asked Questions', href: '/faq' },
     ],
     Legal: [
       { label: 'Privacy Policy', href: '/privacy-policy' },
       { label: 'Terms of Service', href: '/terms-of-service' },
-      { label: 'Compliance & Disclaimer', href: '/terms-of-service' },
+      { label: 'Cookie Policy', href: '/cookie-policy' },
+      { label: 'Disclaimer & Compliance', href: '/disclaimer' },
     ],
   };
 

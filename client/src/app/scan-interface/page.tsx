@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Header from '@/components/common/Header';
+import FooterSection from '../homepage/components/FooterSection';
 import ScanInterfaceInteractive from './components/ScanInterfaceInteractive';
 
 export const metadata: Metadata = {
@@ -31,9 +32,12 @@ export const metadata: Metadata = {
 
 export default function ScanInterfacePage() {
   return (
-    <>
+    <div className="min-h-screen flex flex-col bg-background">
       <Header />
-      <ScanInterfaceInteractive />
-    </>
+      <main className="flex-grow">
+        <ScanInterfaceInteractive />
+      </main>
+      <FooterSection />
+    </div>
   );
 }
