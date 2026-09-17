@@ -56,7 +56,10 @@ const Header = ({ className = '' }: HeaderProps) => {
   };
 
   const baseNavigationItems = [
-    { label: 'Home', href: '/', icon: 'HomeIcon' },
+    { label: 'Scanner', href: '/scan-interface', icon: 'DocumentCheckIcon' },
+    { label: 'Safety Guide', href: '/safety-guide', icon: 'ShieldCheckIcon' },
+    { label: 'Scam Alerts', href: '/scam-alerts', icon: 'BellAlertIcon' },
+    { label: 'Blog', href: '/blog', icon: 'BookOpenIcon' },
     { label: 'Pricing', href: '/pricing-page', icon: 'CurrencyRupeeIcon' },
     { label: 'About', href: '/about-page', icon: 'InformationCircleIcon' },
   ];

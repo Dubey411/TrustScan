@@ -23,16 +23,16 @@ const FooterSection = () => {
       { label: 'Pricing Plans', href: '/pricing-page' },
     ],
     Resources: [
+      { label: 'Security & Scam Blog', href: '/blog' },
       { label: 'Live Scam Alerts', href: '/scam-alerts' },
       { label: 'Citizen Safety Guide', href: '/safety-guide' },
-      { label: 'Calibration Architecture', href: '#architecture' },
-      { label: 'FAQ & Knowledge Base', href: '/faq' },
+      { label: 'FAQ & Help Center', href: '/faq' },
     ],
     Company: [
       { label: 'About TrustScan AI', href: '/about-page' },
+      { label: 'Careers & Hiring', href: '/careers' },
+      { label: 'Press & Media', href: '/press' },
       { label: 'Contact Support', href: '/contact' },
-      { label: 'Security Practices', href: '/safety-guide' },
-      { label: 'Frequently Asked Questions', href: '/faq' },
     ],
     Legal: [
       { label: 'Privacy Policy', href: '/privacy-policy' },
