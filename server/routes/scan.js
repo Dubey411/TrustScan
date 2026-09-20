@@ -633,6 +633,7 @@ router.post("/scan", upload.single('file'), async (req, res) => {
         signals: result.signals,
         metadata: result.metadata,
         scanMeta: scanMeta,
+        deepScanReport: scanMeta.deepScanReport || null,
         trustScanReport: generateTrustScanReport(finalRisk, result.signals, result.metadata),
         recommendation: getRecommendedActions(result.signals, status),
         llmClassification: result.llmClassification ? {

@@ -414,6 +414,14 @@ const ResultsInteractive = ({ scanData, showFeedback = true }: ResultsInteractiv
             />
           )}
 
+          {/* 🌟 DEEP FORENSICS INVESTIGATION & ANOMALY MATRIX */}
+          {(activeScanData?.deepScanReport || activeScanData?.scanMeta?.deepScanReport || isAdvancedScan) && (
+            <DeepScanReportCard
+              deepScanReport={activeScanData?.deepScanReport || activeScanData?.scanMeta?.deepScanReport}
+              scanData={activeScanData}
+            />
+          )}
+
           {/* 🌟 PROPHET AI CONTEXTUAL REASONING CARD */}
           {activeScanData?.aiInsight ? (
             <ProphetInsightCard
