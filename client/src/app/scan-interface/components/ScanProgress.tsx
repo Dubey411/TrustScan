@@ -935,9 +935,10 @@ export default function ScanProgress({
           </div>
 
           {/* ========================================================= */}
-          {/* RIGHT CARD: STEP 2 - SCANNING OR RESULTS DASHBOARD */}
+          {/* RIGHT COLUMN: STEP 2 RESULTS & DEEP SCAN FORENSICS */}
           {/* ========================================================= */}
-          <div className="rounded-2xl border border-border dark:border-white/[0.08] bg-card dark:bg-gradient-to-b dark:from-[#131726] dark:via-[#0F121E] dark:to-[#131726] p-6 sm:p-8 shadow-xl dark:shadow-2xl flex flex-col justify-between space-y-7 min-h-[580px] hover:border-indigo-500/20 transition-all duration-300 relative">
+          <div className="space-y-6 flex flex-col">
+            <div className="rounded-2xl border border-border dark:border-white/[0.08] bg-card dark:bg-gradient-to-b dark:from-[#131726] dark:via-[#0F121E] dark:to-[#131726] p-6 sm:p-8 shadow-xl dark:shadow-2xl flex flex-col justify-between space-y-7 min-h-[580px] hover:border-indigo-500/20 transition-all duration-300 relative">
             
             {!isResultReady ? (
               /* ----------------------------------------------------- */
@@ -1608,17 +1609,18 @@ export default function ScanProgress({
             )}
 
           </div>
-        </div>
 
-        {/* 🌟 3. FULL-WIDTH DEEP FORENSICS INVESTIGATION & ANOMALY MATRIX */}
-        {isResultReady && (depth === 'deep' || activeScanData?.depth === 'deep' || Boolean(activeScanData?.deepScanReport) || Boolean(activeScanData?.scanMeta?.deepScanReport)) && (
-          <div className="w-full pt-4 animate-fade-in">
-            <DeepScanReportCard
-              deepScanReport={activeScanData?.deepScanReport || activeScanData?.scanMeta?.deepScanReport}
-              scanData={activeScanData}
-            />
+            {/* 🌟 DEEP SCAN INVESTIGATION & ANOMALY MATRIX (NESTED IN RIGHT COLUMN TO MATCH LEFT CARD) */}
+            {isResultReady && (depth === 'deep' || activeScanData?.depth === 'deep' || Boolean(activeScanData?.deepScanReport) || Boolean(activeScanData?.scanMeta?.deepScanReport)) && (
+              <div className="w-full animate-fade-in">
+                <DeepScanReportCard
+                  deepScanReport={activeScanData?.deepScanReport || activeScanData?.scanMeta?.deepScanReport}
+                  scanData={activeScanData}
+                />
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

@@ -241,141 +241,131 @@ export const DeepScanReportCard: React.FC<DeepScanReportProps> = ({ deepScanRepo
   };
 
   return (
-    <div className="relative group overflow-hidden border-2 border-purple-500/30 rounded-2xl mb-6 shadow-xl transition-all duration-300">
-      {/* Background Animated Neon Glow */}
-      <div className="absolute -inset-1 bg-gradient-to-r from-purple-600/30 via-indigo-600/20 to-blue-600/30 rounded-2xl blur-xl opacity-30 group-hover:opacity-60 transition duration-1000 pointer-events-none" />
+    <div className="relative group overflow-hidden border border-purple-500/30 rounded-2xl shadow-lg transition-all duration-300">
+      {/* Background Subtle Neon Glow */}
+      <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-600/20 via-indigo-600/15 to-blue-600/20 rounded-2xl blur-md opacity-25 group-hover:opacity-50 transition duration-700 pointer-events-none" />
 
-      <div className="relative bg-slate-950 border border-slate-800 rounded-2xl overflow-hidden">
-        {/* Top Header */}
-        <div className="bg-gradient-to-r from-purple-950/80 via-slate-900 to-indigo-950/80 px-6 py-5 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3.5">
-            <div className="flex items-center justify-center w-11 h-11 rounded-xl bg-gradient-to-br from-purple-500 via-indigo-600 to-blue-600 text-white shadow-lg shadow-purple-500/30">
-              <Icon name="SparklesIcon" size={22} variant="solid" />
+      <div className="relative bg-slate-950/95 border border-slate-800/90 rounded-2xl overflow-hidden">
+        {/* Compact Header */}
+        <div className="bg-gradient-to-r from-purple-950/70 via-slate-900 to-indigo-950/70 px-3.5 py-2.5 border-b border-slate-800 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-gradient-to-br from-purple-500 via-indigo-600 to-blue-600 text-white shadow-md shadow-purple-500/25 flex-shrink-0">
+              <Icon name="SparklesIcon" size={14} variant="solid" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-black uppercase tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-purple-200 via-indigo-200 to-blue-200">
-                  Deep Forensics Investigation
+              <div className="flex items-center gap-1.5">
+                <span className="px-1.5 py-0.2 rounded text-[8px] font-mono font-black uppercase tracking-wider bg-purple-500/25 text-purple-200 border border-purple-400/40">
+                  DEEP SCAN
+                </span>
+                <h3 className="text-xs sm:text-sm font-headline font-bold uppercase tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-purple-200 via-indigo-200 to-blue-200">
+                  Forensic Intelligence
                 </h3>
-                <span className="px-2 py-0.5 rounded-full text-[9px] font-mono font-bold uppercase bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                  Exclusive
+                <span className="px-1.5 py-0.2 rounded text-[8px] font-mono font-bold uppercase bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                  {calibratedConfidence}% Conf.
                 </span>
               </div>
-              <div className="flex items-center gap-2 mt-0.5">
-                <span className="flex w-1.5 h-1.5 rounded-full bg-purple-400 shadow-[0_0_8px_rgba(168,85,247,0.8)] animate-pulse" />
-                <span className="text-[10px] text-slate-400 font-mono tracking-wide">
-                  Case ID: {caseId} • Calibrated Confidence: <span className="text-purple-300 font-bold">{calibratedConfidence}%</span>
-                </span>
-              </div>
+              <p className="text-[9px] text-slate-400 font-mono tracking-tight truncate max-w-[200px] sm:max-w-xs">
+                Case: {caseId}
+              </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <button
               onClick={() => setShowDossierModal(true)}
-              className="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all shadow-md shadow-indigo-600/30 flex items-center gap-1.5"
+              className="px-2 py-1 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold font-mono transition-all shadow-sm shadow-indigo-600/30 flex items-center gap-1 flex-shrink-0 cursor-pointer"
+              title="View & Export Official Evidence Dossier"
             >
-              <Icon name="ArrowDownTrayIcon" size={14} />
-              <span>Evidence Dossier</span>
+              <Icon name="ArrowDownTrayIcon" size={11} />
+              <span>Dossier</span>
             </button>
-
-            {modelsUsed && modelsUsed.length > 0 && (
-              <div className="hidden lg:flex items-center gap-1.5 bg-slate-900/90 px-3 py-1.5 rounded-lg border border-slate-800">
-                <Icon name="CpuChipIcon" size={12} className="text-purple-400" />
-                <span className="text-[9px] font-mono text-purple-300 uppercase tracking-wider">
-                  {modelsUsed.join(' + ')}
-                </span>
-              </div>
-            )}
           </div>
         </div>
 
-        {/* 🌟 1. CYBER THREAT INTELLIGENCE & SCAM MODUS OPERANDI MATCH BANNER */}
+        {/* 🌟 1. CYBER THREAT INTELLIGENCE & SCAM MODUS OPERANDI MATCH BANNER (COMPACT) */}
         {threatIntelligence && (
-          <div className="p-6 border-b border-slate-800/80 bg-gradient-to-br from-slate-900/90 to-slate-950">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-3">
-              <div className="flex items-center gap-2">
-                <Icon name="ExclamationTriangleIcon" size={18} className="text-amber-400" />
-                <span className="text-xs font-mono uppercase tracking-widest text-slate-400 font-bold">
-                  Cyber Threat Intelligence Match
+          <div className={`p-3 border-b ${
+            threatIntelligence.severity === 'INFO'
+              ? 'border-emerald-900/30 bg-emerald-950/15'
+              : 'border-slate-800/80 bg-slate-900/60'
+          } space-y-1`}>
+            <div className="flex items-center justify-between gap-1">
+              <div className="flex items-center gap-1.5">
+                <Icon
+                  name={threatIntelligence.severity === 'INFO' ? 'ShieldCheckIcon' : 'ExclamationTriangleIcon'}
+                  size={13}
+                  className={threatIntelligence.severity === 'INFO' ? 'text-emerald-400' : 'text-amber-400'}
+                />
+                <span className={`text-[9px] font-mono uppercase tracking-wider font-bold ${
+                  threatIntelligence.severity === 'INFO' ? 'text-emerald-300' : 'text-amber-300'
+                }`}>
+                  {threatIntelligence.severity === 'INFO' ? 'Deep Scan Baseline Intel' : 'Threat Intel Alert'}
                 </span>
               </div>
-              <div className="flex items-center gap-2">
-                <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold uppercase border ${severityBadge(threatIntelligence.severity)}`}>
-                  {threatIntelligence.severity} SEVERITY
+              <div className="flex items-center gap-1.5">
+                <span className={`px-1.5 py-0.2 rounded text-[8px] font-mono font-bold uppercase border ${severityBadge(threatIntelligence.severity)}`}>
+                  {threatIntelligence.severity}
                 </span>
-                <span className="px-2 py-0.5 rounded-md text-[10px] font-mono bg-slate-800 text-slate-300 border border-slate-700">
+                <span className="px-1.5 py-0.2 rounded text-[8px] font-mono bg-slate-800 text-slate-400 border border-slate-700 truncate max-w-[120px]">
                   {threatIntelligence.advisoryRef}
                 </span>
               </div>
             </div>
 
-            <h4 className="text-base font-headline font-bold text-foreground mb-1.5">
+            <h4 className="text-xs font-headline font-bold text-foreground leading-tight">
               {threatIntelligence.title}
             </h4>
-            <p className="text-xs text-muted-foreground leading-relaxed mb-3">
+            <p className="text-[10px] text-muted-foreground leading-snug line-clamp-2">
               {threatIntelligence.description}
             </p>
 
             {threatIntelligence.indicators && threatIntelligence.indicators.length > 0 && (
-              <div className="p-3.5 rounded-xl bg-slate-900/70 border border-slate-800 space-y-1.5">
-                <span className="text-[10px] font-mono uppercase font-bold text-slate-400">
-                  Modus Operandi Markers Identified:
-                </span>
-                <ul className="space-y-1 text-xs text-slate-300">
-                  {threatIntelligence.indicators.map((ind: string, i: number) => (
-                    <li key={i} className="flex items-start gap-2">
-                      <span className="mt-1 w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
-                      <span>{ind}</span>
-                    </li>
-                  ))}
-                </ul>
+              <div className="pt-0.5 space-y-0.5">
+                {threatIntelligence.indicators.slice(0, 1).map((ind: string, i: number) => (
+                  <div key={i} className="flex items-start gap-1.5 text-[9px] text-slate-300">
+                    <span className={`mt-1 w-1 h-1 rounded-full flex-shrink-0 ${
+                      threatIntelligence.severity === 'INFO' ? 'bg-emerald-400' : 'bg-amber-400'
+                    }`} />
+                    <span className="line-clamp-1">{ind}</span>
+                  </div>
+                ))}
               </div>
             )}
           </div>
         )}
 
-        {/* Navigation Tabs (Anomaly Matrix vs Investigator Dossier) */}
-        <div className="flex border-b border-slate-800 bg-slate-900/40">
+        {/* Compact Navigation Pill Bar */}
+        <div className="flex border-b border-slate-800 bg-slate-900/40 p-1 gap-1">
           <button
             onClick={() => setActiveSubTab('matrix')}
-            className={`flex-1 py-3 px-4 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${
+            className={`flex-1 py-1.5 px-2 text-[11px] font-bold rounded-lg uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
               activeSubTab === 'matrix'
-                ? 'text-purple-300 border-b-2 border-purple-500 bg-purple-500/5'
+                ? 'text-purple-200 bg-purple-600/20 border border-purple-500/30'
                 : 'text-slate-500 hover:text-slate-300'
             }`}
           >
-            <Icon name="Squares2X2Icon" size={15} />
-            <span>4-Vector Anomaly Matrix</span>
+            <Icon name="Squares2X2Icon" size={13} />
+            <span>Anomaly Matrix</span>
           </button>
           <button
             onClick={() => setActiveSubTab('dossier')}
-            className={`flex-1 py-3 px-4 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${
+            className={`flex-1 py-1.5 px-2 text-[11px] font-bold rounded-lg uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
               activeSubTab === 'dossier'
-                ? 'text-purple-300 border-b-2 border-purple-500 bg-purple-500/5'
+                ? 'text-purple-200 bg-purple-600/20 border border-purple-500/30'
                 : 'text-slate-500 hover:text-slate-300'
             }`}
           >
-            <Icon name="DocumentTextIcon" size={15} />
+            <Icon name="DocumentTextIcon" size={13} />
             <span>Investigator Dossier</span>
           </button>
         </div>
 
-        {/* Tab Content */}
-        <div className="p-6">
+        {/* Tab Content (Compact) */}
+        <div className="p-3.5">
           {/* TAB 1: 4-VECTOR ANOMALY MATRIX */}
           {activeSubTab === 'matrix' && anomalyMatrix && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-mono uppercase tracking-wider text-slate-400 font-bold">
-                  Layered Forensic Verification Telemetry
-                </span>
-                <span className="text-[10px] text-slate-500 font-mono">
-                  Multi-signal anomaly synthesis
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+            <div className="space-y-2.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {anomalyMatrix.map((vector) => {
                   const badge = getStatusBadge(vector.status);
                   const isHighRisk = vector.score >= 70;
@@ -384,31 +374,31 @@ export const DeepScanReportCard: React.FC<DeepScanReportProps> = ({ deepScanRepo
                   return (
                     <div
                       key={vector.id}
-                      className={`p-4 rounded-xl border transition-all ${
+                      className={`p-2.5 rounded-lg border transition-all ${
                         isHighRisk
-                          ? 'bg-red-500/5 border-red-500/20'
+                          ? 'bg-red-500/[0.06] border-red-500/25'
                           : isMedRisk
-                          ? 'bg-amber-500/5 border-amber-500/20'
-                          : 'bg-slate-900/50 border-slate-800'
+                          ? 'bg-amber-500/[0.06] border-amber-500/25'
+                          : 'bg-slate-900/60 border-slate-800/80'
                       }`}
                     >
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-bold text-foreground">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-[11px] font-bold text-foreground truncate max-w-[130px]">
                           {vector.label}
                         </span>
                         <span
-                          className={`px-2 py-0.5 rounded-md text-[9px] font-mono font-bold uppercase border flex items-center gap-1.5 ${badge.color}`}
+                          className={`px-1.5 py-0.2 rounded text-[8px] font-mono font-bold uppercase border flex items-center gap-1 ${badge.color}`}
                         >
-                          <span className={`w-1.5 h-1.5 rounded-full ${badge.dot}`} />
+                          <span className={`w-1 h-1 rounded-full ${badge.dot}`} />
                           {badge.label}
                         </span>
                       </div>
 
                       {/* Progress meter */}
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <div className="flex-1 h-1 bg-slate-800 rounded-full overflow-hidden">
                           <div
-                            className={`h-full rounded-full transition-all duration-700 ${
+                            className={`h-full rounded-full transition-all duration-500 ${
                               isHighRisk
                                 ? 'bg-gradient-to-r from-amber-500 to-red-500'
                                 : isMedRisk
@@ -418,12 +408,12 @@ export const DeepScanReportCard: React.FC<DeepScanReportProps> = ({ deepScanRepo
                             style={{ width: `${Math.max(8, Math.min(100, vector.score))}%` }}
                           />
                         </div>
-                        <span className="text-[10px] font-mono font-bold text-muted-foreground">
+                        <span className="text-[9px] font-mono font-bold text-muted-foreground">
                           {vector.score}%
                         </span>
                       </div>
 
-                      <p className="text-xs text-muted-foreground leading-relaxed">
+                      <p className="text-[10px] text-muted-foreground leading-snug line-clamp-2">
                         {vector.finding}
                       </p>
                     </div>
@@ -435,24 +425,15 @@ export const DeepScanReportCard: React.FC<DeepScanReportProps> = ({ deepScanRepo
 
           {/* TAB 2: INVESTIGATOR DOSSIER */}
           {activeSubTab === 'dossier' && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-mono uppercase tracking-wider text-slate-400 font-bold">
-                  Forensic Intelligence Breakdown
-                </span>
-                <span className="text-[10px] text-purple-400 font-mono">
-                  Ground Truth Verdict
-                </span>
-              </div>
-
+            <div className="space-y-2">
               {forensicReport ? (
                 <ForensicReportView text={forensicReport} />
               ) : (
-                <div className="p-6 rounded-xl bg-slate-900/40 border border-slate-800 text-center space-y-2">
-                  <Icon name="DocumentMagnifyingGlassIcon" size={32} className="text-purple-400 mx-auto opacity-60" />
-                  <p className="text-sm font-semibold text-foreground">Forensic Telemetry Synthesized</p>
-                  <p className="text-xs text-muted-foreground max-w-md mx-auto">
-                    Document attributes cross-examined against verified baseline registries with calibrated confidence.
+                <div className="p-4 rounded-lg bg-slate-900/40 border border-slate-800 text-center space-y-1">
+                  <Icon name="DocumentMagnifyingGlassIcon" size={24} className="text-purple-400 mx-auto opacity-60" />
+                  <p className="text-xs font-semibold text-foreground">Forensic Telemetry Synthesized</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    Document attributes cross-examined against verified baseline registries.
                   </p>
                 </div>
               )}
@@ -460,19 +441,15 @@ export const DeepScanReportCard: React.FC<DeepScanReportProps> = ({ deepScanRepo
           )}
         </div>
 
-        {/* Footer */}
-        <div className="px-6 py-3.5 bg-slate-950 border-t border-slate-800/80 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-[10px] text-slate-500 font-mono uppercase tracking-wider">
-            <Icon name="LockClosedIcon" size={12} className="text-purple-400" />
-            <span>Deep Scan Exclusive</span>
-            <span className="w-1 h-1 rounded-full bg-slate-700" />
-            <span>Zero Debate UI • Calibrated Backend</span>
+        {/* Compact Footer */}
+        <div className="px-3.5 py-2 bg-slate-950 border-t border-slate-800/80 flex items-center justify-between text-[9px] text-slate-500 font-mono">
+          <div className="flex items-center gap-1.5">
+            <Icon name="LockClosedIcon" size={10} className="text-purple-400" />
+            <span>Deep Scan Verified</span>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-mono text-slate-500">Cyber Evidence Hash:</span>
-            <span className="text-[10px] font-mono font-bold text-purple-400">
-              {caseId.slice(0, 12)}
-            </span>
+          <div>
+            <span>Hash: </span>
+            <span className="font-bold text-purple-400">{caseId.slice(0, 10)}</span>
           </div>
         </div>
       </div>
