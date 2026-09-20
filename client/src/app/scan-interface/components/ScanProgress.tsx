@@ -12,6 +12,7 @@ import PaymentReceiptCard from '@/app/results-dashboard/components/PaymentReceip
 import CareerDocumentCard from '@/app/results-dashboard/components/CareerDocumentCard';
 import AcademicCertificateCard from '@/app/results-dashboard/components/AcademicCertificateCard';
 import ProphetInsightCard from '@/app/results-dashboard/components/ProphetInsightCard';
+import DeepScanReportCard from '@/app/results-dashboard/components/DeepScanReportCard';
 
 import AiCompletionChecksBanner from '@/app/results-dashboard/components/AiCompletionChecksBanner';
 import ScannedArtifactPreview from '@/app/results-dashboard/components/ScannedArtifactPreview';
@@ -1608,6 +1609,16 @@ export default function ScanProgress({
 
           </div>
         </div>
+
+        {/* 🌟 3. FULL-WIDTH DEEP FORENSICS INVESTIGATION & ANOMALY MATRIX */}
+        {isResultReady && (depth === 'deep' || activeScanData?.depth === 'deep' || Boolean(activeScanData?.deepScanReport) || Boolean(activeScanData?.scanMeta?.deepScanReport)) && (
+          <div className="w-full pt-4 animate-fade-in">
+            <DeepScanReportCard
+              deepScanReport={activeScanData?.deepScanReport || activeScanData?.scanMeta?.deepScanReport}
+              scanData={activeScanData}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
