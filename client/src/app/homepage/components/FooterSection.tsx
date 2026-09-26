@@ -16,7 +16,7 @@ const FooterSection = () => {
 
   const footerLinks = {
     Product: [
-      { label: 'Offer Letter & CTC Audit', href: '/scan-interface' },
+      { label: 'Offer Letter & CTC Audit', href: '/offer-letter-verification' },
       { label: 'AI Image Tamper Detection', href: '/image-verification' },
       { label: 'Company & CIN Registry', href: '/company-verification' },
       { label: 'UPI & Payment Forensics', href: '/payment-verification' },

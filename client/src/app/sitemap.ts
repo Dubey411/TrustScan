@@ -19,6 +19,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.9,
     },
     {
+      url: `${baseUrl}/offer-letter-verification`,
+      lastModified: now,
+      changeFrequency: 'always',
+      priority: 0.95,
+    },
+    {
       url: `${baseUrl}/image-verification`,
       lastModified: now,
       changeFrequency: 'always',

@@ -118,5 +118,73 @@ export const BLOG_ARTICLES: BlogArticle[] = [
       '### Step 3: Formal Complaint on cybercrime.gov.in',
       'Within 24 hours of reporting on 1930, visit `https://cybercrime.gov.in` to convert your acknowledgement number into a formal cybercrime report. Attach screenshots of WhatsApp/Telegram conversations, offer letters, and transaction receipts.'
     ]
+  },
+  {
+    slug: 'rise-of-ai-cyber-security-agents-india-sarvam-cyber',
+    title: 'The Rise of Autonomous AI Security Agents in India: From Sarvam Cyber to Forensic Threat Defense',
+    excerpt: "India's cybersecurity landscape is undergoing a generational shift from static rule checks to autonomous AI agents. An architectural comparison of internal vulnerability discovery agents like Sarvam Cyber and external fraud forensic engines like TrustScan AI.",
+    category: 'Cyber Threat Intelligence',
+    readTime: '8 min read',
+    date: 'September 2026',
+    author: 'Shubham Dubey',
+    content: [
+      'In late 2026, the Indian AI ecosystem witnessed a major technological milestone with the preview of **Sarvam Cyber**—an autonomous AI security agent designed to trace issues across enterprise environments, maintain hypothesis ledgers, and prove exploitability across complex systems.',
+      'This marks a critical turning point for digital defense in India: cybersecurity is transitioning from slow, reactive manual audits to autonomous, multi-modal AI agents operating around the clock.',
+      '### The Dual Front of Indian Cybersecurity',
+      'Modern cybersecurity in India operates on two distinct, complementary battlegrounds:',
+      '- **1. Internal Infrastructure & Code Security (The Sarvam Cyber Domain):** Large enterprises, banking cores (Finacle, SAP), and cloud stacks require autonomous agents capable of code inspection, network vulnerability tracing, and automated remediation before threat actors discover zero-day exploits.',
+      '- **2. External Fraud & Citizen Threat Defense (The TrustScan AI Domain):** Everyday consumers, job seekers, and merchants face weaponized social engineering: counterfeit IT offer letters, spoofed UPI payment APKs, Telegram rating scams, and manipulated photo credentials.',
+      '### How Autonomous Security Agents Think: Hypothesis Ledgers vs. Forensic Invariants',
+      'The key innovation behind autonomous agents like Sarvam Cyber is moving beyond merely flagging theoretical possibilities. By maintaining an internal hypothesis ledger, the agent chains findings together—testing whether a configuration flaw, API vulnerability, and credential leak can be weaponized in practice.',
+      'Similarly, TrustScan AI operates the **TrustScan Invariant Engine**, an autonomous multi-vector forensic agent designed for document and identity defense:',
+      '- **Internal Adversarial Reasoning:** Instead of running slow, biased public debates, TrustScan AI balances internal prosecution and defense heuristics in real-time to compute calibrated confidence scores without false alarms.',
+      '- **Multi-Vector Anomaly Synthesis:** Documents are evaluated across 4 parallel dimensions—Pixel/Visual Integrity (ELA & FFT spectrograms), Corporate Registry Cross-Referencing (MCA CIN & GSTIN), Linguistic Coercion Profiling, and Financial Remittance Routing.',
+      '- **Real-Time Threat Intelligence Matching:** Scan telemetry is matched live against active scam modus operandi archives curated from the Indian Cyber Crime Coordination Centre (I4C), CERT-In, and NPCI advisories.',
+      '### The Sovereign AI Imperative for India',
+      'With over 900 million active internet users and billions of UPI transactions monthly, India cannot rely on foreign, English-only generic AI models to combat localized cyber fraud. Sovereign AI platforms running multi-model cascades—combining lightweight local models with specialized forensic invariants—deliver instant verification in milliseconds at zero cost to citizens.',
+      'As autonomous security agents like Sarvam Cyber defend internal enterprise infrastructure and TrustScan AI protects citizens at the application boundary, India is establishing one of the most resilient, AI-native cyber defense ecosystems in the world.'
+    ]
+  },
+  {
+    slug: 'how-to-detect-ai-generated-images-deepfakes-online',
+    title: 'How to Detect AI-Generated Images & Deepfakes Online: The Forensic Guide to Midjourney, Flux & SDXL',
+    excerpt: 'Generative diffusion models have made synthetic imagery indistinguishable to the human eye. Discover how pixel-level Error Level Analysis (ELA) and 2D Fourier Transform frequency spikes reveal AI generation.',
+    category: 'Image Forensics',
+    readTime: '7 min read',
+    date: 'September 2026',
+    author: 'Shubham Dubey',
+    content: [
+      'The release of state-of-the-art diffusion models like FLUX.1, Midjourney v6, and Stable Diffusion XL (SDXL) has eliminated traditional visual giveaways like distorted fingers or mangled teeth. Today, synthetic profile photos, forged company seals, and fake identity documents appear virtually flawless to the naked eye.',
+      'However, generative neural networks leave mathematical and microscopic fingerprints in the frequency and pixel domains that cannot be hidden from specialized forensic tools.',
+      '### 1. 2D Fast Fourier Transform (FFT) Frequency Analysis',
+      'Natural photographs captured by physical camera sensors exhibit an organic, continuous distribution of spatial frequencies. In contrast, generative convolutional and transformer diffusion architectures synthesize pixels through upsampling grids. This process introduces subtle periodic grid anomalies that manifest as sharp frequency spikes in 2D Fourier spectrograms.',
+      '### 2. Error Level Analysis (ELA) for Stamp and Seal Tampering',
+      'A frequent tactic of Indian employment scammers is lifting genuine company registrar seals from authentic PDFs and pasting them onto forged offer letters. When saved as a JPEG, the newly pasted stamp possesses a distinct compression generation compared to the background letterhead. Error Level Analysis computes the residual difference, causing manipulated seals to glow distinctly against uniform paper.',
+      '### 3. EXIF and Camera Hardware Fingerprint Auditing',
+      'Authentic camera shots contain extensive EXIF metadata: shutter speed, ISO, aperture, focal length, and specific camera sensor serial numbers. AI-generated graphics typically lack hardware sensor noise completely or feature generic software tags left by image processing suites.',
+      '### 4. Running a Free Instant Forensic Scan',
+      'TrustScan AI provides a free, instant online AI image detector. By simply uploading any photo, certificate image, or corporate document, users receive a multi-model forensic breakdown with AI generation percentage, edit confidence, and Error Level Analysis heatmaps.'
+    ]
+  },
+  {
+    slug: 'how-to-spot-fake-aadhaar-pan-card-online',
+    title: 'How to Spot Fake Aadhaar Cards & Indian IDs: Hologram, QR Code & Verhoeff Checksum Guide',
+    excerpt: 'A definitive technical guide to inspecting Indian identity documents. Learn how the Verhoeff dihedral checksum, ghost photo alignment, and microprinting expose forged Aadhaar and PAN cards.',
+    category: 'Identity Verification',
+    readTime: '6 min read',
+    date: 'September 2026',
+    author: 'Shubham Dubey',
+    content: [
+      'Fabricated government identity proofs—particularly Aadhaar cards, PAN cards, and voter IDs—are commonly exploited in tenant onboarding, financial loan fraud, SIM card procurement, and employment impersonation schemes across India.',
+      'Detecting counterfeit identity credentials requires verifying both mathematical integrity and physical micro-security features.',
+      '### 1. The Mathematical Verhoeff Checksum Test',
+      'A 12-digit Aadhaar number is not a random sequence. The final 12th digit is a mathematical checksum computed using the Verhoeff dihedral group D5 algorithm. This algorithm catches 100% of single-digit misreadings and over 95% of adjacent transposition errors. Amateur fraudsters often fabricate arbitrary 12-digit numbers that immediately fail Verhoeff algorithm validation.',
+      '### 2. Ghost Photograph & Demographic Alignment',
+      'Genuine modern Aadhaar cards feature a faint, semi-transparent "ghost photo" printed adjacent to the primary portrait. On counterfeit laminated cards, scammers usually neglect this layer or misalign the ghost photo with the candidate’s primary picture.',
+      '### 3. Guilloche Wave Patterns & Microtext Lines',
+      'Authentic government security printing utilizes complex, continuous Guilloche curve patterns that cannot be reproduced cleanly on standard consumer inkjet or laser printers. Counterfeit cards exhibit blurred or broken wavy lines under 5x magnification.',
+      '### 4. Cryptographic Secure QR Code Verification',
+      'The QR code printed on authentic Aadhaar cards contains a cryptographically signed data block with 2048-bit digital signature from UIDAI. TrustScan AI automatically decodes QR data and verifies baseline digital signatures to confirm genuine issuance.'
+    ]
   }
 ];

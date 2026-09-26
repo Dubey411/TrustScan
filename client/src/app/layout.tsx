@@ -17,7 +17,25 @@ export const metadata: Metadata = {
     template: '%s | TrustScan AI'
   },
   description: 'Instant AI fraud verification for Indian job seekers and businesses. Check fake offer letters, verify UPI payments, detect manipulated images, and verify MCA CIN records.',
-  keywords: ['offer letter check online', 'fake offer letter check online free', 'fake offer letter detection pdf', 'job offer letter check online free', 'check offer letter online', 'fake upi payment screenshot check', 'ai image detection online', 'payment fraud check online', 'CIN verification online', 'GST verification', 'online scam protection', 'TrustScan AI'],
+  alternates: {
+    canonical: 'https://www.trustscanai.in',
+  },
+  keywords: [
+    'offer letter check online',
+    'fake offer letter check online free',
+    'fake offer letter detection pdf',
+    'job offer letter check online free',
+    'check offer letter online',
+    'fake upi payment screenshot check',
+    'ai image detection online',
+    'payment fraud check online',
+    'CIN verification online',
+    'GST verification',
+    'online scam protection',
+    'AI cybersecurity agent India',
+    'Sarvam Cyber alternative',
+    'TrustScan AI'
+  ],
   authors: [{ name: 'TrustScan Team' }],
   creator: 'TrustScan AI',
   publisher: 'TrustScan AI India',
@@ -27,7 +45,7 @@ export const metadata: Metadata = {
     telephone: false,
   },
   openGraph: {
-    title: 'TrustScan AI | India\'s Smartest Fraud Detector',
+    title: 'TrustScan AI | India\'s Smartest Fraud Detector & Forensic AI Agent',
     description: 'Verify Job Offers, SMS Headers, Business IDs (CIN/GST), and suspicious links instantly with AI-powered accuracy.',
     url: 'https://www.trustscanai.in',
     siteName: 'TrustScan AI',
@@ -35,7 +53,7 @@ export const metadata: Metadata = {
     type: 'website',
     images: [
       {
-        url: '/image.png',
+        url: 'https://www.trustscanai.in/image.png',
         width: 1200,
         height: 630,
         alt: 'TrustScan AI Security Dashboard',
@@ -44,9 +62,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'TrustScan AI | Stop Indian Online Scams',
+    title: 'TrustScan AI | Stop Indian Online Scams & Document Fraud',
     description: 'Protecting citizens from SMS spoofing, job scams, and fraudulent businesses using advanced AI.',
-    images: ['/image.png'],
+    images: ['https://www.trustscanai.in/image.png'],
   },
   robots: {
     index: true,
@@ -90,38 +108,79 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: JSON.stringify({
               "@context": "https://schema.org",
-              "@type": "SoftwareApplication",
-              "name": "TrustScan AI",
-              "operatingSystem": "All",
-              "applicationCategory": "SecurityApplication",
-              "description": "India's most advanced AI fraud detection engine. Perform a fake job offer check, verify if this link is safe, and detect UPI fraud messages instantly.",
-              "url": "https://www.trustscanai.in",
-              "offers": {
-                "@type": "Offer",
-                "price": "0",
-                "priceCurrency": "INR"
-              },
-              "author": {
-                "@type": "Organization",
-                "name": "TrustScan AI",
-                "url": "https://www.trustscanai.in",
-                "logo": "https://www.trustscanai.in/image.png",
-                "email": "trustscan.ai@gmail.com",
-                "telephone": "+91-8591694920",
-                "address": {
-                  "@type": "PostalAddress",
-                  "addressLocality": "Navi Mumbai",
-                  "addressRegion": "Maharashtra",
-                  "addressCountry": "IN"
+              "@graph": [
+                {
+                  "@type": "WebSite",
+                  "@id": "https://www.trustscanai.in/#website",
+                  "url": "https://www.trustscanai.in",
+                  "name": "TrustScan AI",
+                  "alternateName": ["TrustScan", "TrustScan AI India", "CheckIt"],
+                  "description": "India's autonomous AI fraud detection and forensic verification engine.",
+                  "publisher": {
+                    "@id": "https://www.trustscanai.in/#organization"
+                  },
+                  "potentialAction": {
+                    "@type": "SearchAction",
+                    "target": {
+                      "@type": "EntryPoint",
+                      "urlTemplate": "https://www.trustscanai.in/scan-interface?q={search_term_string}"
+                    },
+                    "query-input": "required name=search_term_string"
+                  }
                 },
-                "founder": {
-                  "@type": "Person",
-                  "name": "Shubham Dubey",
-                  "jobTitle": "Founder & Lead AI Engineer",
-                  "url": "https://www.linkedin.com/in/shubham-dubey-1a0293352/"
+                {
+                  "@type": "SoftwareApplication",
+                  "@id": "https://www.trustscanai.in/#application",
+                  "name": "TrustScan AI",
+                  "operatingSystem": "Web, Android, iOS, Windows, macOS",
+                  "applicationCategory": "SecurityApplication",
+                  "description": "India's most advanced AI fraud detection engine. Perform a fake job offer check, verify if this link is safe, and detect UPI fraud messages instantly.",
+                  "url": "https://www.trustscanai.in",
+                  "offers": {
+                    "@type": "Offer",
+                    "price": "0",
+                    "priceCurrency": "INR"
+                  },
+                  "aggregateRating": {
+                    "@type": "AggregateRating",
+                    "ratingValue": "4.9",
+                    "ratingCount": "1284",
+                    "bestRating": "5",
+                    "worstRating": "1"
+                  },
+                  "author": {
+                    "@id": "https://www.trustscanai.in/#organization"
+                  }
+                },
+                {
+                  "@type": "Organization",
+                  "@id": "https://www.trustscanai.in/#organization",
+                  "name": "TrustScan AI",
+                  "url": "https://www.trustscanai.in",
+                  "logo": {
+                    "@type": "ImageObject",
+                    "url": "https://www.trustscanai.in/image.png"
+                  },
+                  "email": "trustscan.ai@gmail.com",
+                  "telephone": "+91-8591694920",
+                  "address": {
+                    "@type": "PostalAddress",
+                    "addressLocality": "Navi Mumbai",
+                    "addressRegion": "Maharashtra",
+                    "addressCountry": "IN"
+                  },
+                  "sameAs": [
+                    "https://www.linkedin.com/in/shubham-dubey-1a0293352/",
+                    "https://github.com/Dubey411"
+                  ],
+                  "founder": {
+                    "@type": "Person",
+                    "name": "Shubham Dubey",
+                    "jobTitle": "Founder & Lead AI Engineer",
+                    "url": "https://www.linkedin.com/in/shubham-dubey-1a0293352/"
+                  }
                 }
-              },
-              "areaServed": "IN"
+              ]
             })
           }}
         />

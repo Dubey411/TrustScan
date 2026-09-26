@@ -21,6 +21,21 @@ const nextConfig: NextConfig = {
         destination: '/',
         permanent: true,
       },
+      {
+        source: '/fake-offer-letter-check',
+        destination: '/offer-letter-verification',
+        permanent: true,
+      },
+      {
+        source: '/ai-image-detector',
+        destination: '/image-verification',
+        permanent: true,
+      },
+      {
+        source: '/fake-upi-check',
+        destination: '/payment-verification',
+        permanent: true,
+      },
     ];
   },
 };
